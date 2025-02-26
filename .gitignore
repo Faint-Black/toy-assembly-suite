@@ -1,2 +1,7 @@
+# Zig files
 .zig-cache/
 zig-out/
+
+# Output files
+*.bin
+*.rom

@@ -1,0 +1,35 @@
+LDA 0x80
+;; this is a comment
+; this too
+
+.macro ThisMacro
+  NOP
+  NOP
+  NOP
+  NOP
+.endmacro
+
+Foo:
+CLC
+CLC
+STX Foo ;this DOES NOT store at the address 0x00
+CLC
+CLC
+
+ThisMacro
+ThisMacro
+
+.db 0xDE 0xAD 0xBE 0xEF
+CLC
+.dw 0xDEAD 0xBEEF
+CLC
+.dd 0xDEADBEEF
+
+_START:
+LDA 0xFF
+STA Foo
+LDA 0x8000
+
+.db 'a' 'b' 'c'
+NOP
+.db "ab\"c\n"

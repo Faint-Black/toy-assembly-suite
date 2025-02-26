@@ -1,0 +1,106 @@
+;; this file is meant to test all possible instructions and tokens
+;; << only for compilation testing, not for execution >>
+
+; i' a'm a com; "me"nt!
+
+;; equivalent due to low endianness
+.db 0x11 0x22 0x33 0x44
+.dw 0x2211 0x4433
+.dd 0x44332211
+
+;; double quotes automatically append a null terminator at the end
+.db "ABCD"
+;; single quotes does not
+.db 'A' 'B' 'C' 'D'
+.db 'ABCD'
+;; full support for escape character syntax:
+;; (but only for these select characters though)
+.db "\" \' \\ \t \n"
+
+.macro WAIT_4_CYCLES
+  NOP
+  NOP
+  NOP
+  NOP
+.endmacro
+
+;; preprocessor testing area
+Foo:
+WAIT_4_CYCLES
+WAIT_4_CYCLES
+
+;; use of the special "_START" label
+;; it determines a custom entry point for the program
+_START:
+SYSCALL
+BRK
+NOP
+CLC
+SEC
+RET
+;; literal syntax = "0xff"
+LDA 0x42
+LDX 0x42
+LDY 0x42
+;; address syntax = "$0xff"
+LDA $0x1337
+LDX $0x1337
+LDY $0x1337
+LDA X
+LDA Y
+LDX A
+LDX Y
+LDY A
+LDY X
+LDA $0x1337 X
+LDA $0x1337 Y
+STA $0x1337
+STX $0x1337
+STY $0x1337
+JMP ForwardReference
+JSR ForwardReference
+CMP A X
+CMP A Y
+CMP A 0x42
+CMP A $0x1337
+CMP X A
+CMP X Y
+CMP X 0x42
+CMP X $0x1337
+CMP Y X
+CMP Y A
+CMP Y 0x42
+CMP Y $0x1337
+BCS ForwardReference
+BCC ForwardReference
+BEQ ForwardReference
+BNE ForwardReference
+BMI ForwardReference
+BPL ForwardReference
+BVS ForwardReference
+BVC ForwardReference
+ADD 0x42
+ADD $0x1337
+ADD X
+ADD Y
+SUB 0x42
+SUB $0x1337
+SUB X
+SUB Y
+INC A
+INC X
+INC Y
+INC $0x1337
+DEC A
+DEC X
+DEC Y
+DEC $0x1337
+PUSH A
+PUSH X
+PUSH Y
+POP A
+POP X
+POP Y
+
+ForwardReference:
+NOP

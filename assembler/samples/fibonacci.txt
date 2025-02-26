@@ -1,0 +1,76 @@
+;; This source will continuously print the fibonacci sequence.
+;; it will mostly display all assembler functionalities,
+;; such as macros and labels.
+
+.macro PUSH_REGISTERS
+  PUSH A
+  PUSH X
+  PUSH Y
+.endmacro
+
+.macro POP_REGISTERS
+  POP Y
+  POP X
+  POP A
+.endmacro
+
+_START:
+  PUSH_REGISTERS
+  LDA 0x6
+  JSR Fibonacci
+  POP_REGISTERS
+
+;; [subroutine]
+;; description: Calculate the nth fibonacci sequence number
+;; arguments: n = Accumulator
+;; return: result = Accumulator
+;; memory use: addresses $0x0-0x3, $0x4-0x7, $0x8-0xB and $0xC-0xF
+Fibonacci:
+  ;; local memory map:
+  ;; $0x00-0x03 = int n
+  ;; $0x04-0x07 = int temp1
+  ;; $0x08-0x0B = int temp2
+  ;; $0x0C-0x0F = int temp3
+
+  ;; int n = input argument
+  STA $0x0
+
+  ;; if (arg == 0) return 0
+  CMP A 0x00
+  BNE Skip_A
+  RET
+  Skip_A:
+
+  ;; if (arg == 1) return 1
+  CMP A 0x01
+  BNE Skip_B
+  RET
+  Skip_B:
+
+  ;; int temp1 = 0
+  LDA 0x00
+  STA $0x4
+  ;; int temp2 = 1
+  LDA 0x01
+  STA $0x8
+  ;; --n to avoid off by one error
+  DEC $0x0
+  Loop:
+    ;; temp3 = temp1 + temp2
+    LDA $0x4
+    CLC
+    ADD $0x8
+    STA $0xC
+    ;; temp1 = temp2
+    LDA $0x8
+    STA $0x4
+    ;; temp2 = temp3
+    LDA $0xC
+    STA $0x8
+    ;; if (--n != 0) continue loop
+    DEC $0x0
+    BNE Loop
+
+  ;; return temp2
+  LDA $0x8
+  RET
