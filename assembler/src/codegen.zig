@@ -732,7 +732,6 @@ pub const Opcode = enum(u8) {
     BPL_ADDR,
     BVS_ADDR,
     BVC_ADDR,
-
     // Addition with carry
     ADD_LIT,
     ADD_ADDR,

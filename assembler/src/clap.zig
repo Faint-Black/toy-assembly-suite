@@ -10,11 +10,16 @@
 const std = @import("std");
 
 pub const Flags = struct {
+    /// remember allocator for Deinit
     allocator: std.mem.Allocator = undefined,
 
+    /// flags
     binary_directory: ?[]u8 = null,
     input_filename: ?[]u8 = null,
     output_filename: ?[]u8 = null,
+    debug_mode: bool = false,
+
+    /// info flags
     help: bool = false,
     version: bool = false,
 
@@ -64,6 +69,8 @@ pub fn Parse_Arguments(allocator: std.mem.Allocator) !Flags {
             expecting_input_filename = true;
         } else if (std.mem.eql(u8, arg.?, "-o") or std.mem.eql(u8, arg.?, "--output")) {
             expecting_output_filename = true;
+        } else if (std.mem.eql(u8, arg.?, "-d") or std.mem.eql(u8, arg.?, "--debug")) {
+            result.debug_mode = true;
         } else {
             std.log.err("Unknown argument: \"{s}\"", .{arg.?});
             return error.BadArgument;
@@ -100,9 +107,11 @@ pub fn Help_String() []const u8 {
     \\    Output this text.
     \\-v, --version
     \\    Output the version of the program.
-    \\-i "path/to/file.txt", --input "path/to/file.txt"
+    \\-d, --debug
+    \\    Enable debug mode.
+    \\-i "path/to/source.txt", --input "path/to/source.txt"
     \\    Perform the program operation on a text file.
-    \\-o "new/path/to/file.bin", --output "new/path/to/file.bin"
+    \\-o "new/path/to/rom.bin", --output "new/path/to/rom.bin"
     \\    Define the output filename and filepath.
     \\    You may leave this empty for no file output.
     \\
@@ -113,7 +122,7 @@ pub fn Version_String() []const u8 {
     return 
     \\The toy assembler program
     \\Assembly suite version 1
-    \\Assembler version 0.1.0
+    \\Assembler version 0.2.0
     \\
     ;
 }

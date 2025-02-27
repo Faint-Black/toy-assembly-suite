@@ -1,7 +1,7 @@
 # Toy Assembly Suite
-A pack of programs that compile, debug and execute a custom assembly instruction-set inspired by the 6502 chip.
+A pack of programs that compile, debug and execute a custom 32-bit assembly instruction-set inspired by the 6502 chip.
 
-Completely written in Zig.
+Fully written in Zig.
 
 ---
 
@@ -20,20 +20,23 @@ Which type of executable you need is completely up to you, zig provides 4 choice
 zig build
 ```
 
-* Fast release version
+* Fast version, the standard optimized non-debug release version
 ```sh
 zig build --release=fast
 ```
 
-* Safe release version
+* Safe version, in case you need optimizations as well as runtime safety
 ```sh
 zig build --release=safe
 ```
 
-* Small release version
+* Small version, if you care about binary executable file sizes
 ```sh
 zig build --release=small
 ```
+
+## Running
+The emitted executable binary should be in the zig-out/bin/ directory, run the binary with the "-h" flag for more help information regarding the program specifications.
 
 ---
 
