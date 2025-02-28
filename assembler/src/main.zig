@@ -16,31 +16,6 @@ const sym = @import("symbol.zig");
 const pp = @import("preprocessor.zig");
 const codegen = @import("codegen.zig");
 
-// TODO: on march 3rd Zig 0.14 will be fully released, update codebase accordingly.
-// TODO: implement .repeat n and .endrepeat
-// TODO: implement .define
-// TODO: implement .let
-// TODO: anonymous and relative labels
-
-/// EXECUTION MODEL:
-///
-/// 1st step, turn the raw input string into usable tokens.
-/// lex: [input file string] -> [lexed tokens]
-///
-/// 2nd step, remove the preprocessor definitions and add them
-/// to the global identifier symbol table.
-/// strip: [lexed tokens] -> [stripped tokens]
-///
-/// 3rd step, if any preprocessor identifier is found, expand
-/// them accordingly.
-/// expand: [stripped tokens] -> [expanded tokens]
-///
-/// 4th step, now with the tokens in their finalized state, start
-/// the actual vmachine bytecode generation.
-/// codegen: [expanded tokens] -> [rom bytecode]
-///
-/// 5th and final step, output the bytecode as a binary file.
-/// emit: [rom bytecode] -> [rom file]
 pub fn main() !void {
     // begin benchmark
     var timer = try std.time.Timer.start();
