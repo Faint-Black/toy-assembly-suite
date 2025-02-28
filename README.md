@@ -3,6 +3,15 @@ A pack of programs that compile, debug and execute a custom 32-bit assembly inst
 
 Fully written in Zig.
 
+## The Assembler
+Responsible for taking an assembly source file as input and outputting a rom binary file that can be executed by the virtual machine.
+
+## The Debugger
+Coming soon!
+
+## The Virtual Machine
+Coming soon!
+
 ---
 
 ## Build
@@ -35,16 +44,5 @@ zig build --release=safe
 zig build --release=small
 ```
 
-## Running
+## Run
 The emitted executable binary should be in the zig-out/bin/ directory, run the binary with the "-h" flag for more help information regarding the program specifications.
-
----
-
-## The Assembler
-Responsible for taking an assembly source file as input and outputting a rom binary file that can be executed by the virtual machine.
-
-## The Debugger
-Coming soon!
-
-## The Virtual Machine
-Coming soon!

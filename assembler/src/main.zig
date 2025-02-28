@@ -2,7 +2,8 @@
 //                                                             //
 //                           MAIN                              //
 //                                                             //
-//   Compiled with Zig 0.14.0-dev (EXPERIMENTAL DEV BUILD).    //
+//   Compiled with Zig 0.14.0-dev (EXPERIMENTAL DEV BUILD),    //
+//  Patch notes and license details at the bottom.             //
 //                                                             //
 //=============================================================//
 
@@ -17,7 +18,9 @@ const codegen = @import("codegen.zig");
 
 // TODO: on march 3rd Zig 0.14 will be fully released, update codebase accordingly.
 // TODO: implement .repeat n and .endrepeat
-// TODO: set address bytecode size to 16-bit
+// TODO: implement .define
+// TODO: implement .let
+// TODO: anonymous and relative labels
 
 /// EXECUTION MODEL:
 ///
@@ -129,4 +132,22 @@ pub fn main() !void {
     // end benchmark
     const nanoseconds = timer.read();
     try std.io.getStdOut().writer().print("Compilation done in {}\n", .{std.fmt.fmtDuration(nanoseconds)});
+
+    if (flags.output_filename) |output_filename| {
+        try std.io.getStdOut().writer().print("Written {} bytes to {s}\n", .{ rom.len, output_filename });
+    }
 }
+
+// LICENSE:
+// The entire Toy Assembly Suite Codebase is under the GNU General Public License Version 3.0
+//
+// PATCH NOTES:
+// Assembler 0.1
+//  -first stable functional release
+// Assembler 0.2
+//  -introduction of macros
+// Assembler 0.3
+//  -addresses are now 16-bit since a 32-bit address space
+//   would be completely unrealistic, no one will use this language
+//   long enough to question himself if he should use a jump near or
+//   jump far...

@@ -1,7 +1,7 @@
-# Zig files
+# Zig output files
 .zig-cache/
 zig-out/
 
-# Output files
+# Assembler output files
 *.bin
 *.rom

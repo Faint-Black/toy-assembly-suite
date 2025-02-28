@@ -42,22 +42,22 @@ pub fn Write_To_File(file: std.fs.File, bytes: []const u8) !void {
 
 /// spacebar, null terminator, newline or tabs
 pub fn Is_Char_Whitespace(c: u8) bool {
-    return ((c == ' ') or (c == '\t') or (c == '\n') or (c == 0));
+    return std.ascii.isWhitespace(c) or (c == 0);
 }
 
 /// [a-z] or [A-Z]
 pub fn Is_Char_Letter(c: u8) bool {
-    return (((c >= 'a') and (c <= 'z')) or ((c >= 'A') and (c <= 'Z')));
+    return std.ascii.isAlphabetic(c);
 }
 
 /// [0-9]
 pub fn Is_Char_Decimal_Digit(c: u8) bool {
-    return ((c >= '0') and (c <= '9'));
+    return std.ascii.isDigit(c);
 }
 
 /// [0-9] or [a-f] or [A-F]
 pub fn Is_Char_Hexadecimal_Digit(c: u8) bool {
-    return (((c >= '0') and (c <= '9')) or ((c >= 'a') and (c <= 'f')) or ((c >= 'A') and (c <= 'F')));
+    return std.ascii.isHex(c);
 }
 
 /// places an element at the end of a buffer, dictated by buffer_size

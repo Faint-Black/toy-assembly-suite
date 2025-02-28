@@ -103,6 +103,10 @@ pub fn Help_String() []const u8 {
     return 
     \\The toy assembler program.
     \\
+    \\Examples of usage:
+    \\$ ./assembler -i "samples/fibonacci.txt" -o "fib.bin"
+    \\$ ./assembler -i "samples/alltokens.txt" -d
+    \\
     \\-h, --help
     \\    Output this text.
     \\-v, --version
@@ -122,7 +126,7 @@ pub fn Version_String() []const u8 {
     return 
     \\The toy assembler program
     \\Assembly suite version 1
-    \\Assembler version 0.2.0
+    \\Assembler version 0.3.0
     \\
     ;
 }

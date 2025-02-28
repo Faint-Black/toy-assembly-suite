@@ -46,7 +46,7 @@ pub fn Lexer(allocator: std.mem.Allocator, input: []const u8) ![]tok.Token {
             escapeChar = true;
             continue;
         }
-        // deactivate escapeChar mode at the end of the loop iteration.
+        // deactivate escapeChar mode at the end of each loop iteration.
         // this probably can be put as a normal statement at the top of
         // the loop, but i'm too scared of messing up this somewhat
         // delicate code...
@@ -239,22 +239,20 @@ fn Lex_Number_Word(str: []const u8) !?tok.Token {
     var is_address = false;
     var base: u8 = 0;
 
-    // check if word is a number in the first place
+    // to be a number token the following characters are accepted:
+    // [0-9][a-f][A-F] to represent the numbers
+    // "$" prefix to represent an address
+    // "0x" to represent a hexadecimal base
+    // "0d" to represent a decimal base
     for (str) |c| {
-        // to be a number token the following characters are accepted:
-        // [0-9][a-f][A-F] to represent the numbers
-        // "$" prefix to represent an address
-        // "0x" to represent a hexadecimal base
-        // "0d" to represent a decimal base
-        if (!(utils.Is_Char_Hexadecimal_Digit(c)) and !(c == '$') and !(c == 'x') and !(c == 'd')) {
+        if (!(utils.Is_Char_Hexadecimal_Digit(c)) and !(c == '$') and !(c == 'x') and !(c == 'd'))
             return null;
-        }
     }
 
     if (str[0] == '$')
         is_address = true;
 
-    // positional interference based on existance of address prefix
+    // positional interference based on existance of address prefix character
     // address: $0xff
     // literal: 0xff
     if (is_address) {
@@ -294,13 +292,14 @@ fn Lex_Number_Word(str: []const u8) !?tok.Token {
         buffsize += 1;
     }
 
-    // number cannot be larger than 0xFFFFFFFF (32-bit)
-    const num_digits = buffsize;
-    if ((num_digits > 8) and base == 16)
-        return error.NumTooLarge;
-
     // now to transform the string into a number
-    const token_value: u32 = try std.fmt.parseUnsigned(u32, buffer[0..buffsize], base);
+    const token_value = std.fmt.parseUnsigned(u32, buffer[0..buffsize], base) catch |err| {
+        if (std.mem.eql(u8, @errorName(err), "Overflow")) {
+            return error.NumTooLarge;
+        } else {
+            return error.Unknown;
+        }
+    };
 
     // and decide its type
     var token_type: tok.TokenType = undefined;
@@ -309,6 +308,10 @@ fn Lex_Number_Word(str: []const u8) !?tok.Token {
     } else {
         token_type = .LITERAL;
     }
+
+    // addresses cannot be larger than 0xFFFF (16-bit)
+    if (token_type == .ADDRESS and token_value > 0xFFFF)
+        return error.AddrTooLarge;
 
     return tok.Token{
         .value = token_value,
@@ -396,8 +399,9 @@ test "value token parsing" {
     try std.testing.expect(maybe_token == null);
 
     // must be a valid, in range, 32-bit unsigned integer
-    error_token = Lex_Number_Word("0xFFFFFFFF1");
+    error_token = Lex_Number_Word("0xFFFFFFFF0");
     try std.testing.expectError(error.NumTooLarge, error_token);
-    error_token = Lex_Number_Word("$0xFFFFFFFF1");
-    try std.testing.expectError(error.NumTooLarge, error_token);
+    // addresses must be 16-bit
+    error_token = Lex_Number_Word("$0xFFFF0");
+    try std.testing.expectError(error.AddrTooLarge, error_token);
 }

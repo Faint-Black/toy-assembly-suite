@@ -94,12 +94,6 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expanded
             // same effect as changing its value
             try symTable.*.Add(label_symbol);
 
-            // special case: code entry point label
-            // store address value in respective header bytes
-            if (std.mem.eql(u8, token.identKey.?, "_START")) {
-                std.mem.copyForwards(u8, rom_vector.items[2..6], &std.mem.toBytes(current_address_value_token.value));
-            }
-
             continue;
         }
 
@@ -152,7 +146,8 @@ fn Second_Pass(allocator: std.mem.Allocator, symTable: sym.SymbolTable, expanded
             return error.MisuseOfLabels;
         }
         const address_value = symbol.value.label.value;
-        std.mem.copyForwards(u8, rom_vector.items[2..6], &std.mem.toBytes(address_value));
+        rom_vector.items[2] = @truncate(address_value);
+        rom_vector.items[3] = @truncate(address_value >> 8);
     }
 
     // for every token loop
@@ -246,7 +241,7 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
         try vec.*.append(0);
     } else if (t[0].tokType == .SYSCALL) {
         // "SYSCALL"
-        // Performs a (virtual) machine system call
+        // Initiate a (virtual) machine system call
         // instruction byte len = 1
         try vec.*.append(@intFromEnum(Opcode.SYSTEMCALL));
     } else if (t[0].tokType == .BRK) {
@@ -295,21 +290,21 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
     } else if (t[0].tokType == .LDA and t[1].tokType == .ADDRESS) {
         // "LDA $0x1337"
         // Load value from address into accumulator
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.LDA_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .LDX and t[1].tokType == .ADDRESS) {
         // "LDX $0x1337"
         // Load value from address into X index
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.LDX_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .LDY and t[1].tokType == .ADDRESS) {
         // "LDY $0x1337"
         // Load value from address into Y index
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.LDY_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .LDA and t[1].tokType == .X) {
         // "LDA X"
         // Transfer the contents of the X index into the accumulator
@@ -343,45 +338,45 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
     } else if (t[0].tokType == .LDA and t[1].tokType == .ADDRESS and t[2].tokType == .X) {
         // "LDA $0x1337 X"
         // Load value from address indexed by X into the accumulator
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.LDA_ADDR_X));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .LDA and t[1].tokType == .ADDRESS and t[2].tokType == .Y) {
         // "LDA $0x1337 Y"
         // Load value from address indexed by X into the accumulator
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.LDA_ADDR_Y));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .STA and t[1].tokType == .ADDRESS) {
         // "STA $0x1337"
         // Store accumulator value into address
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.STA_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .STX and t[1].tokType == .ADDRESS) {
         // "STX $0x1337"
         // Store X index value into address
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.STX_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .STY and t[1].tokType == .ADDRESS) {
         // "STY $0x1337"
         // Store Y index value into address
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.STY_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .JMP and t[1].tokType == .ADDRESS) {
         // "JMP Foo"
         // Jump to rom address
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.JMP_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .JSR and t[1].tokType == .ADDRESS) {
         // "JSR Foo"
         // Save current PC and jump to rom address
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.JSR_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .CMP and t[1].tokType == .A and t[2].tokType == .X) {
         // "CMP A X"
         // Compares the accumulator to the X index
@@ -401,9 +396,9 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
     } else if (t[0].tokType == .CMP and t[1].tokType == .A and t[2].tokType == .ADDRESS) {
         // "CMP A $0x1337"
         // Compares the accumulator to the value inside an address
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.CMP_A_ADDR));
-        try Append_Generic(vec, t[2].value);
+        try Append_Generic_Limited(vec, t[2].value, 2);
     } else if (t[0].tokType == .CMP and t[1].tokType == .X and t[2].tokType == .A) {
         // "CMP X A"
         // Compares the X index to the accumulator
@@ -423,9 +418,9 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
     } else if (t[0].tokType == .CMP and t[1].tokType == .X and t[2].tokType == .ADDRESS) {
         // "CMP X $0x1337"
         // Compares the X index to the value inside an address
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.CMP_X_ADDR));
-        try Append_Generic(vec, t[2].value);
+        try Append_Generic_Limited(vec, t[2].value, 2);
     } else if (t[0].tokType == .CMP and t[1].tokType == .Y and t[2].tokType == .X) {
         // "CMP Y X"
         // Compares the Y index to the X index
@@ -445,57 +440,57 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
     } else if (t[0].tokType == .CMP and t[1].tokType == .Y and t[2].tokType == .ADDRESS) {
         // "CMP Y $0x1337"
         // Compares the Y index to the value inside an address
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.CMP_Y_ADDR));
-        try Append_Generic(vec, t[2].value);
+        try Append_Generic_Limited(vec, t[2].value, 2);
     } else if (t[0].tokType == .BCS and t[1].tokType == .ADDRESS) {
         // "BCS Foo"
         // Branch if carry set
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.BCS_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .BCC and t[1].tokType == .ADDRESS) {
         // "BCC Foo"
         // Branch if carry clear
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.BCC_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .BEQ and t[1].tokType == .ADDRESS) {
         // "BEQ Foo"
         // Branch if equal
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.BEQ_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .BNE and t[1].tokType == .ADDRESS) {
         // "BNE Foo"
         // Branch if not equal
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.BNE_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .BMI and t[1].tokType == .ADDRESS) {
         // "BMI Foo"
         // Branch if minus
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.BMI_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .BPL and t[1].tokType == .ADDRESS) {
         // "BPL Foo"
         // Branch if plus
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.BPL_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .BVS and t[1].tokType == .ADDRESS) {
         // "BVS Foo"
         // Branch if overflow set
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.BVS_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .BVC and t[1].tokType == .ADDRESS) {
         // "BVC Foo"
         // Branch if overflow clear
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.BVC_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .ADD and t[1].tokType == .LITERAL) {
         // "ADD 0x42"
         // accumulator += (literal + carry)
@@ -505,9 +500,9 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
     } else if (t[0].tokType == .ADD and t[1].tokType == .ADDRESS) {
         // "ADD $0x1337"
         // accumulator += (value in address + carry)
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.ADD_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .ADD and t[1].tokType == .X) {
         // "ADD X"
         // accumulator += (X index + carry)
@@ -527,9 +522,9 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
     } else if (t[0].tokType == .SUB and t[1].tokType == .ADDRESS) {
         // "SUB $0x1337"
         // accumulator -= (value in address + carry - 1)
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.SUB_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .SUB and t[1].tokType == .X) {
         // "SUB X"
         // accumulator -= (X index + carry - 1)
@@ -558,9 +553,9 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
     } else if (t[0].tokType == .INC and t[1].tokType == .ADDRESS) {
         // "INC $0x1337"
         // Increment the value inside the address by one
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.INC_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .DEC and t[1].tokType == .A) {
         // "DEC A"
         // Decrement the accumulator by one
@@ -580,9 +575,9 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
     } else if (t[0].tokType == .DEC and t[1].tokType == .ADDRESS) {
         // "DEC $0x1337"
         // Decrement the value inside the address by one
-        // instruction byte len = 1 + 4
+        // instruction byte len = 1 + 2
         try vec.*.append(@intFromEnum(Opcode.DEC_ADDR));
-        try Append_Generic(vec, t[1].value);
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if (t[0].tokType == .PUSH and t[1].tokType == .A) {
         // "PUSH A"
         // Pushes the value of the accumulator to the stack
@@ -623,16 +618,19 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
 fn Create_Header(rom_vector: *std.ArrayList(u8), version: u8) !void {
     // byte 0 = magic number
     try rom_vector.*.append(@as(u8, 0x69));
+
     // byte 1 = assembly language version
     try rom_vector.*.append(version);
-    // bytes 2 to 5 = execution address entry point
+
+    // bytes 2 to 3 = execution address entry point
     // right after header is the default, but can be
     // altered with the special "_START:" label
     try rom_vector.*.append(@as(u8, 0x10));
     try rom_vector.*.append(@as(u8, 0x00));
-    try rom_vector.*.append(@as(u8, 0x00));
-    try rom_vector.*.append(@as(u8, 0x00));
-    // bytes 6 to 15 = free space, for now
+
+    // bytes 4 to 15 = free space, for now
+    try rom_vector.*.append(@as(u8, 0xCC));
+    try rom_vector.*.append(@as(u8, 0xCC));
     try rom_vector.*.append(@as(u8, 0xCC));
     try rom_vector.*.append(@as(u8, 0xCC));
     try rom_vector.*.append(@as(u8, 0xCC));
@@ -653,10 +651,13 @@ fn Append_Generic(vector: *std.ArrayList(u8), value: anytype) !void {
 }
 
 /// Using low-endian, sequentially append the first n bytes of a value to an u8 arraylist
-fn Append_Generic_Limited(vector: *std.ArrayList(u8), value: anytype, n: usize) !void {
+fn Append_Generic_Limited(vector: *std.ArrayList(u8), value: anytype, comptime n: usize) !void {
     const byte_array = std.mem.toBytes(value);
+
+    // how do i make this a comptime assert?
     if (n > byte_array.len)
         return error.LargerThanByteArray;
+
     for (byte_array, 0..) |byte, i| {
         if (i == n)
             break;
@@ -666,8 +667,8 @@ fn Append_Generic_Limited(vector: *std.ArrayList(u8), value: anytype, n: usize) 
 
 /// "MNEMONIC_ARG1_ARG2"
 /// All literals are 32-bit unsigned integers
-/// All registers can hold 32-bit values
-/// All addresses are 32-bit unsigned integers
+/// All cpu registers can hold 32-bit values
+/// All addresses are 16-bit unsigned integers
 pub const Opcode = enum(u8) {
     // Exit immediately upon trying to execute a null byte as an instruction
     PANIC = 0x00,
