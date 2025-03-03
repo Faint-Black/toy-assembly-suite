@@ -44,12 +44,19 @@ pub fn main() !void {
         try std.io.getStdOut().writer().print("DEBUG MODE ENABLED\n\n", .{});
     }
 
-    // [debug] print flag informations
-    if (flags.debug_mode) {
+    // [DEBUG OUTPUT] print flag informations
+    if (flags.print_flags) {
         std.debug.print("invoked binary: {?s}\n", .{flags.binary_directory});
         std.debug.print("input filepath: {?s}\n", .{flags.input_filename});
         std.debug.print("output filepath: {?s}\n", .{flags.output_filename});
         std.debug.print("debug mode flag: {}\n", .{flags.debug_mode});
+        std.debug.print("print flags: {}\n", .{flags.print_flags});
+        std.debug.print("print lexed tokens: {}\n", .{flags.print_lexed_tokens});
+        std.debug.print("print stripped tokens: {}\n", .{flags.print_stripped_tokens});
+        std.debug.print("print expanded tokens: {}\n", .{flags.print_expanded_tokens});
+        std.debug.print("print symbol table: {}\n", .{flags.print_symbol_table});
+        std.debug.print("print anon labels: {}\n", .{flags.print_anon_labels});
+        std.debug.print("print rom: {}\n", .{flags.print_rom_bytes});
     }
 
     // load file into a newly allocated buffer
@@ -62,8 +69,8 @@ pub fn main() !void {
     defer global_allocator.free(lexed_tokens);
     defer tok.Destroy_Tokens_Contents(global_allocator, lexed_tokens);
 
-    // [debug] print lexed tokens
-    if (flags.debug_mode) {
+    // [DEBUG OUTPUT] print lexed tokens
+    if (flags.print_lexed_tokens) {
         std.debug.print("\nLexed tokens:\n", .{});
         tok.Print_Token_Array(lexed_tokens);
     }
@@ -73,14 +80,14 @@ pub fn main() !void {
     defer global_allocator.free(expanded_tokens);
     defer tok.Destroy_Tokens_Contents(global_allocator, expanded_tokens);
 
-    // [debug] print macro expanded tokens
-    if (flags.debug_mode) {
+    // [DEBUG OUTPUT] print macro expanded tokens
+    if (flags.print_expanded_tokens) {
         std.debug.print("\nExpanded tokens:\n", .{});
         tok.Print_Token_Array(expanded_tokens);
     }
 
     // start the code generation
-    const rom = try codegen.Generate_Rom(global_allocator, &global_symbol_table, expanded_tokens);
+    const rom = try codegen.Generate_Rom(global_allocator, flags, &global_symbol_table, expanded_tokens);
     defer global_allocator.free(rom);
 
     // create rom bytecode bin file relative to the current working directory
@@ -91,14 +98,13 @@ pub fn main() !void {
         try utils.Write_To_File(rom_file, rom);
     }
 
-    // [debug] print symbol hashtable
-    if (flags.debug_mode) {
-        std.debug.print("\nSymbol table data:", .{});
+    // [DEBUG OUTPUT] print symbol hashtable
+    if (flags.print_symbol_table) {
         global_symbol_table.Print();
     }
 
-    // [debug] print resulting rom bytes
-    if (flags.debug_mode) {
+    // [DEBUG OUTPUT] print resulting rom bytes
+    if (flags.print_rom_bytes) {
         std.debug.print("\nROM dump:\n", .{});
         for (rom, 0..) |byte, i|
             std.debug.print("{X:0>8} - 0x{X:0>2}\n", .{ i, byte });
@@ -129,3 +135,5 @@ pub fn main() !void {
 //   jump far...
 // Assembler 0.4
 //  -relative label referencing and anonymous labels introduced
+// Assembler 0.4.1
+//  -redesigned debug output flags

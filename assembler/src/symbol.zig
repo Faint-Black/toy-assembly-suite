@@ -101,7 +101,7 @@ pub const SymbolTable = struct {
     }
 
     /// hacky solution, may need a rework in the future
-    /// fetches the desired address token of a relative label reference
+    /// fetches the desired label token of a relative label reference
     pub fn Search_Relative_Label(self: SymbolTable, relTok: tok.Token, romPos: u32) !tok.Token {
         const allocator = self.table.allocator;
 
@@ -159,10 +159,7 @@ pub const SymbolTable = struct {
             };
         }
 
-        return tok.Token{
-            .tokType = .ADDRESS,
-            .value = label_slice[index].value,
-        };
+        return label_slice[index];
     }
 
     // sorting predicate function

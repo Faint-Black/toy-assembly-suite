@@ -10,14 +10,23 @@
 const std = @import("std");
 
 pub const Flags = struct {
-    /// remember allocator for Deinit
+    /// remember allocator for Deinit method
     allocator: std.mem.Allocator = undefined,
 
-    /// flags
+    /// core flags
     binary_directory: ?[]u8 = null,
     input_filename: ?[]u8 = null,
     output_filename: ?[]u8 = null,
     debug_mode: bool = false,
+
+    /// debug output flags
+    print_flags: bool = false,
+    print_lexed_tokens: bool = false,
+    print_stripped_tokens: bool = false,
+    print_expanded_tokens: bool = false,
+    print_symbol_table: bool = false,
+    print_anon_labels: bool = false,
+    print_rom_bytes: bool = false,
 
     /// info flags
     help: bool = false,
@@ -69,8 +78,30 @@ pub fn Parse_Arguments(allocator: std.mem.Allocator) !Flags {
             expecting_input_filename = true;
         } else if (std.mem.eql(u8, arg.?, "-o") or std.mem.eql(u8, arg.?, "--output")) {
             expecting_output_filename = true;
-        } else if (std.mem.eql(u8, arg.?, "-d") or std.mem.eql(u8, arg.?, "--debug")) {
+        } else if (std.mem.eql(u8, arg.?, "-g") or std.mem.eql(u8, arg.?, "--debug")) {
             result.debug_mode = true;
+        } else if (std.mem.eql(u8, arg.?, "--print=all")) {
+            result.print_flags = true;
+            result.print_lexed_tokens = true;
+            result.print_stripped_tokens = true;
+            result.print_expanded_tokens = true;
+            result.print_symbol_table = true;
+            result.print_anon_labels = true;
+            result.print_rom_bytes = true;
+        } else if (std.mem.eql(u8, arg.?, "--print=flags")) {
+            result.print_flags = true;
+        } else if (std.mem.eql(u8, arg.?, "--print=lexed")) {
+            result.print_lexed_tokens = true;
+        } else if (std.mem.eql(u8, arg.?, "--print=stripped")) {
+            result.print_stripped_tokens = true;
+        } else if (std.mem.eql(u8, arg.?, "--print=expanded")) {
+            result.print_expanded_tokens = true;
+        } else if (std.mem.eql(u8, arg.?, "--print=symbols")) {
+            result.print_symbol_table = true;
+        } else if (std.mem.eql(u8, arg.?, "--print=anonlabels")) {
+            result.print_anon_labels = true;
+        } else if (std.mem.eql(u8, arg.?, "--print=rom")) {
+            result.print_rom_bytes = true;
         } else {
             std.log.err("Unknown argument: \"{s}\"", .{arg.?});
             return error.BadArgument;
@@ -107,18 +138,38 @@ pub fn Help_String() []const u8 {
     \\$ ./assembler -i "samples/fibonacci.txt" -o "fib.bin"
     \\$ ./assembler -i "samples/alltokens.txt" -d
     \\
+    \\INFO FLAGS:
     \\-h, --help
     \\    Output this text.
     \\-v, --version
-    \\    Output the version of the program.
-    \\-d, --debug
-    \\    Enable debug mode.
+    \\    Output the version information of this program.
+    \\
+    \\CORE USAGE FLAGS:
+    \\-g, --debug
+    \\    Enable rom debug metadata insertion.
     \\-i "path/to/source.txt", --input "path/to/source.txt"
     \\    Perform the program operation on a text file.
     \\-o "new/path/to/rom.bin", --output "new/path/to/rom.bin"
     \\    Define the output filename and filepath.
     \\    You may leave this empty for no file output.
     \\
+    \\DEBUG OUTPUT FLAGS:
+    \\--print=all
+    \\    Enable all debug output flags
+    \\--print=flags
+    \\    Enable print command line flags information
+    \\--print=lexed
+    \\    Enable print lexed tokens
+    \\--print=stripped
+    \\    Enable print stripped tokens
+    \\--print=expanded
+    \\    Enable print expanded tokens
+    \\--print=symbols
+    \\    Enable print symbol table
+    \\--print=anonlabels
+    \\    Enable print anonymous labels information
+    \\--print=rom
+    \\    Enable print rom dump
     ;
 }
 
@@ -126,7 +177,7 @@ pub fn Version_String() []const u8 {
     return 
     \\The toy assembler program
     \\Assembly suite version 1
-    \\Assembler version 0.4.0
+    \\Assembler version 0.4.1
     \\
     ;
 }

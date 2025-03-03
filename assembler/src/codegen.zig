@@ -11,11 +11,12 @@ const std = @import("std");
 const utils = @import("utils.zig");
 const tok = @import("token.zig");
 const sym = @import("symbol.zig");
+const clap = @import("clap.zig");
 
 /// f: [tokens] -> [rom]
-pub fn Generate_Rom(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
+pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
     const rom_size = try First_Pass(allocator, symTable, expandedTokens);
-    return try Second_Pass(allocator, symTable.*, expandedTokens, rom_size);
+    return try Second_Pass(allocator, flags, symTable.*, expandedTokens, rom_size);
 }
 
 //-------------------------------------------------------------//
@@ -154,7 +155,7 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expanded
 }
 
 /// Now that all the LABEL address values are known, we can start the actual code generation
-fn Second_Pass(allocator: std.mem.Allocator, symTable: sym.SymbolTable, expandedTokens: []const tok.Token, preallocate: usize) ![]u8 {
+fn Second_Pass(allocator: std.mem.Allocator, flags: clap.Flags, symTable: sym.SymbolTable, expandedTokens: []const tok.Token, preallocate: usize) ![]u8 {
     var rom_vector = std.ArrayList(u8).init(allocator);
     defer rom_vector.deinit();
 
@@ -230,8 +231,20 @@ fn Second_Pass(allocator: std.mem.Allocator, symTable: sym.SymbolTable, expanded
 
         // substitute label reference with the fetched result address
         if (token.tokType == .BACKWARD_LABEL_REF or token.tokType == .FORWARD_LABEL_REF) {
-            const address_token = try symTable.Search_Relative_Label(token, @truncate(rom_vector.items.len));
+            const label_token = try symTable.Search_Relative_Label(token, @truncate(rom_vector.items.len));
+            const address_token = tok.Token{ .tokType = .ADDRESS, .value = label_token.value };
             try utils.Append_Element_To_Buffer(tok.Token, &tokenBuffer, &tokenBuffsize, address_token);
+
+            // [DEBUG OUTPUT] output anonymous label reference substitution details
+            if (flags.print_anon_labels) {
+                const sign: u8 = if (token.tokType == .BACKWARD_LABEL_REF) '-' else '+';
+                std.debug.print("\nresulting relative label fetch:\n", .{});
+                std.debug.print("relative index: {c}{}\n", .{ sign, token.value });
+                std.debug.print("name: \"{?s}\"\n", .{label_token.identKey});
+                std.debug.print("current rom address: 0x{X:0>8}\n", .{rom_vector.items.len});
+                std.debug.print("fetched rom address: 0x{X:0>8}\n", .{address_token.value});
+            }
+
             continue;
         }
 

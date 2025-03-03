@@ -23,8 +23,8 @@ pub fn Preprocessor_Expansion(allocator: std.mem.Allocator, flags: clap.Flags, s
     defer allocator.free(stripped_tokens);
     defer tok.Destroy_Tokens_Contents(allocator, stripped_tokens);
 
-    // [debug] print the resulting stripped tokens
-    if (flags.debug_mode) {
+    // [DEBUG OUTPUT] print the resulting stripped tokens
+    if (flags.print_stripped_tokens) {
         std.debug.print("\nStripped tokens:\n", .{});
         tok.Print_Token_Array(stripped_tokens);
     }
@@ -32,7 +32,6 @@ pub fn Preprocessor_Expansion(allocator: std.mem.Allocator, flags: clap.Flags, s
     // expands macro identifiers and returns a new token array.
     // this token array is a complete allocated copy
     const expanded_tokens = try Second_Pass(allocator, symTable, stripped_tokens);
-
     return expanded_tokens;
 }
 
