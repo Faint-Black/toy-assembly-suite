@@ -126,7 +126,7 @@ pub fn Version_String() []const u8 {
     return 
     \\The toy assembler program
     \\Assembly suite version 1
-    \\Assembler version 0.3.0
+    \\Assembler version 0.4.0
     \\
     ;
 }

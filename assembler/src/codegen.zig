@@ -14,8 +14,8 @@ const sym = @import("symbol.zig");
 
 /// f: [tokens] -> [rom]
 pub fn Generate_Rom(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
-    try First_Pass(allocator, symTable, expandedTokens);
-    return try Second_Pass(allocator, symTable.*, expandedTokens);
+    const rom_size = try First_Pass(allocator, symTable, expandedTokens);
+    return try Second_Pass(allocator, symTable.*, expandedTokens, rom_size);
 }
 
 //-------------------------------------------------------------//
@@ -24,7 +24,7 @@ pub fn Generate_Rom(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, ex
 
 /// only responsible for attributing address values to the existing LABEL symbols
 /// bytecode has to be generated twice for this program to accept forward references
-fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) !void {
+fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) !usize {
     // vital for determining the LABEL address positions
     var rom_vector = std.ArrayList(u8).init(allocator);
     defer rom_vector.deinit();
@@ -34,7 +34,7 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expanded
     var tokenBuffsize: usize = 0;
 
     // for ".db", ".dw" and ".dd" modes
-    var activeByteDefiner: ?tok.TokenType = null;
+    var activeByteDefiner: tok.TokenType = .UNDEFINED;
 
     try Create_Header(&rom_vector, 0);
 
@@ -48,7 +48,7 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expanded
         // build instruction line and generate the appropriate bytecode
         if (token.tokType == .LINEFINISH) {
             // reset byte definition mode
-            activeByteDefiner = null;
+            activeByteDefiner = .UNDEFINED;
 
             // skip empty instruction lines, e.g "[$]"
             if (tokenBuffsize == 0)
@@ -65,12 +65,12 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expanded
         }
 
         // process direct byte definitions here
-        if (activeByteDefiner != null) {
-            if (token.tokType.Is_Value_Token() == false) {
+        if (activeByteDefiner != .UNDEFINED) {
+            if (token.tokType != .LITERAL and token.tokType != .ADDRESS) {
                 std.log.err("Token \"{s}\" is not a valid value!", .{std.enums.tagName(tok.TokenType, token.tokType).?});
                 return error.BadByteDefinition;
             }
-            switch (activeByteDefiner.?) {
+            switch (activeByteDefiner) {
                 .DB => try Append_Generic_Limited(&rom_vector, token.value, 1),
                 .DW => try Append_Generic_Limited(&rom_vector, token.value, 2),
                 .DD => try Append_Generic_Limited(&rom_vector, token.value, 4),
@@ -97,6 +97,34 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expanded
             continue;
         }
 
+        // here the ANON_LABELS are scanned and added to the symbol table under an automatically generated name
+        if (token.tokType == .ANON_LABEL) {
+            // name generation
+            var buffer: [32]u8 = undefined;
+            const slice = try std.fmt.bufPrint(&buffer, "ANON_LABEL_{x:0>8}", .{symTable.*.anonlabel_count});
+            symTable.*.anonlabel_count += 1;
+
+            const current_address_value_token: tok.Token = tok.Token{
+                .tokType = .ADDRESS,
+                .identKey = try utils.Copy_Of_ConstString(allocator, slice),
+                .value = @truncate(rom_vector.items.len),
+            };
+            const anonlabel_symbol = sym.Symbol{
+                .name = try utils.Copy_Of_ConstString(allocator, slice),
+                .value = .{ .label = current_address_value_token },
+            };
+            try symTable.*.Add(anonlabel_symbol);
+
+            continue;
+        }
+
+        // same treatment as the label identifier
+        if (token.tokType == .BACKWARD_LABEL_REF or token.tokType == .FORWARD_LABEL_REF) {
+            const placeholder = tok.Token{ .tokType = .ADDRESS, .value = 0x0 };
+            try utils.Append_Element_To_Buffer(tok.Token, &tokenBuffer, &tokenBuffsize, placeholder);
+            continue;
+        }
+
         // identifier symbol substitution
         // since this step only scans for LABEL addresses, there is no need for an accurate substitution
         if (token.tokType == .IDENTIFIER) {
@@ -104,14 +132,14 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expanded
                 switch (symbol.value) {
                     // if its a label, replace it with a null placeholder value
                     .label => {
-                        const placeholder = tok.Token{ .tokType = .ADDRESS, .value = 0x00 };
+                        const placeholder = tok.Token{ .tokType = .ADDRESS, .value = 0x0 };
                         try utils.Append_Element_To_Buffer(tok.Token, &tokenBuffer, &tokenBuffsize, placeholder);
                     },
                     // all macros need to be processed before this stage is ever reached
-                    .macro => {
-                        return error.UnexpandedMacro;
-                    },
+                    .macro => return error.UnexpandedMacro,
+                    .define => return error.UnexpandedDefine,
                 }
+
                 continue;
             } else {
                 std.log.err("unknown identifier \"{s}\"", .{token.identKey.?});
@@ -121,19 +149,24 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expanded
 
         try utils.Append_Element_To_Buffer(tok.Token, &tokenBuffer, &tokenBuffsize, token);
     }
+
+    return rom_vector.items.len;
 }
 
 /// Now that all the LABEL address values are known, we can start the actual code generation
-fn Second_Pass(allocator: std.mem.Allocator, symTable: sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
+fn Second_Pass(allocator: std.mem.Allocator, symTable: sym.SymbolTable, expandedTokens: []const tok.Token, preallocate: usize) ![]u8 {
     var rom_vector = std.ArrayList(u8).init(allocator);
     defer rom_vector.deinit();
+
+    // micro-optimization since the ammount allocated is already known
+    try rom_vector.ensureTotalCapacity(preallocate);
 
     // build the instruction line, one token at a time for proper symbol substitution
     var tokenBuffer: [64]tok.Token = undefined;
     var tokenBuffsize: usize = 0;
 
     // for ".db", ".dw" and ".dd" modes
-    var activeByteDefiner: ?tok.TokenType = null;
+    var activeByteDefiner: tok.TokenType = .UNDEFINED;
 
     // start with the 16 bytes of the ROM file header
     try Create_Header(&rom_vector, 1);
@@ -157,10 +190,14 @@ fn Second_Pass(allocator: std.mem.Allocator, symTable: sym.SymbolTable, expanded
         if (token.tokType == tok.TokenType.ENDOFFILE)
             break;
 
+        // ignore LABELs as their symbols and tokens should be already processed and stripped at this stage
+        if (token.tokType == .LABEL or token.tokType == .ANON_LABEL)
+            continue;
+
         // build instruction line and generate the appropriate bytecode
         if (token.tokType == .LINEFINISH) {
             // reset byte definition mode
-            activeByteDefiner = null;
+            activeByteDefiner = .UNDEFINED;
 
             // skip empty instruction lines, e.g "[$]"
             if (tokenBuffsize == 0)
@@ -177,12 +214,12 @@ fn Second_Pass(allocator: std.mem.Allocator, symTable: sym.SymbolTable, expanded
         }
 
         // process direct byte definitions here
-        if (activeByteDefiner != null) {
-            if (token.tokType.Is_Value_Token() == false) {
+        if (activeByteDefiner != .UNDEFINED) {
+            if (token.tokType != .LITERAL and token.tokType != .ADDRESS) {
                 std.log.err("Token \"{s}\" is not a valid value!", .{std.enums.tagName(tok.TokenType, token.tokType).?});
                 return error.BadByteDefinition;
             }
-            switch (activeByteDefiner.?) {
+            switch (activeByteDefiner) {
                 .DB => try Append_Generic_Limited(&rom_vector, token.value, 1),
                 .DW => try Append_Generic_Limited(&rom_vector, token.value, 2),
                 .DD => try Append_Generic_Limited(&rom_vector, token.value, 4),
@@ -191,9 +228,12 @@ fn Second_Pass(allocator: std.mem.Allocator, symTable: sym.SymbolTable, expanded
             continue;
         }
 
-        // ignore LABELs as their symbols and tokens should be already processed and stripped at this stage
-        if (token.tokType == .LABEL)
+        // substitute label reference with the fetched result address
+        if (token.tokType == .BACKWARD_LABEL_REF or token.tokType == .FORWARD_LABEL_REF) {
+            const address_token = try symTable.Search_Relative_Label(token, @truncate(rom_vector.items.len));
+            try utils.Append_Element_To_Buffer(tok.Token, &tokenBuffer, &tokenBuffsize, address_token);
             continue;
+        }
 
         // identifier symbol substitution
         if (token.tokType == .IDENTIFIER) {
@@ -202,7 +242,12 @@ fn Second_Pass(allocator: std.mem.Allocator, symTable: sym.SymbolTable, expanded
                     // if its a label, replace it directly as it already represents an address token
                     .label => try utils.Append_Element_To_Buffer(tok.Token, &tokenBuffer, &tokenBuffsize, symbol.value.label),
                     // all macros need to be processed before this stage is ever reached
-                    .macro => return error.UnexpandedMacro,
+                    .macro => {
+                        return error.UnexpandedMacro;
+                    },
+                    .define => {
+                        return error.UnexpandedDefine;
+                    },
                 }
                 continue;
             } else {
@@ -610,7 +655,10 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
         try vec.*.append(@intFromEnum(Opcode.POP_Y));
     } else {
         std.debug.print("ERROR: unknown opcode!\n", .{});
-        tok.Print_Token_Array(line);
+        // append newline for proper token array printing
+        if (t[line.len - 1].tokType != .LINEFINISH)
+            t[line.len] = tok.Token{ .tokType = .LINEFINISH };
+        tok.Print_Token_Array(t[0 .. line.len + 1]);
     }
 }
 

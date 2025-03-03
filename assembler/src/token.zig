@@ -50,12 +50,20 @@ pub const Token = struct {
 
     /// print individual token, for debugging purposes
     pub fn Print(self: Token) void {
-        if (self.tokType.Is_Value_Token()) {
-            std.debug.print("{s}=0x{X}", .{ std.enums.tagName(TokenType, self.tokType).?, self.value });
-        } else if (self.identKey != null) {
-            std.debug.print("{s}=\"{s}\"", .{ std.enums.tagName(TokenType, self.tokType).?, self.identKey.? });
+        const enum_name = std.enums.tagName(TokenType, self.tokType).?;
+
+        if (self.identKey) |identifier| {
+            std.debug.print("{s}=\"{s}\"", .{ enum_name, identifier });
+        } else if (self.tokType == .LITERAL) {
+            std.debug.print("LIT=0x{x}", .{self.value});
+        } else if (self.tokType == .ADDRESS) {
+            std.debug.print("ADDR=0x{x}", .{self.value});
+        } else if (self.tokType == .BACKWARD_LABEL_REF) {
+            std.debug.print("RELATIVE_LABEL=-{}", .{self.value});
+        } else if (self.tokType == .FORWARD_LABEL_REF) {
+            std.debug.print("RELATIVE_LABEL=+{}", .{self.value});
         } else {
-            std.debug.print("{s}", .{std.enums.tagName(TokenType, self.tokType).?});
+            std.debug.print("{s}", .{enum_name});
         }
     }
 };
@@ -105,6 +113,12 @@ pub const TokenType = enum {
     IDENTIFIER,
     /// rom address marker
     LABEL,
+    /// used for relative referencing
+    ANON_LABEL,
+    /// referrer to a label n positions away (backwards)
+    BACKWARD_LABEL_REF,
+    /// referrer to a label n positions away (forwards)
+    FORWARD_LABEL_REF,
 
     // preprocessor DEFINE direct rom bytes
     /// define byte (8 bits)
@@ -115,10 +129,12 @@ pub const TokenType = enum {
     DD,
 
     // preprocessor MACRO instructions
-    /// start macro definition
+    /// begin macro definition
     MACRO,
     /// end macro definition
     ENDMACRO,
+    /// create a one token macro
+    DEFINE,
 
     // direct VIRTUAL MACHINE instructions
     /// perform special operations based on the code
@@ -211,12 +227,4 @@ pub const TokenType = enum {
     BRK,
     /// no operation, do nothing
     NOP,
-
-    pub fn Is_Value_Token(self: TokenType) bool {
-        return switch (self) {
-            .LITERAL => true,
-            .ADDRESS => true,
-            else => false,
-        };
-    }
 };

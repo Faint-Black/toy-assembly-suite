@@ -3,13 +3,13 @@ A pack of programs that compile, debug and execute a custom 32-bit assembly inst
 
 Fully written in Zig.
 
-## The Assembler
+## - The Assembler
 Responsible for taking an assembly source file as input and outputting a rom binary file that can be executed by the virtual machine.
 
-## The Debugger
+## - The Debugger
 Coming soon!
 
-## The Virtual Machine
+## - The Virtual Machine
 Coming soon!
 
 ---
@@ -24,24 +24,24 @@ To build the assembler, debugger or virtual machine simply cd into the desired p
 
 Which type of executable you need is completely up to you, zig provides 4 choices by default:
 
-* Debug version
-```sh
-zig build
-```
-
-* Fast version, the standard optimized non-debug release version
-```sh
-zig build --release=fast
-```
-
-* Safe version, in case you need optimizations as well as runtime safety
+* (Recommended) Safe version, in case you need optimizations as well as runtime safety
 ```sh
 zig build --release=safe
+```
+
+* Fast version, the standard highly optimized non-debug release version with minimal runtime safety checks
+```sh
+zig build --release=fast
 ```
 
 * Small version, if you care about binary executable file sizes
 ```sh
 zig build --release=small
+```
+
+* Debug version
+```sh
+zig build
 ```
 
 ## Run

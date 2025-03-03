@@ -17,6 +17,8 @@
 ;; (but only for these select characters though)
 .db "\" \' \\ \t \n"
 
+;; indentation for aesthetic purposes only
+;; this is (mostly) a whitespace agnostic language
 .macro WAIT_4_CYCLES
   NOP
   NOP
@@ -24,10 +26,33 @@
   NOP
 .endmacro
 
+;; defines share the same purpose as standard macros
+;; although limited to a single token per identifier
+.define FRAME_COUNTER_ADDR $0x55
+
 ;; preprocessor testing area
 Foo:
 WAIT_4_CYCLES
 WAIT_4_CYCLES
+LDA FRAME_COUNTER_ADDR
+INC A
+STA FRAME_COUNTER_ADDR
+
+;; label testing area
+;; spooky to debug!
+NormalLabel:
+NOP
+@AnonLabel:
+NOP
+@AnonLabel:
+NOP
+@:
+JMP @-     ; refers to label "@:"
+JMP @--    ; refers to label "@AnonLabel:" (second one)
+JMP @---   ; refers to label "@AnonLabel:" (first one)
+JMP @----  ; refers to label "NormalLabel:"
+JMP @+     ; refers to label "_START:"
+JMP @++    ; refers to label "ForwardReference:"
 
 ;; use of the special "_START" label
 ;; it determines a custom entry point for the program

@@ -84,6 +84,7 @@ pub fn Lexer(allocator: std.mem.Allocator, input: []const u8) ![]tok.Token {
         //-----------------------------------------------
         // here ends the string literal construction code
 
+        // add any non-whitespace character to the word buffer
         if (utils.Is_Char_Whitespace(c) == false)
             try utils.Append_Char_To_String(&string_buffer, &string_buffsize, c);
 
@@ -119,20 +120,38 @@ pub fn Lexer(allocator: std.mem.Allocator, input: []const u8) ![]tok.Token {
 //-------------------------------------------------------------//
 
 fn Word_To_Token(allocator: std.mem.Allocator, str: []const u8) !tok.Token {
+    const first_char: u8 = str[0];
+    const last_char: u8 = str[str.len - 1];
+
     // literal/address token parsing
-    const number_token = try Lex_Number_Word(str);
+    const number_token = try Parse_Number_Word(str);
     if (number_token != null)
         return number_token.?;
 
-    // a label is any word with a ":" as the last character
-    if (str[str.len - 1] == ':') {
-        var label_token = tok.Token.Init();
-        label_token.tokType = .LABEL;
-        // "minus one" to exclude the colon from the identifier string
-        label_token.identKey = try allocator.alloc(u8, str.len - 1);
-        std.mem.copyForwards(u8, label_token.identKey.?, str[0 .. str.len - 1]);
-        return label_token;
+    // an anonymous label is any label that starts with the "@" character
+    // the string contents are ignored as they are meant to be only used in
+    // a relative position context
+    if (first_char == '@' and last_char == ':') {
+        return tok.Token{
+            .tokType = .ANON_LABEL,
+            // reinforcing the fact that anonymous labels are ANONYMOUS!!
+            .identKey = null,
+        };
     }
+
+    // a label is any word with a ":" as the last character
+    if (last_char == ':') {
+        return tok.Token{
+            .tokType = .LABEL,
+            // "minus one" to exclude the colon from the identifier string
+            .identKey = try utils.Copy_Of_ConstString(allocator, str[0 .. str.len - 1]),
+        };
+    }
+
+    // relative label parsing
+    const relative_label = try Parse_Relative_Label(str);
+    if (relative_label != null)
+        return relative_label.?;
 
     // if all keyword checks fail, consider token as an identifier
     if (std.mem.eql(u8, str, "ERROR")) {
@@ -147,6 +166,8 @@ fn Word_To_Token(allocator: std.mem.Allocator, str: []const u8) !tok.Token {
         return tok.Token{ .tokType = .MACRO };
     } else if (std.mem.eql(u8, str, ".endmacro")) {
         return tok.Token{ .tokType = .ENDMACRO };
+    } else if (std.mem.eql(u8, str, ".define")) {
+        return tok.Token{ .tokType = .DEFINE };
     } else if (std.mem.eql(u8, str, "SYSCALL")) {
         return tok.Token{ .tokType = .SYSCALL };
     } else if (std.mem.eql(u8, str, "LDA")) {
@@ -235,7 +256,7 @@ fn Word_To_Token(allocator: std.mem.Allocator, str: []const u8) !tok.Token {
     }
 }
 
-fn Lex_Number_Word(str: []const u8) !?tok.Token {
+fn Parse_Number_Word(str: []const u8) !?tok.Token {
     var is_address = false;
     var base: u8 = 0;
 
@@ -319,6 +340,45 @@ fn Lex_Number_Word(str: []const u8) !?tok.Token {
     };
 }
 
+fn Parse_Relative_Label(str: []const u8) !?tok.Token {
+    // examples:
+    // @+
+    // @--
+    // there is no (practical) limit to the ammount of signs you can add.
+    // as long as they are all minuses or pluses, no mixing.
+
+    if (str.len < 2)
+        return null;
+
+    if (str[0] != '@')
+        return null;
+
+    const symbols_array = str[1..];
+    // check if it qualifies as an relative label reference
+    for (symbols_array) |operator_symbol| {
+        if (operator_symbol != '+' and operator_symbol != '-')
+            return null;
+    }
+
+    // plus or minus?
+    const operator_character: u8 = symbols_array[0];
+    // how many of them?
+    const counter: u32 = @truncate(symbols_array.len);
+
+    // check if all operators are uniform,
+    // error example: @--+-
+    for (symbols_array) |operator_symbol| {
+        if (operator_symbol != operator_character)
+            return error.MixedOperatorsInRelativeLabel;
+    }
+
+    const token_type: tok.TokenType = if (operator_character == '-') tok.TokenType.BACKWARD_LABEL_REF else tok.TokenType.FORWARD_LABEL_REF;
+    return tok.Token{
+        .tokType = token_type,
+        .value = counter,
+    };
+}
+
 //-------------------------------------------------------------//
 // ONLY TESTS BELOW THIS POINT                                 //
 //-------------------------------------------------------------//
@@ -328,7 +388,7 @@ test "value token parsing" {
     var value_token: tok.Token = undefined;
 
     // expects a valid result
-    maybe_token = try Lex_Number_Word("0xFF");
+    maybe_token = try Parse_Number_Word("0xFF");
     try std.testing.expect(maybe_token != null);
     value_token = maybe_token.?;
     try std.testing.expect(value_token.identKey == null);
@@ -337,7 +397,7 @@ test "value token parsing" {
     try std.testing.expect(value_token.value == @as(u32, 255));
 
     // expects a valid result
-    maybe_token = try Lex_Number_Word("0xFFFF");
+    maybe_token = try Parse_Number_Word("0xFFFF");
     try std.testing.expect(maybe_token != null);
     value_token = maybe_token.?;
     try std.testing.expect(value_token.identKey == null);
@@ -346,7 +406,7 @@ test "value token parsing" {
     try std.testing.expect(value_token.value == @as(u32, 65535));
 
     // expects a valid result
-    maybe_token = try Lex_Number_Word("0d1337");
+    maybe_token = try Parse_Number_Word("0d1337");
     try std.testing.expect(maybe_token != null);
     value_token = maybe_token.?;
     try std.testing.expect(value_token.identKey == null);
@@ -355,7 +415,7 @@ test "value token parsing" {
     try std.testing.expect(value_token.value == @as(u32, 1337));
 
     // expects a valid result
-    maybe_token = try Lex_Number_Word("$0xFFFF");
+    maybe_token = try Parse_Number_Word("$0xFFFF");
     try std.testing.expect(maybe_token != null);
     value_token = maybe_token.?;
     try std.testing.expect(value_token.identKey == null);
@@ -364,7 +424,7 @@ test "value token parsing" {
     try std.testing.expect(value_token.value == @as(u32, 65535));
 
     // expects a valid result
-    maybe_token = try Lex_Number_Word("$0d1337");
+    maybe_token = try Parse_Number_Word("$0d1337");
     try std.testing.expect(maybe_token != null);
     value_token = maybe_token.?;
     try std.testing.expect(value_token.identKey == null);
@@ -373,35 +433,77 @@ test "value token parsing" {
     try std.testing.expect(value_token.value == @as(u32, 1337));
 
     // bogus input
-    maybe_token = try Lex_Number_Word("Dojyaaan");
+    maybe_token = try Parse_Number_Word("Dojyaaan");
     try std.testing.expect(maybe_token == null);
 
     // no negative numbers allowed
-    maybe_token = try Lex_Number_Word("0d-100");
+    maybe_token = try Parse_Number_Word("0d-100");
     try std.testing.expect(maybe_token == null);
 
     // a complete base prefix must be provided
-    maybe_token = try Lex_Number_Word("0FF");
+    maybe_token = try Parse_Number_Word("0FF");
     try std.testing.expect(maybe_token == null);
-    maybe_token = try Lex_Number_Word("xFF");
+    maybe_token = try Parse_Number_Word("xFF");
     try std.testing.expect(maybe_token == null);
-    maybe_token = try Lex_Number_Word("0XFF");
+    maybe_token = try Parse_Number_Word("0XFF");
     try std.testing.expect(maybe_token == null);
-    maybe_token = try Lex_Number_Word("100");
+    maybe_token = try Parse_Number_Word("100");
     try std.testing.expect(maybe_token == null);
-    maybe_token = try Lex_Number_Word("$0FF");
+    maybe_token = try Parse_Number_Word("$0FF");
     try std.testing.expect(maybe_token == null);
-    maybe_token = try Lex_Number_Word("$xFF");
+    maybe_token = try Parse_Number_Word("$xFF");
     try std.testing.expect(maybe_token == null);
-    maybe_token = try Lex_Number_Word("$0XFF");
+    maybe_token = try Parse_Number_Word("$0XFF");
     try std.testing.expect(maybe_token == null);
-    maybe_token = try Lex_Number_Word("$100");
+    maybe_token = try Parse_Number_Word("$100");
     try std.testing.expect(maybe_token == null);
 
     // must be a valid, in range, 32-bit unsigned integer
-    error_token = Lex_Number_Word("0xFFFFFFFF0");
+    error_token = Parse_Number_Word("0xFFFFFFFF0");
     try std.testing.expectError(error.NumTooLarge, error_token);
     // addresses must be 16-bit
-    error_token = Lex_Number_Word("$0xFFFF0");
+    error_token = Parse_Number_Word("$0xFFFF0");
     try std.testing.expectError(error.AddrTooLarge, error_token);
+}
+
+test "relative label reference parsing" {
+    var error_token: anyerror!?tok.Token = undefined;
+    var maybe_token: ?tok.Token = undefined;
+    var value_token: tok.Token = undefined;
+
+    // expects a valid result
+    maybe_token = try Parse_Relative_Label("@-");
+    try std.testing.expect(maybe_token != null);
+    value_token = maybe_token.?;
+    try std.testing.expect(value_token.tokType == .BACKWARD_LABEL_REF);
+    try std.testing.expect(value_token.value == 1);
+
+    // expects a valid result
+    maybe_token = try Parse_Relative_Label("@+++++++++++++++++++++++++++++++++++++++++++++");
+    try std.testing.expect(maybe_token != null);
+    value_token = maybe_token.?;
+    try std.testing.expect(value_token.tokType == .FORWARD_LABEL_REF);
+    try std.testing.expect(value_token.value == 45);
+
+    // bogus input
+    maybe_token = try Parse_Relative_Label("@+++Masayoshi+");
+    try std.testing.expect(maybe_token == null);
+    maybe_token = try Parse_Relative_Label("@Takanaka:");
+    try std.testing.expect(maybe_token == null);
+    maybe_token = try Parse_Relative_Label("@Tokyo_Reggie");
+    try std.testing.expect(maybe_token == null);
+
+    // must have at least one symbol
+    maybe_token = try Parse_Relative_Label("@");
+    try std.testing.expect(maybe_token == null);
+
+    // must not case mixed operator symbols
+    error_token = Parse_Relative_Label("@-+");
+    try std.testing.expectError(error.MixedOperatorsInRelativeLabel, error_token);
+    error_token = Parse_Relative_Label("@+-");
+    try std.testing.expectError(error.MixedOperatorsInRelativeLabel, error_token);
+    error_token = Parse_Relative_Label("@+++++-");
+    try std.testing.expectError(error.MixedOperatorsInRelativeLabel, error_token);
+    error_token = Parse_Relative_Label("@++-++++");
+    try std.testing.expectError(error.MixedOperatorsInRelativeLabel, error_token);
 }

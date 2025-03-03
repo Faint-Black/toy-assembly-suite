@@ -56,6 +56,7 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: 
             try symTable.*.Add(label_symbol);
         }
 
+        // macro-begin and macro-end signal tokens
         if (token.tokType == .MACRO) {
             if (building_mode == .MACRO) {
                 std.log.err("Cannot define a macro inside another macro!", .{});
@@ -73,19 +74,29 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: 
             continue;
         }
 
+        // single token macro signal token
+        if (token.tokType == .DEFINE) {
+            building_mode = .DEFINE;
+            continue;
+        }
+
         // when you forget to add .endmacro at the end of a definition
         if (token.tokType == .ENDOFFILE and building_mode == .MACRO) {
             std.log.err("Found EOF while building macro!", .{});
             return error.BadMacro;
         }
 
-        // add token to macro token buffer
+        // add macro tokens to token buffer, flush signal is a .endmacro token
         if (building_mode == .MACRO) {
             try macro_vector.append(try token.Copy(allocator));
             continue;
         }
 
-        // add built macro to symbol table
+        // add define tokens to token buffer, flush signal is a newline token
+        if (building_mode == .DEFINE)
+            try macro_vector.append(try token.Copy(allocator));
+
+        // flush built macro to symbol table
         if (building_mode == .ENDMACRO and macro_vector.items.len > 0) {
             // assert if macro was given a valid name
             if (macro_vector.items[0].identKey == null)
@@ -103,14 +114,48 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: 
             macro_symbol.value = .{ .macro = try macro_vector.toOwnedSlice() };
             try symTable.*.Add(macro_symbol);
         }
-
         if (building_mode == .ENDMACRO) {
             building_mode = .UNDEFINED;
-
-            // skip addition of unecessary newline after the ".endxxx"
+            // skip addition of unecessary newline after the ".endmacro"
             if (token.tokType == .LINEFINISH)
                 continue;
         }
+
+        // flush built define to symbol table when encountering a linefinish
+        if (building_mode == .DEFINE and token.tokType == .LINEFINISH) {
+            // assert if define was given a valid name
+            if (macro_vector.items[0].identKey == null)
+                return error.NamelessDefine;
+            // assert if define has a lone, non linefinish token after the macro name
+            if (macro_vector.items[1].tokType == .LINEFINISH)
+                return error.EmptyDefine;
+            // assert if define has a lone, non linefinishing token after the macro name
+            if (macro_vector.items[2].tokType != .LINEFINISH)
+                return error.MultipleTokensInDefine;
+
+            // only pick the data we need
+            const define_name = macro_vector.items[0].identKey.?;
+            const define_contents = macro_vector.items[1];
+            var define_symbol: sym.Symbol = undefined;
+            define_symbol.name = try utils.Copy_Of_ConstString(allocator, define_name);
+            define_symbol.value = .{ .define = try define_contents.Copy(allocator) };
+            try symTable.*.Add(define_symbol);
+
+            // and discard the rest
+            for (macro_vector.items) |define_token|
+                define_token.Deinit(allocator);
+            macro_vector.clearAndFree();
+
+            // reset building mode
+            building_mode = .UNDEFINED;
+
+            // skip linefinish token
+            continue;
+        }
+
+        // strip define tokens
+        if (building_mode == .DEFINE)
+            continue;
 
         try token_vector.append(try token.Copy(allocator));
     }
@@ -138,12 +183,20 @@ fn Second_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens:
                 continue;
             }
 
-            if (symbol.?.value == .macro) {
-                for (symbol.?.value.macro) |macroTok| {
-                    try token_vector.append(try macroTok.Copy(allocator));
-                    last_macro_tokentype = macroTok.tokType;
-                }
-                continue;
+            switch (symbol.?.value) {
+                // append macro contents, one by one
+                .macro => {
+                    for (symbol.?.value.macro) |macroTok| {
+                        try token_vector.append(try macroTok.Copy(allocator));
+                        last_macro_tokentype = macroTok.tokType;
+                    }
+                    continue;
+                },
+                .define => {
+                    try token_vector.append(try symbol.?.value.define.Copy(allocator));
+                    continue;
+                },
+                else => {},
             }
         }
         // TODO: review this, from a glance this logic does not look bulletproof.

@@ -1,6 +1,6 @@
-;; This source will continuously print the fibonacci sequence.
-;; it will mostly display all assembler functionalities,
-;; such as macros and labels.
+;; This code will continuously print the fibonacci sequence.
+;; it's just a demo meant to display most assembler functionalities
+;; in a practical application.
 
 .macro PUSH_REGISTERS
   PUSH A
@@ -15,10 +15,15 @@
 .endmacro
 
 _START:
-  PUSH_REGISTERS
-  LDA 0x6
-  JSR Fibonacci
-  POP_REGISTERS
+  LDA 0x00
+  ;; while (++A) { print fib(A) }
+  @InfiniteLoop:
+    PUSH_REGISTERS
+    JSR Fibonacci
+    ;; TODO: put syscall for printing A here
+    POP_REGISTERS
+    INC A
+  JMP @-
 
 ;; [subroutine]
 ;; description: Calculate the nth fibonacci sequence number
@@ -37,15 +42,15 @@ Fibonacci:
 
   ;; if (arg == 0) return 0
   CMP A 0x00
-  BNE Skip_A
+  BNE @+
   RET
-  Skip_A:
+  @Skip:
 
   ;; if (arg == 1) return 1
   CMP A 0x01
-  BNE Skip_B
+  BNE @+
   RET
-  Skip_B:
+  @Skip:
 
   ;; int temp1 = 0
   LDA 0x00
@@ -55,7 +60,7 @@ Fibonacci:
   STA $0x8
   ;; --n to avoid off by one error
   DEC $0x0
-  Loop:
+  @Loop:
     ;; temp3 = temp1 + temp2
     LDA $0x4
     CLC
@@ -69,7 +74,7 @@ Fibonacci:
     STA $0x8
     ;; if (--n != 0) continue loop
     DEC $0x0
-    BNE Loop
+    BNE @-
 
   ;; return temp2
   LDA $0x8

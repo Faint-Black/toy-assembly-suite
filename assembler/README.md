@@ -1,14 +1,14 @@
 # Assembler
 This turns your input source file of choice into a ROM file that can be executed in the virtual machine or debugger.
 
-To get accustomed to the syntax, refer to the samples/ directory where there are plenty of source examples, especially "alltokens.txt".
+To get accustomed to the syntax, refer to the samples/ directory where there are plenty of source examples, specially "alltokens.txt".
 
 ---
 
 # Internal execution model
 Section reserved for documenting the execution model taking place inside the codebase.
 
-## First step:
+## 1st step:
 **(input file string) -> (lexed tokens)**
 
 This is done during the "Lexer" function of the lexer module.
@@ -51,7 +51,7 @@ symbol table:
 empty.
 ```
 
-## Second step:
+## 2nd step:
 **(lexed tokens) -> (stripped tokens)**
 
 This is done during the "First Pass" function in the preprocessor module.
@@ -103,7 +103,7 @@ type: label
 address value: 0x00
 ```
 
-## Third step:
+## 3rd step:
 **(stripped tokens) -> (expanded tokens)**
 
 This is done during the "Second Pass" function in the preprocessor module.
@@ -152,7 +152,7 @@ type: label
 address value: 0x00
 ```
 
-## Fourth step:
+## 4th step:
 
 ### First Pass
 **(expanded tokens) -> void**
@@ -241,8 +241,9 @@ address value: 0x1A
 - [X] clean the lone newline token created by macros
 - [X] set address bytecode size to 16-bit
 - [ ] implement ".repeat n"
-- [ ] implement ".define"
-- [ ] implement ".let"
-- [ ] anonymous and relative labels
+- [X] implement ".define"
+- [X] anonymous and relative labels
 - [X] add assembler README.md
-- [ ] take advantage of the first pass of codegen to get total allocated vector size
+- [X] take advantage of the first pass of codegen to get total allocated vector size
+- [ ] implement baked-in debug symbols
+- [ ] refine unit tests

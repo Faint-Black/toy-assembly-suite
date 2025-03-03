@@ -108,6 +108,7 @@ pub fn main() !void {
     const nanoseconds = timer.read();
     try std.io.getStdOut().writer().print("Compilation done in {}\n", .{std.fmt.fmtDuration(nanoseconds)});
 
+    // print emit information
     if (flags.output_filename) |output_filename| {
         try std.io.getStdOut().writer().print("Written {} bytes to {s}\n", .{ rom.len, output_filename });
     }
@@ -126,3 +127,5 @@ pub fn main() !void {
 //   would be completely unrealistic, no one will use this language
 //   long enough to question himself if he should use a jump near or
 //   jump far...
+// Assembler 0.4
+//  -relative label referencing and anonymous labels introduced
