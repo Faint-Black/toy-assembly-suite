@@ -236,7 +236,7 @@ address value: 0x1A
 ---
 
 # TODO list
-- [ ] on march 3rd Zig 0.14 will be fully released, update codebase accordingly.
+- [X] on march 3rd Zig 0.14 will be fully released, update codebase accordingly.
 - [X] implement (run-time) visibility toggles for debug information
 - [X] clean the lone newline token created by macros
 - [X] set address bytecode size to 16-bit

@@ -12,9 +12,15 @@ const tests_filepath = source_directory ++ "tests.zig";
 pub fn build(b: *std.Build) void {
     const exe = b.addExecutable(.{
         .name = project_name,
-        .root_source_file = b.path(main_filepath),
-        .target = b.standardTargetOptions(.{}),
-        .optimize = b.standardOptimizeOption(.{}),
+        .root_module = b.createModule(.{
+            .root_source_file = b.path(main_filepath),
+            .target = b.standardTargetOptions(.{}),
+            .optimize = b.standardOptimizeOption(.{}),
+        }),
+        // EXPERIMENTAL OPTION!
+        // new zig 0.14.0 feature that supposedly drastically reduces
+        // compilation times by using their own x86 backend.
+        .use_llvm = false,
     });
     b.installArtifact(exe);
 

@@ -20,10 +20,10 @@ pub fn main() !void {
     // begin benchmark
     var timer = try std.time.Timer.start();
 
-    // general purpose allocator will be used for all functions
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const global_allocator = gpa.allocator();
+    // debug allocator will be used for all functions
+    var backing_alloc = std.heap.DebugAllocator(.{}).init;
+    defer _ = backing_alloc.deinit();
+    const global_allocator = backing_alloc.allocator();
 
     // keep track of identifiers through all steps
     var global_symbol_table = sym.SymbolTable.Init(global_allocator);
