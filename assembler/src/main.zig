@@ -132,3 +132,5 @@ pub fn main() !void {
 //  -redesigned debug output flags
 // Assembler 0.5
 //  -debug mode metadata insertion introduced
+// Assembler 0.5.1
+//  -added "--noprint=[ARG]" flags

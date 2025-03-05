@@ -248,4 +248,4 @@ address value: 0x1A
 - [X] implement baked-in debug symbols
 - [X] refine unit tests
 - [ ] debug metadata for substituted identifiers
-- [ ] implement "--noprint=[ARG]" flags
+- [X] implement "--noprint=[ARG]" flags

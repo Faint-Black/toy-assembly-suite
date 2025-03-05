@@ -102,6 +102,28 @@ pub fn Parse_Arguments(allocator: std.mem.Allocator) !Flags {
             result.print_anon_labels = true;
         } else if (std.mem.eql(u8, arg.?, "--print=rom")) {
             result.print_rom_bytes = true;
+        } else if (std.mem.eql(u8, arg.?, "--noprint=all")) {
+            result.print_flags = false;
+            result.print_lexed_tokens = false;
+            result.print_stripped_tokens = false;
+            result.print_expanded_tokens = false;
+            result.print_symbol_table = false;
+            result.print_anon_labels = false;
+            result.print_rom_bytes = false;
+        } else if (std.mem.eql(u8, arg.?, "--noprint=flags")) {
+            result.print_flags = false;
+        } else if (std.mem.eql(u8, arg.?, "--noprint=lexed")) {
+            result.print_lexed_tokens = false;
+        } else if (std.mem.eql(u8, arg.?, "--noprint=stripped")) {
+            result.print_stripped_tokens = false;
+        } else if (std.mem.eql(u8, arg.?, "--noprint=expanded")) {
+            result.print_expanded_tokens = false;
+        } else if (std.mem.eql(u8, arg.?, "--noprint=symbols")) {
+            result.print_symbol_table = false;
+        } else if (std.mem.eql(u8, arg.?, "--noprint=anonlabels")) {
+            result.print_anon_labels = false;
+        } else if (std.mem.eql(u8, arg.?, "--noprint=rom")) {
+            result.print_rom_bytes = false;
         } else {
             std.log.err("Unknown argument: \"{s}\"", .{arg.?});
             return error.BadArgument;
@@ -170,6 +192,23 @@ pub fn Help_String() []const u8 {
     \\    Enable print anonymous labels information
     \\--print=rom
     \\    Enable print rom dump
+    \\
+    \\--noprint=all
+    \\    Disable all debug output flags
+    \\--noprint=flags
+    \\    Disable print command line flags information
+    \\--noprint=lexed
+    \\    Disable print lexed tokens
+    \\--noprint=stripped
+    \\    Disable print stripped tokens
+    \\--noprint=expanded
+    \\    Disable print expanded tokens
+    \\--noprint=symbols
+    \\    Disable print symbol table
+    \\--noprint=anonlabels
+    \\    Disable print anonymous labels information
+    \\--noprint=rom
+    \\    Disable print rom dump
     ;
 }
 
@@ -177,7 +216,7 @@ pub fn Version_String() []const u8 {
     return 
     \\The toy assembler program
     \\Assembly suite version 1
-    \\Assembler version 0.5
+    \\Assembler version 0.5.1
     \\
     ;
 }
