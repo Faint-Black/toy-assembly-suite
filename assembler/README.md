@@ -245,5 +245,7 @@ address value: 0x1A
 - [X] anonymous and relative labels
 - [X] add assembler README.md
 - [X] take advantage of the first pass of codegen to get total allocated vector size
-- [ ] implement baked-in debug symbols
-- [ ] refine unit tests
+- [X] implement baked-in debug symbols
+- [X] refine unit tests
+- [ ] debug metadata for substituted identifiers
+- [ ] implement "--noprint=[ARG]" flags

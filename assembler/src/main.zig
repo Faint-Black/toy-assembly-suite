@@ -103,13 +103,6 @@ pub fn main() !void {
         global_symbol_table.Print();
     }
 
-    // [DEBUG OUTPUT] print resulting rom bytes
-    if (flags.print_rom_bytes) {
-        std.debug.print("\nROM dump:\n", .{});
-        for (rom, 0..) |byte, i|
-            std.debug.print("{X:0>8} - 0x{X:0>2}\n", .{ i, byte });
-    }
-
     // end benchmark
     const nanoseconds = timer.read();
     try std.io.getStdOut().writer().print("Compilation done in {}\n", .{std.fmt.fmtDuration(nanoseconds)});
@@ -137,3 +130,5 @@ pub fn main() !void {
 //  -relative label referencing and anonymous labels introduced
 // Assembler 0.4.1
 //  -redesigned debug output flags
+// Assembler 0.5
+//  -debug mode metadata insertion introduced

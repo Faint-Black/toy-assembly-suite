@@ -249,10 +249,11 @@ fn Word_To_Token(allocator: std.mem.Allocator, str: []const u8) !tok.Token {
     } else if (std.mem.eql(u8, str, "NOP")) {
         return tok.Token{ .tokType = .NOP };
     } else {
-        var identifier_token = tok.Token.Init();
-        identifier_token.tokType = .IDENTIFIER;
-        identifier_token.identKey = try utils.Copy_Of_Slice(u8, allocator, str);
-        return identifier_token;
+        // all keyword checks failed, return as identifier
+        return tok.Token{
+            .tokType = .IDENTIFIER,
+            .identKey = try utils.Copy_Of_Slice(u8, allocator, str),
+        };
     }
 }
 
@@ -394,7 +395,7 @@ test "value token parsing" {
     try std.testing.expect(value_token.identKey == null);
     try std.testing.expect(value_token.text == null);
     try std.testing.expect(value_token.tokType == tok.TokenType.LITERAL);
-    try std.testing.expect(value_token.value == @as(u32, 255));
+    try std.testing.expectEqual(@as(u32, 255), value_token.value);
 
     // expects a valid result
     maybe_token = try Parse_Number_Word("0xFFFF");
@@ -403,7 +404,7 @@ test "value token parsing" {
     try std.testing.expect(value_token.identKey == null);
     try std.testing.expect(value_token.text == null);
     try std.testing.expect(value_token.tokType == tok.TokenType.LITERAL);
-    try std.testing.expect(value_token.value == @as(u32, 65535));
+    try std.testing.expectEqual(@as(u32, 65535), value_token.value);
 
     // expects a valid result
     maybe_token = try Parse_Number_Word("0d1337");
@@ -412,7 +413,7 @@ test "value token parsing" {
     try std.testing.expect(value_token.identKey == null);
     try std.testing.expect(value_token.text == null);
     try std.testing.expect(value_token.tokType == tok.TokenType.LITERAL);
-    try std.testing.expect(value_token.value == @as(u32, 1337));
+    try std.testing.expectEqual(@as(u32, 1337), value_token.value);
 
     // expects a valid result
     maybe_token = try Parse_Number_Word("$0xFFFF");
@@ -421,7 +422,7 @@ test "value token parsing" {
     try std.testing.expect(value_token.identKey == null);
     try std.testing.expect(value_token.text == null);
     try std.testing.expect(value_token.tokType == tok.TokenType.ADDRESS);
-    try std.testing.expect(value_token.value == @as(u32, 65535));
+    try std.testing.expectEqual(@as(u32, 65535), value_token.value);
 
     // expects a valid result
     maybe_token = try Parse_Number_Word("$0d1337");
@@ -430,7 +431,7 @@ test "value token parsing" {
     try std.testing.expect(value_token.identKey == null);
     try std.testing.expect(value_token.text == null);
     try std.testing.expect(value_token.tokType == tok.TokenType.ADDRESS);
-    try std.testing.expect(value_token.value == @as(u32, 1337));
+    try std.testing.expectEqual(@as(u32, 1337), value_token.value);
 
     // bogus input
     maybe_token = try Parse_Number_Word("Dojyaaan");
@@ -476,14 +477,14 @@ test "relative label reference parsing" {
     try std.testing.expect(maybe_token != null);
     value_token = maybe_token.?;
     try std.testing.expect(value_token.tokType == .BACKWARD_LABEL_REF);
-    try std.testing.expect(value_token.value == 1);
+    try std.testing.expectEqual(@as(u32, 1), value_token.value);
 
     // expects a valid result
     maybe_token = try Parse_Relative_Label("@+++++++++++++++++++++++++++++++++++++++++++++");
     try std.testing.expect(maybe_token != null);
     value_token = maybe_token.?;
     try std.testing.expect(value_token.tokType == .FORWARD_LABEL_REF);
-    try std.testing.expect(value_token.value == 45);
+    try std.testing.expectEqual(@as(u32, 45), value_token.value);
 
     // bogus input
     maybe_token = try Parse_Relative_Label("@+++Masayoshi+");

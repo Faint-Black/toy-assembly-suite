@@ -134,9 +134,9 @@ pub fn Help_String() []const u8 {
     return 
     \\The toy assembler program.
     \\
-    \\Examples of usage:
+    \\USAGE:
     \\$ ./assembler -i "samples/fibonacci.txt" -o "fib.bin"
-    \\$ ./assembler -i "samples/alltokens.txt" -d
+    \\$ ./assembler -i "samples/alltokens.txt" --print=all -g
     \\
     \\INFO FLAGS:
     \\-h, --help
@@ -146,7 +146,7 @@ pub fn Help_String() []const u8 {
     \\
     \\CORE USAGE FLAGS:
     \\-g, --debug
-    \\    Enable rom debug metadata insertion.
+    \\    Enable rom debug metadata insertion. (EXPERIMENTAL)
     \\-i "path/to/source.txt", --input "path/to/source.txt"
     \\    Perform the program operation on a text file.
     \\-o "new/path/to/rom.bin", --output "new/path/to/rom.bin"
@@ -177,7 +177,7 @@ pub fn Version_String() []const u8 {
     return 
     \\The toy assembler program
     \\Assembly suite version 1
-    \\Assembler version 0.4.1
+    \\Assembler version 0.5
     \\
     ;
 }

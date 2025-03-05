@@ -97,7 +97,7 @@ pub fn Copy_Of_ConstString(allocator: std.mem.Allocator, str: []const u8) ![]u8 
 // ONLY TESTS BELOW THIS POINT                                 //
 //-------------------------------------------------------------//
 test "check cosmic integrity of modern mathematics" {
-    try std.testing.expect(1 + 1 == 2);
+    try std.testing.expectEqual(1 + 1, 2);
 }
 
 test "is character whitespace" {
@@ -145,14 +145,14 @@ test "element buffer appending" {
     try Append_Char_To_String(&buffer, &bufsize, 'r');
 
     try std.testing.expectEqualStrings("foobar", buffer[0..bufsize]);
-    try std.testing.expect(bufsize == 6);
+    try std.testing.expectEqual(6, bufsize);
 }
 
 test "copy of slice" {
     const string = try Copy_Of_ConstString(std.testing.allocator, "Huzzah!");
     const huzzah = "Huzzah!";
     try std.testing.expectEqualStrings(huzzah, string);
-    try std.testing.expect(huzzah.len == string.len);
+    try std.testing.expectEqual(huzzah.len, string.len);
     try std.testing.expect(huzzah.ptr != string.ptr);
     std.testing.allocator.free(string);
 }
@@ -180,7 +180,7 @@ test "removing from buffer" {
     try Remove_And_Shift(i32, &buffer, &bufsize, 3);
     try Remove_And_Shift(i32, &buffer, &bufsize, 3);
 
-    try std.testing.expect(bufsize == 5);
-    try std.testing.expect(bufsize == cmpsize);
+    try std.testing.expectEqual(5, bufsize);
+    try std.testing.expectEqual(cmpsize, bufsize);
     try std.testing.expectEqualSlices(i32, compare[0..cmpsize], buffer[0..bufsize]);
 }

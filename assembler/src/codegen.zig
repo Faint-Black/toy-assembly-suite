@@ -15,8 +15,16 @@ const clap = @import("clap.zig");
 
 /// f: [tokens] -> [rom]
 pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
-    const rom_size = try First_Pass(allocator, symTable, expandedTokens);
-    return try Second_Pass(allocator, flags, symTable.*, expandedTokens, rom_size);
+    // symbol table passed as mutable reference
+    const rom_size = try First_Pass(allocator, flags, symTable, expandedTokens);
+    // symbol table passed as a const variable
+    const result = try Second_Pass(allocator, flags, symTable.*, expandedTokens, rom_size);
+
+    // [DEBUG OUTPUT] print rom bytes
+    if (flags.print_rom_bytes)
+        Debug_Print_Rom(result, flags);
+
+    return result;
 }
 
 //-------------------------------------------------------------//
@@ -25,7 +33,7 @@ pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *
 
 /// only responsible for attributing address values to the existing LABEL symbols
 /// bytecode has to be generated twice for this program to accept forward references
-fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) !usize {
+fn First_Pass(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) !usize {
     // vital for determining the LABEL address positions
     var rom_vector = std.ArrayList(u8).init(allocator);
     defer rom_vector.deinit();
@@ -37,7 +45,7 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expanded
     // for ".db", ".dw" and ".dd" modes
     var activeByteDefiner: tok.TokenType = .UNDEFINED;
 
-    try Create_Header(&rom_vector, 0);
+    try Append_Header(&rom_vector, 0, flags.debug_mode);
 
     // for every token loop
     for (expandedTokens) |token| {
@@ -82,6 +90,15 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expanded
 
         // here the already existing LABEL symbol address value is changed in the symbol table
         if (token.tokType == .LABEL) {
+            // insert label debug metadata
+            // 0xFF LABEL_NAME 'LabelName' 0xFF
+            if (flags.debug_mode) {
+                try rom_vector.append(@intFromEnum(Opcode.DEBUG_METADATA_SIGNAL));
+                try rom_vector.append(@intFromEnum(DebugMetadataType.LABEL_NAME));
+                try rom_vector.appendSlice(token.identKey.?);
+                try rom_vector.append(@intFromEnum(Opcode.DEBUG_METADATA_SIGNAL));
+            }
+
             const current_address_value_token: tok.Token = tok.Token{
                 .tokType = .ADDRESS,
                 .identKey = try utils.Copy_Of_ConstString(allocator, token.identKey.?),
@@ -100,6 +117,15 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, expanded
 
         // here the ANON_LABELS are scanned and added to the symbol table under an automatically generated name
         if (token.tokType == .ANON_LABEL) {
+            // insert label debug metadata
+            // 0xFF LABEL_NAME 'ANON_LABEL' 0xFF
+            if (flags.debug_mode) {
+                try rom_vector.append(@intFromEnum(Opcode.DEBUG_METADATA_SIGNAL));
+                try rom_vector.append(@intFromEnum(DebugMetadataType.LABEL_NAME));
+                try rom_vector.appendSlice("ANON_LABEL");
+                try rom_vector.append(@intFromEnum(Opcode.DEBUG_METADATA_SIGNAL));
+            }
+
             // name generation
             var buffer: [32]u8 = undefined;
             const slice = try std.fmt.bufPrint(&buffer, "ANON_LABEL_{x:0>8}", .{symTable.*.anonlabel_count});
@@ -170,7 +196,7 @@ fn Second_Pass(allocator: std.mem.Allocator, flags: clap.Flags, symTable: sym.Sy
     var activeByteDefiner: tok.TokenType = .UNDEFINED;
 
     // start with the 16 bytes of the ROM file header
-    try Create_Header(&rom_vector, 1);
+    try Append_Header(&rom_vector, 1, flags.debug_mode);
 
     // if the "_START:" special label has been defined already
     // put its value address on the appropriate rom header bytes
@@ -192,8 +218,22 @@ fn Second_Pass(allocator: std.mem.Allocator, flags: clap.Flags, symTable: sym.Sy
             break;
 
         // ignore LABELs as their symbols and tokens should be already processed and stripped at this stage
-        if (token.tokType == .LABEL or token.tokType == .ANON_LABEL)
+        // unless debug mode is active, if so, insert the labels metadata
+        if (token.tokType == .LABEL or token.tokType == .ANON_LABEL) {
+            if (flags.debug_mode) {
+                // insert label debug metadata
+                // 0xFF LABEL_NAME 'LabelName' 0xFF
+                // 0xFF LABEL_NAME 'ANON_LABEL' 0xFF
+                try rom_vector.append(@intFromEnum(Opcode.DEBUG_METADATA_SIGNAL));
+                try rom_vector.append(@intFromEnum(DebugMetadataType.LABEL_NAME));
+                if (token.tokType == .LABEL)
+                    try rom_vector.appendSlice(token.identKey.?);
+                if (token.tokType == .ANON_LABEL)
+                    try rom_vector.appendSlice("ANON_LABEL");
+                try rom_vector.append(@intFromEnum(Opcode.DEBUG_METADATA_SIGNAL));
+            }
             continue;
+        }
 
         // build instruction line and generate the appropriate bytecode
         if (token.tokType == .LINEFINISH) {
@@ -675,55 +715,140 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
     }
 }
 
-/// Create the 16 byte rom header
-fn Create_Header(rom_vector: *std.ArrayList(u8), version: u8) !void {
-    // byte 0 = magic number
-    try rom_vector.*.append(@as(u8, 0x69));
+/// Create and append the 16 byte rom header
+fn Append_Header(rom_vector: *std.ArrayList(u8), version: u8, debug: bool) !void {
+    var header: [16]u8 = undefined;
 
-    // byte 1 = assembly language version
-    try rom_vector.*.append(version);
+    // byte [0] = magic number
+    header[0] = 0x69;
+    // byte [1] = assembly language version
+    header[1] = version;
+    // bytes [2..4] = execution address entry point
+    //  right after header is the default, but can be
+    //  altered with the special "_START:" label.
+    header[2] = 0x10;
+    header[3] = 0x00;
+    // bytes [4..15] = free space, for now
+    header[4] = 0xCC;
+    header[5] = 0xCC;
+    header[6] = 0xCC;
+    header[7] = 0xCC;
+    header[8] = 0xCC;
+    header[9] = 0xCC;
+    header[10] = 0xCC;
+    header[11] = 0xCC;
+    header[12] = 0xCC;
+    header[13] = 0xCC;
+    header[14] = 0xCC;
+    // byte [15] = debug mode enabled
+    header[15] = @intFromBool(debug);
 
-    // bytes 2 to 3 = execution address entry point
-    // right after header is the default, but can be
-    // altered with the special "_START:" label
-    try rom_vector.*.append(@as(u8, 0x10));
-    try rom_vector.*.append(@as(u8, 0x00));
+    try rom_vector.appendSlice(&header);
+}
 
-    // bytes 4 to 15 = free space, for now
-    try rom_vector.*.append(@as(u8, 0xCC));
-    try rom_vector.*.append(@as(u8, 0xCC));
-    try rom_vector.*.append(@as(u8, 0xCC));
-    try rom_vector.*.append(@as(u8, 0xCC));
-    try rom_vector.*.append(@as(u8, 0xCC));
-    try rom_vector.*.append(@as(u8, 0xCC));
-    try rom_vector.*.append(@as(u8, 0xCC));
-    try rom_vector.*.append(@as(u8, 0xCC));
-    try rom_vector.*.append(@as(u8, 0xCC));
-    try rom_vector.*.append(@as(u8, 0xCC));
-    try rom_vector.*.append(@as(u8, 0xCC));
-    try rom_vector.*.append(@as(u8, 0xCC));
+fn Debug_Print_Rom(rom: []u8, flags: clap.Flags) void {
+    std.debug.print("\nROM dump:\n", .{});
+    if (flags.debug_mode) {
+        std.debug.print("----------+------+-------------\n", .{});
+        std.debug.print("address   |val   |value type\n", .{});
+        std.debug.print("----------+------+-------------\n", .{});
+        const entry_point: u16 = std.mem.readInt(u16, rom[2..4], .little);
+        const debug_signal: u8 = 0xFF;
+        var debug_contents_mode: bool = false;
+        var debug_first_byte: bool = false;
+        var len_counter: i32 = 0;
+        var opcode: Opcode = undefined;
+        // debug mode output
+        for (rom, 0..) |byte, i| {
+            if (i < 16) {
+                len_counter = 0;
+                switch (i) {
+                    0x0 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - magic number\n", .{ i, byte }),
+                    0x1 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - assembly version\n", .{ i, byte }),
+                    0x2 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - entry point (low byte)\n", .{ i, byte }),
+                    0x3 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - entry point (high byte)\n", .{ i, byte }),
+                    0x4 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0x5 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0x6 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0x7 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0x8 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0x9 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0xA => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0xB => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0xC => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0xD => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0xE => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0xF => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - debug mode enable\n", .{ i, byte }),
+                    else => unreachable,
+                }
+                continue;
+            }
+
+            if (len_counter >= 0) {
+                // invert debug contents mode state
+                if (byte == debug_signal) {
+                    debug_contents_mode = !debug_contents_mode;
+                }
+                // what to do the moment debug signal ends
+                if (byte == debug_signal and debug_contents_mode == false) {
+                    std.debug.print("0x{X:0>8}| 0x{X:0>2} | end debug info\n", .{ i, byte });
+                    continue;
+                }
+                // what to do the moment debug signal begins
+                if (byte == debug_signal and debug_contents_mode == true) {
+                    std.debug.print("0x{X:0>8}| 0x{X:0>2} | begin debug info\n", .{ i, byte });
+                    debug_first_byte = true;
+                    continue;
+                }
+                if (debug_contents_mode and debug_first_byte == true) {
+                    std.debug.print("0x{X:0>8}| 0x{X:0>2} | debug info type: {s}\n", .{ i, byte, std.enums.tagName(DebugMetadataType, @enumFromInt(byte)).? });
+                    debug_first_byte = false;
+                    continue;
+                }
+                if (debug_contents_mode and debug_first_byte == false) {
+                    std.debug.print("0x{X:0>8}| 0x{X:0>2} | \'{c}\'\n", .{ i, byte, byte });
+                    debug_first_byte = false;
+                    continue;
+                }
+
+                if (i < entry_point) {
+                    len_counter = 0;
+                    std.debug.print("0x{X:0>8}| 0x{X:0>2} | data\n", .{ i, byte });
+                    continue;
+                } else {
+                    opcode = @enumFromInt(byte);
+                    len_counter -= opcode.Instruction_Byte_Length();
+                    std.debug.print("0x{X:0>8}| 0x{X:0>2} | instruction opcode\n", .{ i, byte });
+                }
+            } else {
+                std.debug.print("0x{X:0>8}| 0x{X:0>2} | instruction parameter\n", .{ i, byte });
+            }
+
+            len_counter += 1;
+        }
+    } else {
+        std.debug.print("----------+------\n", .{});
+        std.debug.print("address   |val\n", .{});
+        std.debug.print("----------+------\n", .{});
+        // non debug mode output
+        for (rom, 0..) |byte, i|
+            std.debug.print("0x{X:0>8}| 0x{X:0>2}\n", .{ i, byte });
+    }
 }
 
 /// Using low-endian, sequentially append the bytes of a value to an u8 arraylist
 fn Append_Generic(vector: *std.ArrayList(u8), value: anytype) !void {
     const byte_array = std.mem.toBytes(value);
-    for (byte_array) |byte|
-        try vector.*.append(byte);
+    try vector.*.appendSlice(&byte_array);
 }
 
 /// Using low-endian, sequentially append the first n bytes of a value to an u8 arraylist
 fn Append_Generic_Limited(vector: *std.ArrayList(u8), value: anytype, comptime n: usize) !void {
     const byte_array = std.mem.toBytes(value);
-
-    // how do i make this a comptime assert?
+    // TODO: how do i make this a comptime assert?
     if (n > byte_array.len)
         return error.LargerThanByteArray;
-
-    for (byte_array, 0..) |byte, i| {
-        if (i == n)
-            break;
-        try vector.*.append(byte);
-    }
+    try vector.*.appendSlice(byte_array[0..n]);
 }
 
 /// "MNEMONIC_ARG1_ARG2"
@@ -822,6 +947,139 @@ pub const Opcode = enum(u8) {
     POP_A,
     POP_X,
     POP_Y,
+
+    // signal beginning/ending of a debug metadata string
+    DEBUG_METADATA_SIGNAL = 0xFF,
+
+    pub fn Instruction_Byte_Length(self: Opcode) u8 {
+        const op_len = 1;
+        const lit_len = 4;
+        const addr_len = 2;
+        return switch (self) {
+            .PANIC => op_len,
+            .SYSTEMCALL => op_len,
+            .BRK => op_len,
+            .NOP => op_len,
+            .CLC => op_len,
+            .SEC => op_len,
+            .RET => op_len,
+            .LDA_LIT => op_len + lit_len,
+            .LDX_LIT => op_len + lit_len,
+            .LDY_LIT => op_len + lit_len,
+            .LDA_ADDR => op_len + addr_len,
+            .LDX_ADDR => op_len + addr_len,
+            .LDY_ADDR => op_len + addr_len,
+            .LDA_X => op_len,
+            .LDA_Y => op_len,
+            .LDX_A => op_len,
+            .LDX_Y => op_len,
+            .LDY_A => op_len,
+            .LDY_X => op_len,
+            .LDA_ADDR_X => op_len + addr_len,
+            .LDA_ADDR_Y => op_len + addr_len,
+            .STA_ADDR => op_len + addr_len,
+            .STX_ADDR => op_len + addr_len,
+            .STY_ADDR => op_len + addr_len,
+            .JMP_ADDR => op_len + addr_len,
+            .JSR_ADDR => op_len + addr_len,
+            .CMP_A_X => op_len,
+            .CMP_A_Y => op_len,
+            .CMP_A_LIT => op_len + lit_len,
+            .CMP_A_ADDR => op_len + addr_len,
+            .CMP_X_A => op_len,
+            .CMP_X_Y => op_len,
+            .CMP_X_LIT => op_len + lit_len,
+            .CMP_X_ADDR => op_len + addr_len,
+            .CMP_Y_X => op_len,
+            .CMP_Y_A => op_len,
+            .CMP_Y_LIT => op_len + lit_len,
+            .CMP_Y_ADDR => op_len + addr_len,
+            .BCS_ADDR => op_len + addr_len,
+            .BCC_ADDR => op_len + addr_len,
+            .BEQ_ADDR => op_len + addr_len,
+            .BNE_ADDR => op_len + addr_len,
+            .BMI_ADDR => op_len + addr_len,
+            .BPL_ADDR => op_len + addr_len,
+            .BVS_ADDR => op_len + addr_len,
+            .BVC_ADDR => op_len + addr_len,
+            .ADD_LIT => op_len + lit_len,
+            .ADD_ADDR => op_len + addr_len,
+            .ADD_X => op_len,
+            .ADD_Y => op_len,
+            .SUB_LIT => op_len + lit_len,
+            .SUB_ADDR => op_len + addr_len,
+            .SUB_X => op_len,
+            .SUB_Y => op_len,
+            .INC_A => op_len,
+            .INC_X => op_len,
+            .INC_Y => op_len,
+            .INC_ADDR => op_len + addr_len,
+            .DEC_A => op_len,
+            .DEC_X => op_len,
+            .DEC_Y => op_len,
+            .DEC_ADDR => op_len + addr_len,
+            .PUSH_A => op_len,
+            .PUSH_X => op_len,
+            .PUSH_Y => op_len,
+            .POP_A => op_len,
+            .POP_X => op_len,
+            .POP_Y => op_len,
+            .DEBUG_METADATA_SIGNAL => op_len,
+        };
+    }
+};
+
+/// tells the debugger how to interpret the rom in a humanly understandable way.
+/// (open and closed square brackets represent the DEBUG_METADATA_SIGNAL byte)
+pub const DebugMetadataType = enum(u8) {
+    /// saves the identifier name and source position of the original label.
+    /// string terminated by the debug metadata signal.
+    /// *by design cannot save original anonymous label name*
+    ///
+    /// EXAMPLE:
+    /// ```
+    /// [ LABEL_NAME 'Fibonacci' ]
+    /// LDA 0x01
+    /// ```
+    ///
+    LABEL_NAME,
+
+    // *SCRAPPED IDEA, OUT OF SCOPE FOR PROJECT*
+    //
+    // signals the start of direct byte definitions, that are
+    // not meant to be interpreted as instruction opcodes.
+    // TODO: hardcoded to only occur between the start of rom
+    //       and beginning of the entry point address.
+    //
+    // EXAMPLE:
+    // ```
+    // [ DATA_BEGIN ]
+    // .db 0x01 0x02 0x03 0x04
+    // .dw 0x0001 0x0002
+    // .dd 0x00000001
+    // ```
+    //
+    //DATA_BEGIN,
+
+    // *SCRAPPED IDEA, OUT OF SCOPE FOR PROJECT*
+    //
+    // signals the start of actual assembly instructions, and
+    // implicitly, the end of direct data bytes.
+    // TODO: harcoded to only occur at the start of the entry
+    //       point address.
+    //
+    // EXAMPLE:
+    // ```
+    // [ DATA_BEGIN ]
+    // .db "I am data!"
+    // .db "Not opcodes."
+    // [ INSTRUCTION_BEGIN ]
+    // [ LABEL_NAME '_START' ]
+    // LDA 0x00
+    // STA $0x00
+    // ```
+    //
+    //OPCODES_BEGIN,
 };
 
 //-------------------------------------------------------------//
@@ -834,11 +1092,11 @@ test "byte vector appending" {
 
     try Append_Generic(&vector, num);
 
-    try std.testing.expect(vector.items.len == 4);
-    try std.testing.expect(vector.items[0] == 0xCC);
-    try std.testing.expect(vector.items[1] == 0xDD);
-    try std.testing.expect(vector.items[2] == 0xEE);
-    try std.testing.expect(vector.items[3] == 0xFF);
+    try std.testing.expectEqual(@as(usize, 4), vector.items.len);
+    try std.testing.expectEqual(@as(u8, 0xCC), vector.items[0]);
+    try std.testing.expectEqual(@as(u8, 0xDD), vector.items[1]);
+    try std.testing.expectEqual(@as(u8, 0xEE), vector.items[2]);
+    try std.testing.expectEqual(@as(u8, 0xFF), vector.items[3]);
 }
 
 test "limited byte vector appending" {
@@ -848,8 +1106,34 @@ test "limited byte vector appending" {
 
     try Append_Generic_Limited(&vector, num, 3);
 
-    try std.testing.expect(vector.items.len == 3);
-    try std.testing.expect(vector.items[0] == 0x00);
-    try std.testing.expect(vector.items[1] == 0x01);
-    try std.testing.expect(vector.items[2] == 0x02);
+    try std.testing.expectEqual(@as(usize, 3), vector.items.len);
+    try std.testing.expectEqual(@as(u8, 0x00), vector.items[0]);
+    try std.testing.expectEqual(@as(u8, 0x01), vector.items[1]);
+    try std.testing.expectEqual(@as(u8, 0x02), vector.items[2]);
+
+    var error_union: anyerror!void = undefined;
+    // expects error
+    error_union = Append_Generic_Limited(&vector, num, 9);
+    try std.testing.expectError(error.LargerThanByteArray, error_union);
+    // expects no error
+    try Append_Generic_Limited(&vector, num, 8);
+}
+
+test "assert rom header data" {
+    var dummy_vec = std.ArrayList(u8).init(std.testing.allocator);
+    defer dummy_vec.deinit();
+
+    try Append_Header(&dummy_vec, 9, true);
+
+    const magic_number: u8 = dummy_vec.items[0];
+    try std.testing.expectEqual(@as(u8, 0x69), magic_number);
+
+    const version: u8 = dummy_vec.items[1];
+    try std.testing.expectEqual(@as(u8, 0x09), version);
+
+    const entry_point: u16 = std.mem.readInt(u16, dummy_vec.items[2..4], .little);
+    try std.testing.expectEqual(@as(u16, 0x0010), entry_point);
+
+    // must be 16 bytes long, where $0xF is the last available header byte
+    try std.testing.expectEqual(@as(usize, 16), dummy_vec.items.len);
 }
