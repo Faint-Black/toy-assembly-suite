@@ -65,12 +65,12 @@ pub const SymbolTable = struct {
     }
 
     pub fn Deinit(this: *SymbolTable) void {
-        const allocator = this.*.table.allocator;
-        for (this.*.table.keys()) |k| {
-            const sym = this.*.table.get(k).?;
+        const allocator = this.table.allocator;
+        for (this.table.keys()) |k| {
+            const sym = this.table.get(k).?;
             sym.Deinit(allocator);
         }
-        this.*.table.deinit();
+        this.table.deinit();
     }
 
     /// returns null on fail
@@ -82,18 +82,18 @@ pub const SymbolTable = struct {
 
     /// replaces entry if it already exists
     pub fn Add(this: *SymbolTable, sym: Symbol) !void {
-        const allocator = this.*.table.allocator;
+        const allocator = this.table.allocator;
         if (sym.name) |k| {
             // if entry already exists, deallocate original name and
             // replace contents with new entry
-            if (this.*.table.getEntry(k)) |clash_entry| {
+            if (this.table.getEntry(k)) |clash_entry| {
                 // a lot of blood, sweat and tears went into these 2 lines of code
                 // DO NOT TOUCH!!
                 allocator.free(sym.name.?);
-                clash_entry.value_ptr.*.value = sym.value;
+                clash_entry.value_ptr.value = sym.value;
                 return;
             } else {
-                try this.*.table.putNoClobber(k, sym);
+                try this.table.putNoClobber(k, sym);
                 return;
             }
         }

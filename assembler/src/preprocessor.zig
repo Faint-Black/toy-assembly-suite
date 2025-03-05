@@ -52,7 +52,7 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: 
         // dummy label creation, for forward referencing purposes
         if (token.tokType == .LABEL) {
             const label_symbol = sym.Symbol{ .name = try utils.Copy_Of_ConstString(allocator, token.identKey.?), .value = .{ .label = tok.Token.Init() } };
-            try symTable.*.Add(label_symbol);
+            try symTable.Add(label_symbol);
         }
 
         // macro-begin and macro-end signal tokens
@@ -111,7 +111,7 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: 
             var macro_symbol: sym.Symbol = undefined;
             macro_symbol.name = macro_name;
             macro_symbol.value = .{ .macro = try macro_vector.toOwnedSlice() };
-            try symTable.*.Add(macro_symbol);
+            try symTable.Add(macro_symbol);
         }
         if (building_mode == .ENDMACRO) {
             building_mode = .UNDEFINED;
@@ -138,7 +138,7 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: 
             var define_symbol: sym.Symbol = undefined;
             define_symbol.name = try utils.Copy_Of_ConstString(allocator, define_name);
             define_symbol.value = .{ .define = try define_contents.Copy(allocator) };
-            try symTable.*.Add(define_symbol);
+            try symTable.Add(define_symbol);
 
             // and discard the rest
             for (macro_vector.items) |define_token|
@@ -175,7 +175,7 @@ fn Second_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens:
     var last_macro_tokentype: tok.TokenType = .UNDEFINED;
     for (tokens) |token| {
         if (token.tokType == .IDENTIFIER) {
-            const symbol = symTable.*.Get(token.identKey);
+            const symbol = symTable.Get(token.identKey);
             // pay no mind to missing identifiers
             if (symbol == null) {
                 try token_vector.append(try token.Copy(allocator));
