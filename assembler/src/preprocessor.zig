@@ -7,6 +7,10 @@
 //                                                             //
 //=============================================================//
 
+// TODO: this module warrants for a complete rewrite,
+//it was written in a hacky way which made keeping
+//track of the memory ownership a real pain.
+
 const std = @import("std");
 const utils = @import("utils.zig");
 const tok = @import("token.zig");
@@ -40,7 +44,9 @@ pub fn Preprocessor_Expansion(allocator: std.mem.Allocator, flags: clap.Flags, s
 //-------------------------------------------------------------//
 
 /// Removes all the macro definition tokens and adds them to the symbol registry,
-/// also adds dummy LABEL symbols which enable forward referencing
+/// also adds dummy LABEL symbols which enable forward referencing.
+/// .repeat macros are the current exception since they are nameless and
+/// unwrapped on the spot.
 fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: []const tok.Token) ![]tok.Token {
     var token_vector = std.ArrayList(tok.Token).init(allocator);
     defer token_vector.deinit();
@@ -169,6 +175,81 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: 
 
 /// unwraps the macros identifiers into a new token array
 fn Second_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: []const tok.Token) ![]tok.Token {
+    // functional approach may not be very efficient due to the sheer amount of allocations and deallocations
+    // counterpoint: don't care LOL
+
+    // repeat unwrap returns an entire token array copy
+    // you may safely free it after it is used in the next step
+    const first_step = try Unwrap_Repeats(allocator, tokens);
+    defer allocator.free(first_step);
+    defer tok.Destroy_Tokens_Contents(allocator, first_step);
+    // macro unwrap returns an entire token array copy
+    // but since define unwrap doesn't do this that means second_step
+    // still owns the memory.
+    const second_step = try Unwrap_Macros(allocator, symTable, first_step);
+    // define unwrap only replaces the tokens inplace, memory
+    // is owned by the previous step.
+    const final_step = try Unwrap_Defines(allocator, symTable, second_step);
+
+    return final_step;
+}
+
+fn Unwrap_Repeats(allocator: std.mem.Allocator, tokens: []const tok.Token) ![]tok.Token {
+    var token_vector = std.ArrayList(tok.Token).init(allocator);
+    defer token_vector.deinit();
+    try token_vector.ensureTotalCapacity(tokens.len);
+
+    var repeat_vector = std.ArrayList(tok.Token).init(allocator);
+    defer repeat_vector.deinit();
+
+    var skip_newline: bool = false;
+    var build_repeat_mode: bool = false;
+    for (tokens) |token| {
+        // ignore lone newline after .endrepeat token
+        if (skip_newline) {
+            skip_newline = false;
+            if (token.tokType == .LINEFINISH)
+                continue;
+        }
+
+        if (token.tokType == .REPEAT) {
+            build_repeat_mode = true;
+            continue;
+        }
+        if (token.tokType == .ENDREPEAT) {
+            build_repeat_mode = false;
+            skip_newline = true;
+
+            // validate proper syntax
+            // .repeat { LIT=n, $, CONTENTS } .endrepeat $
+            if (repeat_vector.items.len < 2)
+                return error.EmptyRepeatContents;
+            if (repeat_vector.items[0].tokType != .LITERAL)
+                return error.MissingRepeatLiteralParameter;
+            if (repeat_vector.items[1].tokType != .LINEFINISH)
+                return error.MissingNewlineAtRepeat;
+
+            // append repeat contents n times
+            for (0..repeat_vector.items[0].value) |_| {
+                try token_vector.appendSlice(repeat_vector.items[2..]);
+            }
+
+            tok.Destroy_Tokens_Contents(allocator, repeat_vector.items);
+            repeat_vector.clearRetainingCapacity();
+            continue;
+        }
+        if (build_repeat_mode) {
+            try repeat_vector.append(try token.Copy(allocator));
+            continue;
+        }
+
+        try token_vector.append(try token.Copy(allocator));
+    }
+
+    return token_vector.toOwnedSlice();
+}
+
+fn Unwrap_Macros(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: []const tok.Token) ![]tok.Token {
     var token_vector = std.ArrayList(tok.Token).init(allocator);
     defer token_vector.deinit();
 
@@ -183,29 +264,50 @@ fn Second_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens:
             }
 
             switch (symbol.?.value) {
-                // append macro contents, one by one
                 .macro => {
+                    // append macro contents, one token at a time
                     for (symbol.?.value.macro) |macroTok| {
                         try token_vector.append(try macroTok.Copy(allocator));
                         last_macro_tokentype = macroTok.tokType;
                     }
                     continue;
                 },
+                else => {},
+            }
+        }
+        // skip addition of unecessary newline token
+        if (token.tokType == .LINEFINISH and last_macro_tokentype == .LINEFINISH)
+            continue;
+        last_macro_tokentype = .UNDEFINED;
+
+        try token_vector.append(try token.Copy(allocator));
+    }
+
+    return token_vector.toOwnedSlice();
+}
+
+/// since its only changes one token at a time, this function modifies the identifier tokens
+/// inplace with no needs for token vectors
+fn Unwrap_Defines(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: []tok.Token) ![]tok.Token {
+    for (tokens) |*token| {
+        if (token.tokType == .IDENTIFIER) {
+            const symbol = symTable.Get(token.identKey);
+            // pay no mind to missing identifiers
+            if (symbol == null) {
+                continue;
+            }
+
+            switch (symbol.?.value) {
                 .define => {
-                    try token_vector.append(try symbol.?.value.define.Copy(allocator));
+                    // substitute it inplace
+                    token.Deinit(allocator);
+                    token.* = try symbol.?.value.define.Copy(allocator);
                     continue;
                 },
                 else => {},
             }
         }
-        // TODO: review this, from a glance this logic does not look bulletproof.
-        // skip addition of unecessary newline token
-        if (token.tokType == .LINEFINISH and last_macro_tokentype == .LINEFINISH)
-            continue;
-
-        last_macro_tokentype = .UNDEFINED;
-        try token_vector.append(try token.Copy(allocator));
     }
 
-    return token_vector.toOwnedSlice();
+    return tokens;
 }

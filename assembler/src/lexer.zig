@@ -166,6 +166,10 @@ fn Word_To_Token(allocator: std.mem.Allocator, str: []const u8) !tok.Token {
         return tok.Token{ .tokType = .MACRO };
     } else if (std.mem.eql(u8, str, ".endmacro")) {
         return tok.Token{ .tokType = .ENDMACRO };
+    } else if (std.mem.eql(u8, str, ".repeat")) {
+        return tok.Token{ .tokType = .REPEAT };
+    } else if (std.mem.eql(u8, str, ".endrepeat")) {
+        return tok.Token{ .tokType = .ENDREPEAT };
     } else if (std.mem.eql(u8, str, ".define")) {
         return tok.Token{ .tokType = .DEFINE };
     } else if (std.mem.eql(u8, str, "SYSCALL")) {

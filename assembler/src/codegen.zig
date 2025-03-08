@@ -15,9 +15,9 @@ const clap = @import("clap.zig");
 
 /// f: [tokens] -> [rom]
 pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
-    const first_pass = try codegen(true, allocator, flags, symTable, expandedTokens);
+    const first_pass = try Codegen(true, allocator, flags, symTable, expandedTokens);
     allocator.free(first_pass);
-    const second_pass = try codegen(false, allocator, flags, symTable, expandedTokens);
+    const second_pass = try Codegen(false, allocator, flags, symTable, expandedTokens);
 
     // [DEBUG OUTPUT] print rom bytes
     if (flags.print_rom_bytes)
@@ -33,7 +33,7 @@ pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *
 /// First pass: result is discarded as it is only used to determine LABEL address locations
 /// relative to its location in rom.
 /// Second pass: now that the LABEL locations have been defined, generate the actual usable rom.
-fn codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
+fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
     var rom_vector = std.ArrayList(u8).init(allocator);
     defer rom_vector.deinit();
 
@@ -655,9 +655,9 @@ fn Append_Header(rom_vector: *std.ArrayList(u8), version: u8, debug: bool) !void
 fn Debug_Print_Rom(rom: []u8, flags: clap.Flags) void {
     std.debug.print("\nROM dump:\n", .{});
     if (flags.debug_mode) {
-        std.debug.print("----------+------+-------------\n", .{});
-        std.debug.print("address   |val   |value type\n", .{});
-        std.debug.print("----------+------+-------------\n", .{});
+        std.debug.print("------+------+---------------------------\n", .{});
+        std.debug.print(" addr | val  | value type\n", .{});
+        std.debug.print("------+------+---------------------------\n", .{});
         const entry_point: u16 = std.mem.readInt(u16, rom[2..4], .little);
         const debug_signal: u8 = 0xFF;
         var debug_contents_mode: bool = false;
@@ -669,22 +669,22 @@ fn Debug_Print_Rom(rom: []u8, flags: clap.Flags) void {
             if (i < 16) {
                 len_counter = 0;
                 switch (i) {
-                    0x0 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - magic number\n", .{ i, byte }),
-                    0x1 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - assembly version\n", .{ i, byte }),
-                    0x2 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - entry point (low byte)\n", .{ i, byte }),
-                    0x3 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - entry point (high byte)\n", .{ i, byte }),
-                    0x4 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0x5 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0x6 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0x7 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0x8 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0x9 => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0xA => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0xB => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0xC => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0xD => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0xE => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0xF => std.debug.print("0x{X:0>8}| 0x{X:0>2} | header - debug mode enable\n", .{ i, byte }),
+                    0x0 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - magic number\n", .{ i, byte }),
+                    0x1 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - assembly version\n", .{ i, byte }),
+                    0x2 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - entry point (low byte)\n", .{ i, byte }),
+                    0x3 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - entry point (high byte)\n", .{ i, byte }),
+                    0x4 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0x5 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0x6 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0x7 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0x8 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0x9 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0xA => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0xB => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0xC => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0xD => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0xE => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
+                    0xF => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - debug mode enable\n", .{ i, byte }),
                     else => unreachable,
                 }
                 continue;
@@ -697,48 +697,48 @@ fn Debug_Print_Rom(rom: []u8, flags: clap.Flags) void {
                 }
                 // what to do the moment debug signal ends
                 if (byte == debug_signal and debug_contents_mode == false) {
-                    std.debug.print("0x{X:0>8}| 0x{X:0>2} | end debug info\n", .{ i, byte });
+                    std.debug.print("0x{X:0>4}| 0x{X:0>2} | end debug info\n", .{ i, byte });
                     continue;
                 }
                 // what to do the moment debug signal begins
                 if (byte == debug_signal and debug_contents_mode == true) {
-                    std.debug.print("0x{X:0>8}| 0x{X:0>2} | begin debug info\n", .{ i, byte });
+                    std.debug.print("0x{X:0>4}| 0x{X:0>2} | begin debug info\n", .{ i, byte });
                     debug_first_byte = true;
                     continue;
                 }
                 if (debug_contents_mode and debug_first_byte == true) {
-                    std.debug.print("0x{X:0>8}| 0x{X:0>2} | debug info type: {s}\n", .{ i, byte, std.enums.tagName(DebugMetadataType, @enumFromInt(byte)).? });
+                    std.debug.print("0x{X:0>4}| 0x{X:0>2} | debug info type: {s}\n", .{ i, byte, std.enums.tagName(DebugMetadataType, @enumFromInt(byte)).? });
                     debug_first_byte = false;
                     continue;
                 }
                 if (debug_contents_mode and debug_first_byte == false) {
-                    std.debug.print("0x{X:0>8}| 0x{X:0>2} | \'{c}\'\n", .{ i, byte, byte });
+                    std.debug.print("0x{X:0>4}| 0x{X:0>2} | \'{c}\'\n", .{ i, byte, byte });
                     debug_first_byte = false;
                     continue;
                 }
 
                 if (i < entry_point) {
                     len_counter = 0;
-                    std.debug.print("0x{X:0>8}| 0x{X:0>2} | data\n", .{ i, byte });
+                    std.debug.print("0x{X:0>4}| 0x{X:0>2} | data\n", .{ i, byte });
                     continue;
                 } else {
                     opcode = @enumFromInt(byte);
                     len_counter -= opcode.Instruction_Byte_Length();
-                    std.debug.print("0x{X:0>8}| 0x{X:0>2} | instruction opcode\n", .{ i, byte });
+                    std.debug.print("0x{X:0>4}| 0x{X:0>2} | opcode: {s}\n", .{ i, byte, std.enums.tagName(Opcode, @enumFromInt(byte)).? });
                 }
             } else {
-                std.debug.print("0x{X:0>8}| 0x{X:0>2} | instruction parameter\n", .{ i, byte });
+                std.debug.print("0x{X:0>4}| 0x{X:0>2} | opcode parameters\n", .{ i, byte });
             }
 
             len_counter += 1;
         }
     } else {
-        std.debug.print("----------+------\n", .{});
-        std.debug.print("address   |val\n", .{});
-        std.debug.print("----------+------\n", .{});
+        std.debug.print("------+------\n", .{});
+        std.debug.print(" addr | val\n", .{});
+        std.debug.print("------+------\n", .{});
         // non debug mode output
         for (rom, 0..) |byte, i|
-            std.debug.print("0x{X:0>8}| 0x{X:0>2}\n", .{ i, byte });
+            std.debug.print("0x{X:0>4}| 0x{X:0>2}\n", .{ i, byte });
     }
 }
 
@@ -938,7 +938,7 @@ pub const Opcode = enum(u8) {
 /// tells the debugger how to interpret the rom in a humanly understandable way.
 /// (open and closed square brackets represent the DEBUG_METADATA_SIGNAL byte)
 pub const DebugMetadataType = enum(u8) {
-    /// saves the identifier name and source position of the original label.
+    /// Saves the identifier name and source position of the original label.
     /// string terminated by the debug metadata signal.
     /// *by design cannot save original anonymous label name*
     ///
@@ -950,7 +950,27 @@ pub const DebugMetadataType = enum(u8) {
     ///
     LABEL_NAME,
 
-    // *SCRAPPED IDEA, OUT OF SCOPE FOR PROJECT*
+    // *SCRAPPED IDEA; THIS CAN BE RESOLVED DURING THE DEBUGGER'S EXECUTION*
+    //
+    // Saves the label identifier name before it is turned into a pure
+    // address, works for both relative label references and anonymous labels,
+    // if no identifier was found, output the string "null".
+    //
+    // EXAMPLE:
+    // ```
+    // [ JUMP_TARGET 'Skip' ]
+    // JMP Skip
+    // Skip:
+    // LDA 0x01
+    // [ JUMP_TARGET 'Skip' ]
+    // JMP @-
+    // [ JUMP_TARGET 'null' ]
+    // JMP $1337
+    // ```
+    //
+    //JUMP_TARGET,
+
+    // *SCRAPPED IDEA; ANYTHING BEFORE ENTRY POINT CONSIDERED DATA*
     //
     // signals the start of direct byte definitions, that are
     // not meant to be interpreted as instruction opcodes.
@@ -967,7 +987,7 @@ pub const DebugMetadataType = enum(u8) {
     //
     //DATA_BEGIN,
 
-    // *SCRAPPED IDEA, OUT OF SCOPE FOR PROJECT*
+    // *SCRAPPED IDEA; ANYTHING AFTER ENTRY POINT CONSIDERED INSTRUCTION*
     //
     // signals the start of actual assembly instructions, and
     // implicitly, the end of direct data bytes.

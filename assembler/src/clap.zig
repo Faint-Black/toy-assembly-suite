@@ -80,14 +80,6 @@ pub fn Parse_Arguments(allocator: std.mem.Allocator) !Flags {
             expecting_output_filename = true;
         } else if (std.mem.eql(u8, arg.?, "-g") or std.mem.eql(u8, arg.?, "--debug")) {
             result.debug_mode = true;
-        } else if (std.mem.eql(u8, arg.?, "--print=all")) {
-            result.print_flags = true;
-            result.print_lexed_tokens = true;
-            result.print_stripped_tokens = true;
-            result.print_expanded_tokens = true;
-            result.print_symbol_table = true;
-            result.print_anon_labels = true;
-            result.print_rom_bytes = true;
         } else if (std.mem.eql(u8, arg.?, "--print=flags")) {
             result.print_flags = true;
         } else if (std.mem.eql(u8, arg.?, "--print=lexed")) {
@@ -102,14 +94,6 @@ pub fn Parse_Arguments(allocator: std.mem.Allocator) !Flags {
             result.print_anon_labels = true;
         } else if (std.mem.eql(u8, arg.?, "--print=rom")) {
             result.print_rom_bytes = true;
-        } else if (std.mem.eql(u8, arg.?, "--noprint=all")) {
-            result.print_flags = false;
-            result.print_lexed_tokens = false;
-            result.print_stripped_tokens = false;
-            result.print_expanded_tokens = false;
-            result.print_symbol_table = false;
-            result.print_anon_labels = false;
-            result.print_rom_bytes = false;
         } else if (std.mem.eql(u8, arg.?, "--noprint=flags")) {
             result.print_flags = false;
         } else if (std.mem.eql(u8, arg.?, "--noprint=lexed")) {
@@ -124,6 +108,30 @@ pub fn Parse_Arguments(allocator: std.mem.Allocator) !Flags {
             result.print_anon_labels = false;
         } else if (std.mem.eql(u8, arg.?, "--noprint=rom")) {
             result.print_rom_bytes = false;
+        } else if (std.mem.eql(u8, arg.?, "--print=all")) {
+            result.print_flags = true;
+            result.print_lexed_tokens = true;
+            result.print_stripped_tokens = true;
+            result.print_expanded_tokens = true;
+            result.print_symbol_table = true;
+            result.print_anon_labels = true;
+            result.print_rom_bytes = true;
+        } else if (std.mem.eql(u8, arg.?, "--print=tokens")) {
+            result.print_lexed_tokens = true;
+            result.print_stripped_tokens = true;
+            result.print_expanded_tokens = true;
+        } else if (std.mem.eql(u8, arg.?, "--noprint=all")) {
+            result.print_flags = false;
+            result.print_lexed_tokens = false;
+            result.print_stripped_tokens = false;
+            result.print_expanded_tokens = false;
+            result.print_symbol_table = false;
+            result.print_anon_labels = false;
+            result.print_rom_bytes = false;
+        } else if (std.mem.eql(u8, arg.?, "--noprint=tokens")) {
+            result.print_lexed_tokens = false;
+            result.print_stripped_tokens = false;
+            result.print_expanded_tokens = false;
         } else {
             std.log.err("Unknown argument: \"{s}\"", .{arg.?});
             return error.BadArgument;
@@ -158,7 +166,7 @@ pub fn Help_String() []const u8 {
     \\
     \\USAGE:
     \\$ ./assembler -i "samples/fibonacci.txt" -o "fib.bin"
-    \\$ ./assembler -i "samples/alltokens.txt" --print=all -g
+    \\$ ./assembler -i "samples/alltokens.txt" --print=all -g --noprint=tokens
     \\
     \\INFO FLAGS:
     \\-h, --help
@@ -175,9 +183,7 @@ pub fn Help_String() []const u8 {
     \\    Define the output filename and filepath.
     \\    You may leave this empty for no file output.
     \\
-    \\DEBUG OUTPUT FLAGS:
-    \\--print=all
-    \\    Enable all debug output flags
+    \\INDIVIDUAL DEBUG OUTPUT FLAGS:
     \\--print=flags
     \\    Enable print command line flags information
     \\--print=lexed
@@ -193,8 +199,6 @@ pub fn Help_String() []const u8 {
     \\--print=rom
     \\    Enable print rom dump
     \\
-    \\--noprint=all
-    \\    Disable all debug output flags
     \\--noprint=flags
     \\    Disable print command line flags information
     \\--noprint=lexed
@@ -209,6 +213,18 @@ pub fn Help_String() []const u8 {
     \\    Disable print anonymous labels information
     \\--noprint=rom
     \\    Disable print rom dump
+    \\
+    \\GROUP DEBUG OUTPUT FLAGS:
+    \\--print=all
+    \\    Enable all debug output flags
+    \\--print=tokens
+    \\    Enable lexed, stripped and expanded output flags
+    \\
+    \\--noprint=all
+    \\    Disable all debug output flags
+    \\--noprint=tokens
+    \\    Disable lexed, stripped and expanded output flags
+    \\
     ;
 }
 
@@ -216,7 +232,7 @@ pub fn Version_String() []const u8 {
     return 
     \\The toy assembler program
     \\Assembly suite version 1
-    \\Assembler version 0.5.1
+    \\Assembler version 0.6
     \\
     ;
 }

@@ -37,6 +37,11 @@ WAIT_4_CYCLES
 LDA FRAME_COUNTER_ADDR
 INC A
 STA FRAME_COUNTER_ADDR
+;; repeat macros are nameless and are unwrapped on the spot
+.repeat 0x4
+  LDA 0xFF
+  STA $0x1
+.endrepeat
 
 ;; label testing area
 ;; spooky to debug!
@@ -54,6 +59,9 @@ JMP @----  ; refers to label "NormalLabel:"
 JMP @+     ; refers to label "_START:"
 JMP @++    ; refers to label "ForwardReference:"
 
+;; opcode syntax: all letters must be uppercase
+;; literal syntax: "0xff"
+;; address syntax: "$0xff"
 ;; use of the special "_START" label
 ;; it determines a custom entry point for the program
 _START:
@@ -63,11 +71,9 @@ NOP
 CLC
 SEC
 RET
-;; literal syntax = "0xff"
 LDA 0x42
 LDX 0x42
 LDY 0x42
-;; address syntax = "$0xff"
 LDA $0x1337
 LDX $0x1337
 LDY $0x1337

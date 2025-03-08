@@ -128,11 +128,15 @@ pub const TokenType = enum {
     /// define double word (32 bits)
     DD,
 
-    // preprocessor MACRO instructions
+    // preprocessor instructions
     /// begin macro definition
     MACRO,
     /// end macro definition
     ENDMACRO,
+    /// begin a repeat unwrapper
+    REPEAT,
+    /// end the repeat unwrapper
+    ENDREPEAT,
     /// create a one token macro
     DEFINE,
 
@@ -227,4 +231,20 @@ pub const TokenType = enum {
     BRK,
     /// no operation, do nothing
     NOP,
+
+    pub fn Is_Jump_Instruction(self: TokenType) bool {
+        return switch (self) {
+            .JMP => true,
+            .JSR => true,
+            .BCS => true,
+            .BCC => true,
+            .BEQ => true,
+            .BNE => true,
+            .BMI => true,
+            .BPL => true,
+            .BVS => true,
+            .BVC => true,
+            else => false,
+        };
+    }
 };

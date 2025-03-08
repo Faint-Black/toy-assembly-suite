@@ -17,7 +17,7 @@ Coming soon!
 ## Build
 
 ### Dependencies
-* Zig version 0.14.0.dev
+* Zig version 0.14.0 or higher
 
 ### Build Commands
 To build the assembler, debugger or virtual machine simply cd into the desired project and use a build command.

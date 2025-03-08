@@ -1,8 +1,5 @@
-// CAUTION! zig version may be outdated during your compilation
-// zig version 0.14.0-dev.2627+6a21d18ad (EXPERIMENTAL DEV BUILD)
-// January 2025
-
 const std = @import("std");
+const builtin = @import("builtin");
 
 const project_name = "assembler";
 const source_directory = "./src/";
@@ -10,17 +7,35 @@ const main_filepath = source_directory ++ "main.zig";
 const tests_filepath = source_directory ++ "tests.zig";
 
 pub fn build(b: *std.Build) void {
+    // ensure Zig version compatibility
+    const current_version = builtin.zig_version;
+    const minimum_version = std.SemanticVersion{
+        .major = 0,
+        .minor = 14,
+        .patch = 0,
+        .build = null,
+        .pre = null,
+    };
+    switch (std.SemanticVersion.order(current_version, minimum_version)) {
+        .lt => @panic("Zig 0.14.0 or higher is required for compilation!"),
+        .eq => {},
+        .gt => {},
+    }
+
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
     const exe = b.addExecutable(.{
         .name = project_name,
         .root_module = b.createModule(.{
             .root_source_file = b.path(main_filepath),
-            .target = b.standardTargetOptions(.{}),
-            .optimize = b.standardOptimizeOption(.{}),
+            .target = target,
+            .optimize = optimize,
         }),
-        // EXPERIMENTAL OPTION!
-        // new zig 0.14.0 feature that supposedly drastically reduces
-        // compilation times by using their own x86 backend.
-        .use_llvm = false,
+        // New Zig 0.14.0 feature that drastically reduces
+        //compilation times by using their own x86 backend.
+        // Only used in debug mode since LLVM optimizations are still
+        //much more efficient and faster for release versions.
+        .use_llvm = if (optimize == .Debug) false else true,
     });
     b.installArtifact(exe);
 

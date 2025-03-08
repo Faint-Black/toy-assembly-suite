@@ -2,12 +2,12 @@
 //                                                             //
 //                           MAIN                              //
 //                                                             //
-//   Compiled with Zig 0.14.0-dev (EXPERIMENTAL DEV BUILD),    //
-//  Patch notes and license details at the bottom.             //
+//   Patch notes and license details at the bottom.            //
 //                                                             //
 //=============================================================//
 
 const std = @import("std");
+const builtin = @import("builtin");
 const utils = @import("utils.zig");
 const clap = @import("clap.zig");
 const tok = @import("token.zig");
@@ -16,14 +16,17 @@ const sym = @import("symbol.zig");
 const pp = @import("preprocessor.zig");
 const codegen = @import("codegen.zig");
 
+// TODO: repeat n
+
 pub fn main() !void {
     // begin benchmark
     var timer = try std.time.Timer.start();
 
-    // debug allocator will be used for all functions
-    var backing_alloc = std.heap.DebugAllocator(.{}).init;
-    defer _ = backing_alloc.deinit();
-    const global_allocator = backing_alloc.allocator();
+    // use DebugAllocator on debug mode
+    // use SmpAllocator on release mode
+    var debug_struct_allocator = std.heap.DebugAllocator(.{}).init;
+    defer _ = debug_struct_allocator.deinit();
+    var global_allocator: std.mem.Allocator = if (builtin.mode == .Debug) debug_struct_allocator.allocator() else std.heap.smp_allocator;
 
     // keep track of identifiers through all steps
     var global_symbol_table = sym.SymbolTable.Init(global_allocator);
@@ -134,3 +137,5 @@ pub fn main() !void {
 //  -debug mode metadata insertion introduced
 // Assembler 0.5.1
 //  -added "--noprint=[ARG]" flags
+// Assembler 0.6
+//  -repeat unwrapper instroduced

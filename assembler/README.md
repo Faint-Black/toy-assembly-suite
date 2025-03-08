@@ -157,7 +157,7 @@ address value: 0x00
 ### First Pass
 **(expanded tokens) -> void**
 
-This is done during the "First Pass" function in the codegen module.
+This is done during the "Codegen" function in the codegen module.
 
 The first pass does more or less the same of what the second pass does, however the bytecode is only generated so the label address values may be calculated and properly replaced in the global symbol table, this is necessary for forward referencing.
 
@@ -194,7 +194,7 @@ address value: 0x1A
 ### Second Pass
 **(expanded tokens) -> (rom bytecode)**
 
-This is done during the "Second Pass" function in the codegen module.
+This is done during the "Codegen" function in the codegen module.
 
 Turn the tokens in their finalized state into a byte array representing the rom bytecode meant to be executed on the virtual machine or debugger.
 
@@ -240,12 +240,12 @@ address value: 0x1A
 - [X] implement (run-time) visibility toggles for debug information
 - [X] clean the lone newline token created by macros
 - [X] set address bytecode size to 16-bit
-- [ ] implement ".repeat n"
+- [X] implement ".repeat n"
 - [X] implement ".define"
 - [X] anonymous and relative labels
 - [X] add assembler README.md
 - [X] take advantage of the first pass of codegen to get total allocated vector size
 - [X] implement baked-in debug symbols
 - [X] refine unit tests
-- [ ] debug metadata for substituted identifiers
 - [X] implement "--noprint=[ARG]" flags
+- [ ] clean up codebase for the 1.0 release
