@@ -7,10 +7,6 @@
 //                                                             //
 //=============================================================//
 
-// TODO: this module warrants for a complete rewrite,
-//it was written in a hacky way which made keeping
-//track of the memory ownership a real pain.
-
 const std = @import("std");
 const utils = @import("utils.zig");
 const tok = @import("token.zig");
@@ -48,65 +44,98 @@ pub fn Preprocessor_Expansion(allocator: std.mem.Allocator, flags: clap.Flags, s
 /// .repeat macros are the current exception since they are nameless and
 /// unwrapped on the spot.
 fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: []const tok.Token) ![]tok.Token {
-    var token_vector = std.ArrayList(tok.Token).init(allocator);
-    defer token_vector.deinit();
-    var macro_vector = std.ArrayList(tok.Token).init(allocator);
-    defer macro_vector.deinit();
+    // this step only adds the dummy label entries to the symbol table,
+    // no removal or allocation necessary.
+    try Add_Labels(allocator, symTable, tokens);
 
-    var building_mode: tok.TokenType = .UNDEFINED;
+    const removed_macros = try Remove_Macros(allocator, symTable, tokens);
+    defer allocator.free(removed_macros);
+    defer tok.Destroy_Tokens_Contents(allocator, removed_macros);
+
+    const removed_defines = try Remove_Defines(allocator, symTable, removed_macros);
+    return removed_defines;
+}
+
+/// unwraps the macros identifiers into a new token array
+fn Second_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: []const tok.Token) ![]tok.Token {
+    const unwrapped_repeats = try Unwrap_Repeats(allocator, tokens);
+    defer allocator.free(unwrapped_repeats);
+    defer tok.Destroy_Tokens_Contents(allocator, unwrapped_repeats);
+
+    // CAUTION: Do not defer deallocate!
+    const unwrapped_macros = try Unwrap_Macros(allocator, symTable, unwrapped_repeats);
+    // the function below does *not* create a token array copy, so the memory
+    // still belongs to the previous function.
+    const unwrapped_defines = try Unwrap_Defines(allocator, symTable, unwrapped_macros);
+
+    return unwrapped_defines;
+}
+
+/// dummy label creation, for forward referencing purposes
+fn Add_Labels(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: []const tok.Token) !void {
     for (tokens) |token| {
-        // dummy label creation, for forward referencing purposes
         if (token.tokType == .LABEL) {
             const label_symbol = sym.Symbol{ .name = try utils.Copy_Of_ConstString(allocator, token.identKey.?), .value = .{ .label = tok.Token.Init() } };
             try symTable.Add(label_symbol);
         }
+    }
+}
 
-        // macro-begin and macro-end signal tokens
+fn Remove_Macros(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: []const tok.Token) ![]tok.Token {
+    var token_vector = std.ArrayList(tok.Token).init(allocator);
+    defer token_vector.deinit();
+    try token_vector.ensureTotalCapacity(tokens.len);
+
+    var macro_vector = std.ArrayList(tok.Token).init(allocator);
+    defer macro_vector.deinit();
+
+    var skip_newline: bool = false;
+    var build_macro_mode: bool = false;
+    for (tokens) |token| {
+        if (skip_newline) {
+            skip_newline = false;
+            if (token.tokType == .LINEFINISH)
+                continue;
+        }
+
         if (token.tokType == .MACRO) {
-            if (building_mode == .MACRO) {
+            if (build_macro_mode == true) {
                 std.log.err("Cannot define a macro inside another macro!", .{});
                 return error.BadMacro;
             }
-            building_mode = .MACRO;
-            continue;
-        }
-        if (token.tokType == .ENDMACRO) {
-            if (building_mode == .ENDMACRO) {
-                std.log.err("No macro to end!", .{});
-                return error.BadMacro;
-            }
-            building_mode = .ENDMACRO;
+            build_macro_mode = true;
             continue;
         }
 
-        // single token macro signal token
-        if (token.tokType == .DEFINE) {
-            building_mode = .DEFINE;
+        if (token.tokType == .ENDMACRO) {
+            if (build_macro_mode == false) {
+                std.log.err("No macro to end!", .{});
+                return error.BadMacro;
+            }
+            build_macro_mode = false;
             continue;
         }
 
         // when you forget to add .endmacro at the end of a definition
-        if (token.tokType == .ENDOFFILE and building_mode == .MACRO) {
+        if (token.tokType == .ENDOFFILE and build_macro_mode == true) {
             std.log.err("Found EOF while building macro!", .{});
             return error.BadMacro;
         }
 
         // add macro tokens to token buffer, flush signal is a .endmacro token
-        if (building_mode == .MACRO) {
+        if (build_macro_mode) {
             try macro_vector.append(try token.Copy(allocator));
             continue;
         }
 
-        // add define tokens to token buffer, flush signal is a newline token
-        if (building_mode == .DEFINE)
-            try macro_vector.append(try token.Copy(allocator));
-
         // flush built macro to symbol table
-        if (building_mode == .ENDMACRO and macro_vector.items.len > 0) {
-            // assert if macro was given a valid name
+        if (build_macro_mode == false and macro_vector.items.len > 0) {
+            // validate proper syntax
+            // .macro, {"name", $, CONTENTS }, .endrepeat, $
+            if (macro_vector.items.len < 3)
+                return error.MissingMacroContents;
             if (macro_vector.items[0].identKey == null)
                 return error.NamelessMacro;
-            // assert if macro has a newline after the macro name
             if (macro_vector.items[1].tokType != .LINEFINISH)
                 return error.BadName;
 
@@ -118,49 +147,11 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: 
             macro_symbol.name = macro_name;
             macro_symbol.value = .{ .macro = try macro_vector.toOwnedSlice() };
             try symTable.Add(macro_symbol);
-        }
-        if (building_mode == .ENDMACRO) {
-            building_mode = .UNDEFINED;
-            // skip addition of unecessary newline after the ".endmacro"
-            if (token.tokType == .LINEFINISH)
-                continue;
-        }
 
-        // flush built define to symbol table when encountering a linefinish
-        if (building_mode == .DEFINE and token.tokType == .LINEFINISH) {
-            // assert if define was given a valid name
-            if (macro_vector.items[0].identKey == null)
-                return error.NamelessDefine;
-            // assert if define has a lone, non linefinish token after the macro name
-            if (macro_vector.items[1].tokType == .LINEFINISH)
-                return error.EmptyDefine;
-            // assert if define has a lone, non linefinishing token after the macro name
-            if (macro_vector.items[2].tokType != .LINEFINISH)
-                return error.MultipleTokensInDefine;
-
-            // only pick the data we need
-            const define_name = macro_vector.items[0].identKey.?;
-            const define_contents = macro_vector.items[1];
-            var define_symbol: sym.Symbol = undefined;
-            define_symbol.name = try utils.Copy_Of_ConstString(allocator, define_name);
-            define_symbol.value = .{ .define = try define_contents.Copy(allocator) };
-            try symTable.Add(define_symbol);
-
-            // and discard the rest
-            for (macro_vector.items) |define_token|
-                define_token.Deinit(allocator);
-            macro_vector.clearAndFree();
-
-            // reset building mode
-            building_mode = .UNDEFINED;
-
-            // skip linefinish token
+            build_macro_mode = false;
+            skip_newline = true;
             continue;
         }
-
-        // strip define tokens
-        if (building_mode == .DEFINE)
-            continue;
 
         try token_vector.append(try token.Copy(allocator));
     }
@@ -173,25 +164,56 @@ fn First_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: 
     return token_vector.toOwnedSlice();
 }
 
-/// unwraps the macros identifiers into a new token array
-fn Second_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: []const tok.Token) ![]tok.Token {
-    // functional approach may not be very efficient due to the sheer amount of allocations and deallocations
-    // counterpoint: don't care LOL
+fn Remove_Defines(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: []const tok.Token) ![]tok.Token {
+    var token_vector = std.ArrayList(tok.Token).init(allocator);
+    defer token_vector.deinit();
+    try token_vector.ensureTotalCapacity(tokens.len);
 
-    // repeat unwrap returns an entire token array copy
-    // you may safely free it after it is used in the next step
-    const first_step = try Unwrap_Repeats(allocator, tokens);
-    defer allocator.free(first_step);
-    defer tok.Destroy_Tokens_Contents(allocator, first_step);
-    // macro unwrap returns an entire token array copy
-    // but since define unwrap doesn't do this that means second_step
-    // still owns the memory.
-    const second_step = try Unwrap_Macros(allocator, symTable, first_step);
-    // define unwrap only replaces the tokens inplace, memory
-    // is owned by the previous step.
-    const final_step = try Unwrap_Defines(allocator, symTable, second_step);
+    // [0] -> define name
+    // [1] -> define contents
+    var define_buffer: [2]tok.Token = .{tok.Token.Init()} ** 2;
+    var define_count: usize = 0;
 
-    return final_step;
+    var build_define_mode: bool = false;
+    for (tokens) |token| {
+        if (token.tokType == .DEFINE) {
+            build_define_mode = true;
+            continue;
+        }
+        if (token.tokType == .LINEFINISH) {
+            build_define_mode = false;
+        }
+
+        if (build_define_mode) {
+            try utils.Append_Element_To_Buffer(tok.Token, &define_buffer, &define_count, token);
+            continue;
+        }
+
+        if (build_define_mode == false and define_count > 0) {
+            // validate proper syntax
+            // .define, { "name", TOKEN }, $
+            if (define_count < 2)
+                return error.BadDefine;
+            if (define_buffer[0].identKey == null)
+                return error.NamelessDefine;
+
+            const define_symbol = sym.Symbol{
+                .name = try utils.Copy_Of_ConstString(allocator, define_buffer[0].identKey.?),
+                .value = .{ .define = try define_buffer[1].Copy(allocator) },
+            };
+            try symTable.Add(define_symbol);
+
+            // clear buffer
+            define_count = 0;
+
+            // skip newline
+            continue;
+        }
+
+        try token_vector.append(try token.Copy(allocator));
+    }
+
+    return token_vector.toOwnedSlice();
 }
 
 fn Unwrap_Repeats(allocator: std.mem.Allocator, tokens: []const tok.Token) ![]tok.Token {
@@ -230,10 +252,11 @@ fn Unwrap_Repeats(allocator: std.mem.Allocator, tokens: []const tok.Token) ![]to
                 return error.MissingNewlineAtRepeat;
 
             // append repeat contents n times
-            for (0..repeat_vector.items[0].value) |_| {
+            const repeat_n = repeat_vector.items[0].value;
+            for (0..repeat_n) |_|
                 try token_vector.appendSlice(repeat_vector.items[2..]);
-            }
 
+            // clear repeat tokens vector and repeat the process
             tok.Destroy_Tokens_Contents(allocator, repeat_vector.items);
             repeat_vector.clearRetainingCapacity();
             continue;
@@ -293,9 +316,8 @@ fn Unwrap_Defines(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, toke
         if (token.tokType == .IDENTIFIER) {
             const symbol = symTable.Get(token.identKey);
             // pay no mind to missing identifiers
-            if (symbol == null) {
+            if (symbol == null)
                 continue;
-            }
 
             switch (symbol.?.value) {
                 .define => {

@@ -16,8 +16,6 @@ const sym = @import("symbol.zig");
 const pp = @import("preprocessor.zig");
 const codegen = @import("codegen.zig");
 
-// TODO: repeat n
-
 pub fn main() !void {
     // begin benchmark
     var timer = try std.time.Timer.start();
@@ -102,18 +100,16 @@ pub fn main() !void {
     }
 
     // [DEBUG OUTPUT] print symbol hashtable
-    if (flags.print_symbol_table) {
+    if (flags.print_symbol_table)
         global_symbol_table.Print();
-    }
 
-    // end benchmark
+    // end and print benchmark
     const nanoseconds = timer.read();
     try std.io.getStdOut().writer().print("Compilation done in {}\n", .{std.fmt.fmtDuration(nanoseconds)});
 
     // print emit information
-    if (flags.output_filename) |output_filename| {
+    if (flags.output_filename) |output_filename|
         try std.io.getStdOut().writer().print("Written {} bytes to {s}\n", .{ rom.len, output_filename });
-    }
 }
 
 // LICENSE:
@@ -139,3 +135,5 @@ pub fn main() !void {
 //  -added "--noprint=[ARG]" flags
 // Assembler 0.6
 //  -repeat unwrapper instroduced
+// Assembler 1.0
+//  -(probably) stable release for practical use

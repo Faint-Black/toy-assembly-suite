@@ -166,7 +166,7 @@ pub fn Help_String() []const u8 {
     \\
     \\USAGE:
     \\$ ./assembler -i "samples/fibonacci.txt" -o "fib.bin"
-    \\$ ./assembler -i "samples/alltokens.txt" --print=all -g --noprint=tokens
+    \\$ ./assembler --input "samples/alltokens.txt" --print=all -g --noprint=tokens
     \\
     \\INFO FLAGS:
     \\-h, --help
@@ -232,7 +232,7 @@ pub fn Version_String() []const u8 {
     return 
     \\The toy assembler program
     \\Assembly suite version 1
-    \\Assembler version 0.6
+    \\Assembler version 1.0
     \\
     ;
 }

@@ -227,9 +227,9 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
     if (line.len >= buffsize)
         return error.InstructionLineTooLong;
 
-    // copy variable width input into fixed width local buffer
-    // *deprecated behavior* exclude the instruction line newline token too
-    // this is a less versatile, but overall safer approach
+    // copy variable width input into fixed width local buffer,
+    // this is a less versatile, but overall safer approach.
+    // *deprecated behavior* Exclude the instruction line newline token too.
     var t: [buffsize]tok.Token = .{tok.Token.Init()} ** buffsize;
     for (0..line.len) |i| {
         if (line[i].tokType == .LINEFINISH)
@@ -646,7 +646,7 @@ fn Append_Header(rom_vector: *std.ArrayList(u8), version: u8, debug: bool) !void
     header[12] = 0xCC;
     header[13] = 0xCC;
     header[14] = 0xCC;
-    // byte [15] = debug mode enabled
+    // byte [15] = debug mode enable
     header[15] = @intFromBool(debug);
 
     try rom_vector.appendSlice(&header);
@@ -750,10 +750,8 @@ fn Append_Generic(vector: *std.ArrayList(u8), value: anytype) !void {
 
 /// Using low-endian, sequentially append the first n bytes of a value to an u8 arraylist
 fn Append_Generic_Limited(vector: *std.ArrayList(u8), value: anytype, comptime n: usize) !void {
+    comptime std.debug.assert(n <= @sizeOf(@TypeOf(value)));
     const byte_array = std.mem.toBytes(value);
-    // TODO: how do i make this a comptime assert?
-    if (n > byte_array.len)
-        return error.LargerThanByteArray;
     try vector.appendSlice(byte_array[0..n]);
 }
 
@@ -950,7 +948,7 @@ pub const DebugMetadataType = enum(u8) {
     ///
     LABEL_NAME,
 
-    // *SCRAPPED IDEA; THIS CAN BE RESOLVED DURING THE DEBUGGER'S EXECUTION*
+    // *SCRAPPED IDEA; THIS CAN BE RESOLVED DURING THE DEBUGGER'S RUNTIME*
     //
     // Saves the label identifier name before it is turned into a pure
     // address, works for both relative label references and anonymous labels,
@@ -974,7 +972,7 @@ pub const DebugMetadataType = enum(u8) {
     //
     // signals the start of direct byte definitions, that are
     // not meant to be interpreted as instruction opcodes.
-    // TODO: hardcoded to only occur between the start of rom
+    // DONE: hardcoded to only occur between the start of rom
     //       and beginning of the entry point address.
     //
     // EXAMPLE:
@@ -991,7 +989,7 @@ pub const DebugMetadataType = enum(u8) {
     //
     // signals the start of actual assembly instructions, and
     // implicitly, the end of direct data bytes.
-    // TODO: harcoded to only occur at the start of the entry
+    // DONE: harcoded to only occur at the start of the entry
     //       point address.
     //
     // EXAMPLE:
@@ -1037,12 +1035,8 @@ test "limited byte vector appending" {
     try std.testing.expectEqual(@as(u8, 0x01), vector.items[1]);
     try std.testing.expectEqual(@as(u8, 0x02), vector.items[2]);
 
-    var error_union: anyerror!void = undefined;
-    // expects error
-    error_union = Append_Generic_Limited(&vector, num, 9);
-    try std.testing.expectError(error.LargerThanByteArray, error_union);
-    // expects no error
-    try Append_Generic_Limited(&vector, num, 8);
+    // error case tests are not needed since they're caught at the
+    // compile time assert inside the function.
 }
 
 test "assert rom header data" {
