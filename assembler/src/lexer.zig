@@ -8,7 +8,7 @@
 //=============================================================//
 
 const std = @import("std");
-const utils = @import("utils.zig");
+const utils = @import("shared").utils;
 const tok = @import("token.zig");
 
 /// f: [text] -> [tokens]

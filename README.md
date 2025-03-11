@@ -4,7 +4,7 @@ A pack of programs that compile, debug and execute a custom 32-bit assembly inst
 Fully written in Zig.
 
 ## - The Assembler
-Responsible for taking an assembly source file as input and outputting a rom binary file that can be executed by the virtual machine.
+Responsible for taking an assembly source file as input and outputting a rom binary file that can be executed by the virtual machine or debugger.
 
 ## - The Debugger
 Coming soon!
@@ -20,16 +20,16 @@ Coming soon!
 * Zig version 0.14.0 or higher
 
 ### Build Commands
-To build the assembler, debugger or virtual machine simply cd into the desired project and use a build command.
+To build the Assembler, Debugger and Virtual Machine binary executables simply use a Zig build command in any directory inside the project.
 
-Which type of executable you need is completely up to you, zig provides 4 choices by default:
+Which type of executable you need is completely up to you, Zig provides 4 choices by default:
 
 * (Recommended) Safe version, in case you need optimizations as well as runtime safety
 ```sh
 zig build --release=safe
 ```
 
-* Fast version, the standard highly optimized non-debug release version with minimal runtime safety checks
+* Fast version, the highly optimized non-debug release version with minimal runtime safety checks
 ```sh
 zig build --release=fast
 ```
@@ -45,4 +45,4 @@ zig build
 ```
 
 ## Run
-The emitted executable binary should be in the zig-out/bin/ directory, run the binary with the "-h" flag for more help information regarding the program specifications.
+The emitted executables should be in the zig-out/bin/ directory, run the binary with the "-h" flag for more help information regarding the program's specifications.

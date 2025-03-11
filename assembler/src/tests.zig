@@ -11,8 +11,8 @@
 // to recursively and automatically find and execute the tests in all the
 // individual source files...
 test {
+    _ = @import("shared");
     _ = @import("main.zig");
-    _ = @import("utils.zig");
     _ = @import("tests.zig");
     _ = @import("codegen.zig");
     _ = @import("token.zig");

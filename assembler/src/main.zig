@@ -8,7 +8,7 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
-const utils = @import("utils.zig");
+const utils = @import("shared").utils;
 const clap = @import("clap.zig");
 const tok = @import("token.zig");
 const lex = @import("lexer.zig");

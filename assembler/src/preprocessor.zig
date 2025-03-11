@@ -8,7 +8,7 @@
 //=============================================================//
 
 const std = @import("std");
-const utils = @import("utils.zig");
+const utils = @import("shared").utils;
 const tok = @import("token.zig");
 const sym = @import("symbol.zig");
 const clap = @import("clap.zig");

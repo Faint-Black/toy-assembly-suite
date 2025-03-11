@@ -7,7 +7,7 @@
 //=============================================================//
 
 const std = @import("std");
-const utils = @import("utils.zig");
+const utils = @import("shared").utils;
 
 pub const Token = struct {
     /// enum type of the token, undefined by default
