@@ -13,6 +13,10 @@ const tok = @import("token.zig");
 const sym = @import("symbol.zig");
 const clap = @import("clap.zig");
 
+const specifications = @import("shared").specifications;
+const Opcode = specifications.Opcode;
+const DebugMetadataType = specifications.DebugMetadataType;
+
 /// f: [tokens] -> [rom]
 pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
     const first_pass = try Codegen(true, allocator, flags, symTable, expandedTokens);
@@ -755,257 +759,6 @@ fn Append_Generic_Limited(vector: *std.ArrayList(u8), value: anytype, comptime n
     try vector.appendSlice(byte_array[0..n]);
 }
 
-/// "MNEMONIC_ARG1_ARG2"
-/// All literals are 32-bit unsigned integers
-/// All cpu registers can hold 32-bit values
-/// All addresses are 16-bit unsigned integers
-pub const Opcode = enum(u8) {
-    // Exit immediately upon trying to execute a null byte as an instruction
-    PANIC = 0x00,
-
-    // behavior depends entirely on virtual machine implementation,
-    // although the below usage of the registers is mandatory
-    // CODE = A
-    // ARG1 = X
-    // ARG2 = Y
-    SYSTEMCALL,
-
-    // No argument opcodes
-    BRK,
-    NOP,
-    CLC,
-    SEC,
-    RET,
-    // Loading literals into the register
-    LDA_LIT,
-    LDX_LIT,
-    LDY_LIT,
-    // Loading values from addresses
-    LDA_ADDR,
-    LDX_ADDR,
-    LDY_ADDR,
-    // Register transfering
-    LDA_X,
-    LDA_Y,
-    LDX_A,
-    LDX_Y,
-    LDY_A,
-    LDY_X,
-    // Indexed dereferencing
-    LDA_ADDR_X,
-    LDA_ADDR_Y,
-    // Storing values into addresses
-    STA_ADDR,
-    STX_ADDR,
-    STY_ADDR,
-    // Jumping
-    JMP_ADDR,
-    JSR_ADDR,
-    // Comparing
-    CMP_A_X,
-    CMP_A_Y,
-    CMP_A_LIT,
-    CMP_A_ADDR,
-    CMP_X_A,
-    CMP_X_Y,
-    CMP_X_LIT,
-    CMP_X_ADDR,
-    CMP_Y_X,
-    CMP_Y_A,
-    CMP_Y_LIT,
-    CMP_Y_ADDR,
-    // Branching
-    BCS_ADDR,
-    BCC_ADDR,
-    BEQ_ADDR,
-    BNE_ADDR,
-    BMI_ADDR,
-    BPL_ADDR,
-    BVS_ADDR,
-    BVC_ADDR,
-    // Addition with carry
-    ADD_LIT,
-    ADD_ADDR,
-    ADD_X,
-    ADD_Y,
-    // Subtraction with carry
-    SUB_LIT,
-    SUB_ADDR,
-    SUB_X,
-    SUB_Y,
-    // Increment
-    INC_A,
-    INC_X,
-    INC_Y,
-    INC_ADDR,
-    // Decrement
-    DEC_A,
-    DEC_X,
-    DEC_Y,
-    DEC_ADDR,
-    // Pushing to stack
-    PUSH_A,
-    PUSH_X,
-    PUSH_Y,
-    // Popping from stack
-    POP_A,
-    POP_X,
-    POP_Y,
-
-    // signal beginning/ending of a debug metadata string
-    DEBUG_METADATA_SIGNAL = 0xFF,
-
-    pub fn Instruction_Byte_Length(self: Opcode) u8 {
-        const op_len = 1;
-        const lit_len = 4;
-        const addr_len = 2;
-        return switch (self) {
-            .PANIC => op_len,
-            .SYSTEMCALL => op_len,
-            .BRK => op_len,
-            .NOP => op_len,
-            .CLC => op_len,
-            .SEC => op_len,
-            .RET => op_len,
-            .LDA_LIT => op_len + lit_len,
-            .LDX_LIT => op_len + lit_len,
-            .LDY_LIT => op_len + lit_len,
-            .LDA_ADDR => op_len + addr_len,
-            .LDX_ADDR => op_len + addr_len,
-            .LDY_ADDR => op_len + addr_len,
-            .LDA_X => op_len,
-            .LDA_Y => op_len,
-            .LDX_A => op_len,
-            .LDX_Y => op_len,
-            .LDY_A => op_len,
-            .LDY_X => op_len,
-            .LDA_ADDR_X => op_len + addr_len,
-            .LDA_ADDR_Y => op_len + addr_len,
-            .STA_ADDR => op_len + addr_len,
-            .STX_ADDR => op_len + addr_len,
-            .STY_ADDR => op_len + addr_len,
-            .JMP_ADDR => op_len + addr_len,
-            .JSR_ADDR => op_len + addr_len,
-            .CMP_A_X => op_len,
-            .CMP_A_Y => op_len,
-            .CMP_A_LIT => op_len + lit_len,
-            .CMP_A_ADDR => op_len + addr_len,
-            .CMP_X_A => op_len,
-            .CMP_X_Y => op_len,
-            .CMP_X_LIT => op_len + lit_len,
-            .CMP_X_ADDR => op_len + addr_len,
-            .CMP_Y_X => op_len,
-            .CMP_Y_A => op_len,
-            .CMP_Y_LIT => op_len + lit_len,
-            .CMP_Y_ADDR => op_len + addr_len,
-            .BCS_ADDR => op_len + addr_len,
-            .BCC_ADDR => op_len + addr_len,
-            .BEQ_ADDR => op_len + addr_len,
-            .BNE_ADDR => op_len + addr_len,
-            .BMI_ADDR => op_len + addr_len,
-            .BPL_ADDR => op_len + addr_len,
-            .BVS_ADDR => op_len + addr_len,
-            .BVC_ADDR => op_len + addr_len,
-            .ADD_LIT => op_len + lit_len,
-            .ADD_ADDR => op_len + addr_len,
-            .ADD_X => op_len,
-            .ADD_Y => op_len,
-            .SUB_LIT => op_len + lit_len,
-            .SUB_ADDR => op_len + addr_len,
-            .SUB_X => op_len,
-            .SUB_Y => op_len,
-            .INC_A => op_len,
-            .INC_X => op_len,
-            .INC_Y => op_len,
-            .INC_ADDR => op_len + addr_len,
-            .DEC_A => op_len,
-            .DEC_X => op_len,
-            .DEC_Y => op_len,
-            .DEC_ADDR => op_len + addr_len,
-            .PUSH_A => op_len,
-            .PUSH_X => op_len,
-            .PUSH_Y => op_len,
-            .POP_A => op_len,
-            .POP_X => op_len,
-            .POP_Y => op_len,
-            .DEBUG_METADATA_SIGNAL => op_len,
-        };
-    }
-};
-
-/// tells the debugger how to interpret the rom in a humanly understandable way.
-/// (open and closed square brackets represent the DEBUG_METADATA_SIGNAL byte)
-pub const DebugMetadataType = enum(u8) {
-    /// Saves the identifier name and source position of the original label.
-    /// string terminated by the debug metadata signal.
-    /// *by design cannot save original anonymous label name*
-    ///
-    /// EXAMPLE:
-    /// ```
-    /// [ LABEL_NAME 'Fibonacci' ]
-    /// LDA 0x01
-    /// ```
-    ///
-    LABEL_NAME,
-
-    // *SCRAPPED IDEA; THIS CAN BE RESOLVED DURING THE DEBUGGER'S RUNTIME*
-    //
-    // Saves the label identifier name before it is turned into a pure
-    // address, works for both relative label references and anonymous labels,
-    // if no identifier was found, output the string "null".
-    //
-    // EXAMPLE:
-    // ```
-    // [ JUMP_TARGET 'Skip' ]
-    // JMP Skip
-    // Skip:
-    // LDA 0x01
-    // [ JUMP_TARGET 'Skip' ]
-    // JMP @-
-    // [ JUMP_TARGET 'null' ]
-    // JMP $1337
-    // ```
-    //
-    //JUMP_TARGET,
-
-    // *SCRAPPED IDEA; ANYTHING BEFORE ENTRY POINT CONSIDERED DATA*
-    //
-    // signals the start of direct byte definitions, that are
-    // not meant to be interpreted as instruction opcodes.
-    // DONE: hardcoded to only occur between the start of rom
-    //       and beginning of the entry point address.
-    //
-    // EXAMPLE:
-    // ```
-    // [ DATA_BEGIN ]
-    // .db 0x01 0x02 0x03 0x04
-    // .dw 0x0001 0x0002
-    // .dd 0x00000001
-    // ```
-    //
-    //DATA_BEGIN,
-
-    // *SCRAPPED IDEA; ANYTHING AFTER ENTRY POINT CONSIDERED INSTRUCTION*
-    //
-    // signals the start of actual assembly instructions, and
-    // implicitly, the end of direct data bytes.
-    // DONE: harcoded to only occur at the start of the entry
-    //       point address.
-    //
-    // EXAMPLE:
-    // ```
-    // [ DATA_BEGIN ]
-    // .db "I am data!"
-    // .db "Not opcodes."
-    // [ INSTRUCTION_BEGIN ]
-    // [ LABEL_NAME '_START' ]
-    // LDA 0x00
-    // STA $0x00
-    // ```
-    //
-    //OPCODES_BEGIN,
-};
-
 //-------------------------------------------------------------//
 // ONLY TESTS BELOW THIS POINT                                 //
 //-------------------------------------------------------------//
@@ -1046,7 +799,7 @@ test "assert rom header data" {
     try Append_Header(&dummy_vec, 9, true);
 
     const magic_number: u8 = dummy_vec.items[0];
-    try std.testing.expectEqual(@as(u8, 0x69), magic_number);
+    try std.testing.expectEqual(specifications.rom_magic_number, magic_number);
 
     const version: u8 = dummy_vec.items[1];
     try std.testing.expectEqual(@as(u8, 0x09), version);
@@ -1055,5 +808,5 @@ test "assert rom header data" {
     try std.testing.expectEqual(@as(u16, 0x0010), entry_point);
 
     // must be 16 bytes long, where $0xF is the last available header byte
-    try std.testing.expectEqual(@as(usize, 16), dummy_vec.items.len);
+    try std.testing.expectEqual(specifications.rom_header_bytelen, dummy_vec.items.len);
 }

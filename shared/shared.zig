@@ -7,7 +7,9 @@
 //=============================================================//
 
 pub const utils = @import("utils.zig");
+pub const specifications = @import("specifications.zig");
 
 test {
     _ = @import("utils.zig");
+    _ = @import("specifications.zig");
 }
