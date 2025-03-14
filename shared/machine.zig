@@ -30,9 +30,9 @@ pub const State = struct {
     stack_pointer: u16,
 
     /// processor flags
-    carry_flag: u1,
-    zero_flag: u1,
-    overflow_flag: u1,
+    carry_flag: bool,
+    zero_flag: bool,
+    overflow_flag: bool,
 
     /// fill determines the byte that will fill the vacant empty space,
     /// put null for it so stay undefined.
@@ -62,50 +62,52 @@ pub const State = struct {
         return machine;
     }
 
-    /// Helper function for reading little endian ints from memory, example:
-    ///```
-    ///   ROM   -  VAL
-    /// $0x0000 - 0x00
-    /// $0x0001 - 0x00
-    /// $0x0002 - 0x11
-    /// $0x0003 - 0x22
-    /// $0x0004 - 0x33
-    /// $0x0005 - 0x44
-    /// $0x0006 - 0x00
-    /// $0x0007 - 0x00
-    ///```
-    /// fn(&rom, $0x0002, u32) returns 0x44332211
-    /// fn(&rom, $0x0003, u16) returns 0x3322
-    pub fn Get_Address_Contents_As(memory: []const u8, address: u16, comptime T: type) !T {
+    /// may fail with error.ReadOutOfBoundsMemory
+    pub fn Read_Address_Contents_As(memory: []const u8, address: u16, comptime T: type) !T {
+        // Helper function for reading little endian ints from memory, example:
+        //```
+        //   ROM   -  VAL
+        // $0x0000 - 0x00
+        // $0x0001 - 0x00
+        // $0x0002 - 0x11
+        // $0x0003 - 0x22
+        // $0x0004 - 0x33
+        // $0x0005 - 0x44
+        // $0x0006 - 0x00
+        // $0x0007 - 0x00
+        //```
+        // fn(&rom, $0x0002, u32) returns 0x44332211
+        // fn(&rom, $0x0003, u16) returns 0x3322
         if ((address + @sizeOf(T)) > memory.len)
             return error.ReadOutOfBoundsMemory;
         return std.mem.readVarInt(T, memory[address .. address + @sizeOf(T)], .little);
     }
 
-    /// Helper function for writing little endian ints into memory, example:
-    ///```
-    ///   ROM   -  VAL
-    /// $0x0000 - 0x00
-    /// $0x0001 - 0x00
-    /// $0x0002 - 0x00
-    /// $0x0003 - 0x00
-    /// $0x0004 - 0x00
-    /// $0x0005 - 0x00
-    /// $0x0006 - 0x00
-    /// $0x0007 - 0x00
-    ///```
-    /// fn(&rom, $0x0002, u32, 0x44332211) modifies the memory to:
-    ///```
-    /// $0x0000 - 0x00
-    /// $0x0001 - 0x00
-    /// $0x0002 - 0x11
-    /// $0x0003 - 0x22
-    /// $0x0004 - 0x33
-    /// $0x0005 - 0x44
-    /// $0x0006 - 0x00
-    /// $0x0007 - 0x00
-    ///```
-    pub fn Place_Contents_Into_Memory_As(memory: []u8, address: u16, comptime T: type, value: T) !void {
+    /// may fail with error.WriteIntoOutOfBoundsMemory
+    pub fn Write_Contents_Into_Memory_As(memory: []u8, address: u16, comptime T: type, value: T) !void {
+        // Helper function for writing little endian ints into memory, example:
+        //```
+        //   ROM   -  VAL
+        // $0x0000 - 0x00
+        // $0x0001 - 0x00
+        // $0x0002 - 0x00
+        // $0x0003 - 0x00
+        // $0x0004 - 0x00
+        // $0x0005 - 0x00
+        // $0x0006 - 0x00
+        // $0x0007 - 0x00
+        //```
+        // fn(&rom, $0x0002, u32, 0x44332211) modifies the memory to:
+        //```
+        // $0x0000 - 0x00
+        // $0x0001 - 0x00
+        // $0x0002 - 0x11
+        // $0x0003 - 0x22
+        // $0x0004 - 0x33
+        // $0x0005 - 0x44
+        // $0x0006 - 0x00
+        // $0x0007 - 0x00
+        //```
         if ((address + @sizeOf(T)) > memory.len)
             return error.WriteIntoOutOfBoundsMemory;
         // stinky hack since writeVarInt doesn't exist...
@@ -117,14 +119,14 @@ pub const State = struct {
         if (this.stack_pointer > @sizeOf(T))
             return error.StackOverflow;
         this.stack_pointer -= @sizeOf(T);
-        Place_Contents_Into_Memory_As(this.stack, this.stack_pointer, T, value);
+        Write_Contents_Into_Memory_As(this.stack, this.stack_pointer, T, value);
     }
 
     /// pops generic value from the stack
     pub fn Pop_From_Stack(this: *State, comptime T: type) !T {
         if ((this.stack_pointer + @sizeOf(T)) >= specs.stack_address_space)
             return error.StackUnderflow;
-        const popped_value: T = Get_Address_Contents_As(this.stack, this.stack_pointer, T);
+        const popped_value: T = Read_Address_Contents_As(this.stack, this.stack_pointer, T);
         this.stack_pointer += @sizeOf(T);
         return popped_value;
     }
@@ -147,6 +149,18 @@ pub const State = struct {
     pub fn Return_From_Subroutine(this: *State) !void {
         this.program_counter = try Pop_From_Stack(this, u16);
     }
+
+    /// sets reg to the input value
+    pub fn Load_Value_Into_Reg(this: *State, value: u32, reg: *u32) void {
+        _ = this; // processor flags modifications to be implemented later
+        reg.* = value;
+    }
+
+    /// "Transfer" is a misnomer, all this does is set reg1 to the value of reg2
+    pub fn Transfer_Registers(this: *State, reg1: *u32, reg2: *const u32) void {
+        _ = this; // processor flags modifications to be implemented later
+        reg1.* = reg2.*;
+    }
 };
 
 //-------------------------------------------------------------//
@@ -164,18 +178,18 @@ test "Reading generic ints from memoryspace" {
     mem[7] = 0xCC;
 
     // ok
-    try std.testing.expectEqual(0x22110000, try State.Get_Address_Contents_As(&mem, 0, u32));
-    try std.testing.expectEqual(0x33221100, try State.Get_Address_Contents_As(&mem, 1, u32));
-    try std.testing.expectEqual(0x44332211, try State.Get_Address_Contents_As(&mem, 2, u32));
-    try std.testing.expectEqual(0xCC443322, try State.Get_Address_Contents_As(&mem, 3, u32));
-    try std.testing.expectEqual(0xCCCC4433, try State.Get_Address_Contents_As(&mem, 4, u32));
+    try std.testing.expectEqual(0x22110000, try State.Read_Address_Contents_As(&mem, 0, u32));
+    try std.testing.expectEqual(0x33221100, try State.Read_Address_Contents_As(&mem, 1, u32));
+    try std.testing.expectEqual(0x44332211, try State.Read_Address_Contents_As(&mem, 2, u32));
+    try std.testing.expectEqual(0xCC443322, try State.Read_Address_Contents_As(&mem, 3, u32));
+    try std.testing.expectEqual(0xCCCC4433, try State.Read_Address_Contents_As(&mem, 4, u32));
 
     // out of bounds
-    try std.testing.expectError(error.ReadOutOfBoundsMemory, State.Get_Address_Contents_As(&mem, 5, u32));
-    try std.testing.expectError(error.ReadOutOfBoundsMemory, State.Get_Address_Contents_As(&mem, 6, u32));
-    try std.testing.expectError(error.ReadOutOfBoundsMemory, State.Get_Address_Contents_As(&mem, 7, u32));
-    try std.testing.expectError(error.ReadOutOfBoundsMemory, State.Get_Address_Contents_As(&mem, 8, u32));
-    try std.testing.expectError(error.ReadOutOfBoundsMemory, State.Get_Address_Contents_As(&mem, 9, u32));
+    try std.testing.expectError(error.ReadOutOfBoundsMemory, State.Read_Address_Contents_As(&mem, 5, u32));
+    try std.testing.expectError(error.ReadOutOfBoundsMemory, State.Read_Address_Contents_As(&mem, 6, u32));
+    try std.testing.expectError(error.ReadOutOfBoundsMemory, State.Read_Address_Contents_As(&mem, 7, u32));
+    try std.testing.expectError(error.ReadOutOfBoundsMemory, State.Read_Address_Contents_As(&mem, 8, u32));
+    try std.testing.expectError(error.ReadOutOfBoundsMemory, State.Read_Address_Contents_As(&mem, 9, u32));
 }
 
 test "Writing generic ints into memoryspace" {
@@ -186,16 +200,16 @@ test "Writing generic ints into memoryspace" {
 
     // ok
     const addr = 4;
-    try State.Place_Contents_Into_Memory_As(&mem, addr, u32, 0x44332211);
+    try State.Write_Contents_Into_Memory_As(&mem, addr, u32, 0x44332211);
     try std.testing.expectEqualSlices(u8, mem[addr .. addr + cmp_32.len], &cmp_32);
     try std.testing.expectEqualSlices(u8, mem[addr .. addr + cmp_16.len], &cmp_16);
 
     // out of bounds
-    try std.testing.expectError(error.WriteIntoOutOfBoundsMemory, State.Place_Contents_Into_Memory_As(&mem, 5, u32, 0xFFFFFFFF));
-    try std.testing.expectError(error.WriteIntoOutOfBoundsMemory, State.Place_Contents_Into_Memory_As(&mem, 6, u32, 0xFFFFFFFF));
-    try std.testing.expectError(error.WriteIntoOutOfBoundsMemory, State.Place_Contents_Into_Memory_As(&mem, 7, u16, 0xFFFF));
-    try std.testing.expectError(error.WriteIntoOutOfBoundsMemory, State.Place_Contents_Into_Memory_As(&mem, 8, u8, 0xFF));
-    try std.testing.expectError(error.WriteIntoOutOfBoundsMemory, State.Place_Contents_Into_Memory_As(&mem, 9, u8, 0xFF));
+    try std.testing.expectError(error.WriteIntoOutOfBoundsMemory, State.Write_Contents_Into_Memory_As(&mem, 5, u32, 0xFFFFFFFF));
+    try std.testing.expectError(error.WriteIntoOutOfBoundsMemory, State.Write_Contents_Into_Memory_As(&mem, 6, u32, 0xFFFFFFFF));
+    try std.testing.expectError(error.WriteIntoOutOfBoundsMemory, State.Write_Contents_Into_Memory_As(&mem, 7, u16, 0xFFFF));
+    try std.testing.expectError(error.WriteIntoOutOfBoundsMemory, State.Write_Contents_Into_Memory_As(&mem, 8, u8, 0xFF));
+    try std.testing.expectError(error.WriteIntoOutOfBoundsMemory, State.Write_Contents_Into_Memory_As(&mem, 9, u8, 0xFF));
 }
 
 test "Jumping" {
