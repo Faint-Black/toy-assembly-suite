@@ -9,6 +9,7 @@
 
 const std = @import("std");
 const specs = @import("specifications.zig");
+const utils = @import("utils.zig");
 
 // TODO: instructions change flag bits
 // TODO: unit tests
@@ -161,6 +162,30 @@ pub const State = struct {
         _ = this; // processor flags modifications to be implemented later
         reg1.* = reg2.*;
     }
+
+    /// add two 32-bit values and modifies the processor flags accordingly
+    /// standard overflow behavior:
+    /// 0xFFFFFFFF + 1 = 0x00000000
+    pub fn Add(this: *State, a: u32, b: u32) u32 {
+        const result, const overflow = @addWithOverflow(a, b);
+
+        // TODO: accurate flag modifications to be decided
+        this.carry_flag = utils.Int_To_Bool(overflow);
+        this.zero_flag = (result == 0);
+        return result;
+    }
+
+    /// subtracts two 32-bit values and modifies the processor flags accordingly
+    /// standard underflow behavior:
+    /// 0x00000000 - 1 = 0xFFFFFFFF
+    pub fn Subtract(this: *State, a: u32, b: u32) u32 {
+        const result, const underflow = @subWithOverflow(a, b);
+
+        // TODO: accurate flag modifications to be decided
+        this.overflow_flag = utils.Int_To_Bool(underflow);
+        this.zero_flag = (result == 0);
+        return result;
+    }
 };
 
 //-------------------------------------------------------------//
@@ -212,10 +237,38 @@ test "Writing generic ints into memoryspace" {
     try std.testing.expectError(error.WriteIntoOutOfBoundsMemory, State.Write_Contents_Into_Memory_As(&mem, 9, u8, 0xFF));
 }
 
-test "Jumping" {
+test "Live VM tests" {
     var vm = State.Init(null, 0x00);
 
     // straight jumping
     vm.Jump_To_Address(0x0100);
     try std.testing.expectEqual(0x0100, vm.program_counter);
+
+    var result: u32 = undefined;
+    // addition
+    result = vm.Add(0xFFFFFFFF, 1);
+    try std.testing.expectEqual(0x00000000, result);
+    try std.testing.expectEqual(true, vm.carry_flag);
+    try std.testing.expectEqual(true, vm.zero_flag);
+    result = vm.Add(0x69, 0x42);
+    try std.testing.expectEqual(0x000000AB, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    result = vm.Add(0, 0);
+    try std.testing.expectEqual(0x00000000, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(true, vm.zero_flag);
+    // subtraction
+    result = vm.Subtract(0x00000000, 1);
+    try std.testing.expectEqual(0xFFFFFFFF, result);
+    try std.testing.expectEqual(true, vm.overflow_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    result = vm.Subtract(0x69, 0x42);
+    try std.testing.expectEqual(0x00000027, result);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    result = vm.Subtract(0, 0);
+    try std.testing.expectEqual(0x00000000, result);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(true, vm.zero_flag);
 }

@@ -1,25 +1,55 @@
 const std = @import("std");
 const specs = @import("shared").specifications;
+const utils = @import("shared").utils;
 const machine = @import("shared").machine;
 
 pub fn Run_Virtual_Machine(vm: *machine.State) !void {
+    // delay measures, in milliseconds
+    const wait_per_instruction = 500;
+    const wait_per_nop = 1000;
+
+    // debug mode specific data
+    var debug_metadata_contents = false;
+
     var quit = false;
     while (!quit) {
-        var opcode_enum: specs.Opcode = @enumFromInt(vm.program_counter);
+        std.Thread.sleep(utils.Milliseconds_To_Nanoseconds(wait_per_instruction));
+
+        if (vm.rom[vm.program_counter] == @intFromEnum(specs.Opcode.DEBUG_METADATA_SIGNAL))
+            debug_metadata_contents = !debug_metadata_contents;
+
+        const opcode_enum: specs.Opcode = @enumFromInt(vm.rom[vm.program_counter]);
         switch (opcode_enum) {
             .PANIC => {
+                // useful when fill_byte is set to zero
                 std.debug.print("Attempted to execute a null byte!\n", .{});
                 quit = true;
             },
-            .SYSTEMCALL => {},
+            .SYSTEMCALL => {
+                // TODO
+                std.debug.print("Syscall! implement me dumbass!\n", .{});
+            },
             .BRK => {
+                // graciously exit
                 std.debug.print("Execution complete.\n", .{});
                 quit = true;
             },
-            .NOP => {},
-            .CLC => {},
-            .SEC => {},
-            .RET => {},
+            .NOP => {
+                // NOPs in the debugger trigger delays
+                std.Thread.sleep(utils.Milliseconds_To_Nanoseconds(wait_per_nop));
+            },
+            .CLC => {
+                // clear carry flag
+                vm.carry_flag = false;
+            },
+            .SEC => {
+                // set carry flag
+                vm.carry_flag = true;
+            },
+            .RET => {
+                // only instruction capable of returning from subroutines
+                try vm.Return_From_Subroutine();
+            },
             .LDA_LIT => {
                 // get literal from following ROM bytes, then put it in the accumulator
                 const literal: u32 = try machine.State.Read_Address_Contents_As(vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
@@ -77,56 +107,160 @@ pub fn Run_Virtual_Machine(vm: *machine.State) !void {
                 // y = x
                 vm.Transfer_Registers(vm.y_index, vm.x_index);
             },
-            .LDA_ADDR_X => {},
-            .LDA_ADDR_Y => {},
-            .STA_ADDR => {},
-            .STX_ADDR => {},
-            .STY_ADDR => {},
-            .JMP_ADDR => {},
-            .JSR_ADDR => {},
-            .CMP_A_X => {},
-            .CMP_A_Y => {},
-            .CMP_A_LIT => {},
-            .CMP_A_ADDR => {},
-            .CMP_X_A => {},
-            .CMP_X_Y => {},
-            .CMP_X_LIT => {},
-            .CMP_X_ADDR => {},
-            .CMP_Y_X => {},
-            .CMP_Y_A => {},
-            .CMP_Y_LIT => {},
-            .CMP_Y_ADDR => {},
-            .BCS_ADDR => {},
-            .BCC_ADDR => {},
-            .BEQ_ADDR => {},
-            .BNE_ADDR => {},
-            .BMI_ADDR => {},
-            .BPL_ADDR => {},
-            .BVS_ADDR => {},
-            .BVC_ADDR => {},
-            .ADD_LIT => {},
-            .ADD_ADDR => {},
-            .ADD_X => {},
-            .ADD_Y => {},
-            .SUB_LIT => {},
-            .SUB_ADDR => {},
-            .SUB_X => {},
-            .SUB_Y => {},
-            .INC_A => {},
-            .INC_X => {},
-            .INC_Y => {},
-            .INC_ADDR => {},
-            .DEC_A => {},
-            .DEC_X => {},
-            .DEC_Y => {},
-            .DEC_ADDR => {},
-            .PUSH_A => {},
-            .PUSH_X => {},
-            .PUSH_Y => {},
-            .POP_A => {},
-            .POP_X => {},
-            .POP_Y => {},
-            .DEBUG_METADATA_SIGNAL => {},
+            .LDA_ADDR_X => {
+                // TODO: indexable address
+            },
+            .LDA_ADDR_Y => {
+                // TODO: indexable address
+            },
+            .STA_ADDR => {
+                // TODO
+            },
+            .STX_ADDR => {
+                // TODO
+            },
+            .STY_ADDR => {
+                // TODO
+            },
+            .JMP_ADDR => {
+                // TODO
+            },
+            .JSR_ADDR => {
+                // TODO
+            },
+            .CMP_A_X => {
+                // TODO
+            },
+            .CMP_A_Y => {
+                // TODO
+            },
+            .CMP_A_LIT => {
+                // TODO
+            },
+            .CMP_A_ADDR => {
+                // TODO
+            },
+            .CMP_X_A => {
+                // TODO
+            },
+            .CMP_X_Y => {
+                // TODO
+            },
+            .CMP_X_LIT => {
+                // TODO
+            },
+            .CMP_X_ADDR => {
+                // TODO
+            },
+            .CMP_Y_X => {
+                // TODO
+            },
+            .CMP_Y_A => {
+                // TODO
+            },
+            .CMP_Y_LIT => {
+                // TODO
+            },
+            .CMP_Y_ADDR => {
+                // TODO
+            },
+            .BCS_ADDR => {
+                // TODO
+            },
+            .BCC_ADDR => {
+                // TODO
+            },
+            .BEQ_ADDR => {
+                // TODO
+            },
+            .BNE_ADDR => {
+                // TODO
+            },
+            .BMI_ADDR => {
+                // TODO
+            },
+            .BPL_ADDR => {
+                // TODO
+            },
+            .BVS_ADDR => {
+                // TODO
+            },
+            .BVC_ADDR => {
+                // TODO
+            },
+            .ADD_LIT => {
+                // TODO
+            },
+            .ADD_ADDR => {
+                // TODO
+            },
+            .ADD_X => {
+                // TODO
+            },
+            .ADD_Y => {
+                // TODO
+            },
+            .SUB_LIT => {
+                // TODO
+            },
+            .SUB_ADDR => {
+                // TODO
+            },
+            .SUB_X => {
+                // TODO
+            },
+            .SUB_Y => {
+                // TODO
+            },
+            .INC_A => {
+                // TODO
+            },
+            .INC_X => {
+                // TODO
+            },
+            .INC_Y => {
+                // TODO
+            },
+            .INC_ADDR => {
+                // TODO
+            },
+            .DEC_A => {
+                // TODO
+            },
+            .DEC_X => {
+                // TODO
+            },
+            .DEC_Y => {
+                // TODO
+            },
+            .DEC_ADDR => {
+                // TODO
+            },
+            .PUSH_A => {
+                // TODO
+            },
+            .PUSH_X => {
+                // TODO
+            },
+            .PUSH_Y => {
+                // TODO
+            },
+            .POP_A => {
+                // TODO
+            },
+            .POP_X => {
+                // TODO
+            },
+            .POP_Y => {
+                // TODO
+            },
+            .DEBUG_METADATA_SIGNAL => {
+                // anything between(inclusive) two metadata signals is
+                // completely ignored during execution, it is not to be
+                // dealt directly, thus the error.
+                std.debug.print("Attempted to execute a debug signal byte!\n", .{});
+                quit = true;
+            },
         }
     }
 }

@@ -93,6 +93,16 @@ pub fn Copy_Of_ConstString(allocator: std.mem.Allocator, str: []const u8) ![]u8 
     return Copy_Of_Slice(u8, allocator, str);
 }
 
+/// there's no builtin for this???
+pub fn Int_To_Bool(num: anytype) bool {
+    return num != 0;
+}
+
+/// meant for use inside Thread.sleep function parameters
+pub fn Milliseconds_To_Nanoseconds(comptime milliseconds: u64) u64 {
+    return milliseconds * 1_000_000;
+}
+
 //-------------------------------------------------------------//
 // ONLY TESTS BELOW THIS POINT                                 //
 //-------------------------------------------------------------//
@@ -183,4 +193,11 @@ test "removing from buffer" {
     try std.testing.expectEqual(5, bufsize);
     try std.testing.expectEqual(cmpsize, bufsize);
     try std.testing.expectEqualSlices(i32, compare[0..cmpsize], buffer[0..bufsize]);
+}
+
+test "milliseconds to nanoseconds" {
+    try std.testing.expectEqual(1_000_000, Milliseconds_To_Nanoseconds(1));
+    try std.testing.expectEqual(10_000_000, Milliseconds_To_Nanoseconds(10));
+    try std.testing.expectEqual(100_000_000, Milliseconds_To_Nanoseconds(100));
+    try std.testing.expectEqual(1_000_000_000, Milliseconds_To_Nanoseconds(1000));
 }
