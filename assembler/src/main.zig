@@ -31,14 +31,14 @@ pub fn main() !void {
     defer global_symbol_table.Deinit();
 
     // command-line flags, filenames and filepath specifications
-    const flags = try clap.Parse_Arguments(global_allocator);
+    const flags = try clap.Flags.Parse(global_allocator);
     defer flags.Deinit();
     if (flags.help == true) {
-        try std.io.getStdOut().writer().print("{s}", .{clap.Help_String()});
+        try std.io.getStdOut().writer().print(clap.Flags.Help_String(), .{});
         return;
     }
     if (flags.version == true) {
-        try std.io.getStdOut().writer().print("{s}", .{clap.Version_String()});
+        try std.io.getStdOut().writer().print(clap.Flags.Version_String(), .{});
         return;
     }
     if (flags.debug_mode == true) {
@@ -137,3 +137,5 @@ pub fn main() !void {
 //  -repeat unwrapper instroduced
 // Assembler 1.0
 //  -(probably) stable release for practical use
+// Assembler 1.1
+//  -changed CLAP arguments style
