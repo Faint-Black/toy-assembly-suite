@@ -11,11 +11,11 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const shared_module = b.addModule("shared", .{
-        .root_source_file = b.path("shared/shared.zig"),
+        .root_source_file = b.path("src/shared/shared.zig"),
         .target = target,
         .optimize = optimize,
     });
-    const shared_module_tests = b.addTest(.{ .root_source_file = b.path("shared/shared.zig") });
+    const shared_module_tests = b.addTest(.{ .root_source_file = b.path("src/shared/shared.zig") });
     const performStep_shared_test = b.addRunArtifact(shared_module_tests);
     b.default_step.dependOn(&performStep_shared_test.step);
 
@@ -23,7 +23,7 @@ pub fn build(b: *std.Build) void {
     inline for (executable_name_list) |project|
         Add_Executable_Module(b, project, target, optimize, shared_module);
 
-    const format_options = std.Build.Step.Fmt.Options{ .paths = &executable_name_list };
+    const format_options = std.Build.Step.Fmt.Options{ .paths = &.{"src/"} };
     const performStep_format = b.addFmt(format_options);
     b.default_step.dependOn(&performStep_format.step);
 }
@@ -47,8 +47,8 @@ pub fn Ensure_Minimal_Zig_Version() !void {
 
 /// Automate multi-project binaries compilation
 pub fn Add_Executable_Module(b: *std.Build, comptime name: []const u8, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, shared: *std.Build.Module) void {
-    const main_filepath = name ++ "/src/main.zig";
-    const tests_filepath = name ++ "/src/tests.zig";
+    const main_filepath = "src/" ++ name ++ "/src/main.zig";
+    const tests_filepath = "src/" ++ name ++ "/src/tests.zig";
 
     // Only used in debug mode since LLVM optimizations are still
     // much more efficient and faster for release versions.
