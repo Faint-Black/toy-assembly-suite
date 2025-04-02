@@ -38,7 +38,7 @@ pub const State = struct {
     /// fill determines the byte that will fill the vacant empty space,
     /// put null for it so stay undefined.
     /// only use null rom_file parameter for testing purposes
-    pub fn Init(rom_file: ?std.fs.File, fill: ?u8) State {
+    pub fn Init(rom_filepath: ?[]const u8, fill: ?u8) State {
         var machine: State = undefined;
         // only variable harcoded to start at a given value
         machine.stack_pointer = specs.stack_address_space - 1;
@@ -52,12 +52,14 @@ pub const State = struct {
             machine.y_index = fill_byte;
         }
         // load rom into memory
-        if (rom_file) |rom_filestream| {
-            const rom_file_size = rom_filestream.getEndPos() catch
+        if (rom_filepath) |filepath| {
+            var filestream = std.fs.cwd().openFile(filepath, .{ .mode = .read_only }) catch
+                @panic("failed to open file!");
+            const rom_file_size = filestream.getEndPos() catch
                 @panic("fileseek error!");
-            if (rom_file_size >= specs.rom_address_space)
+            if (rom_file_size >= (specs.rom_address_space - 1))
                 @panic("ROM file larger than 0xFFFF bytes!");
-            _ = rom_filestream.readAll(&machine.rom) catch
+            _ = filestream.readAll(&machine.rom) catch
                 @panic("failed to read ROM file!");
         }
         return machine;
@@ -127,7 +129,7 @@ pub const State = struct {
     pub fn Pop_From_Stack(this: *State, comptime T: type) !T {
         if ((this.stack_pointer + @sizeOf(T)) >= specs.stack_address_space)
             return error.StackUnderflow;
-        const popped_value: T = Read_Address_Contents_As(this.stack, this.stack_pointer, T);
+        const popped_value: T = try Read_Address_Contents_As(&this.stack, this.stack_pointer, T);
         this.stack_pointer += @sizeOf(T);
         return popped_value;
     }

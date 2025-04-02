@@ -9,13 +9,13 @@
 
 const std = @import("std");
 const utils = @import("shared").utils;
+const specs = @import("shared").specifications;
 const tok = @import("token.zig");
 const sym = @import("symbol.zig");
 const clap = @import("clap.zig");
 
-const specifications = @import("shared").specifications;
-const Opcode = specifications.Opcode;
-const DebugMetadataType = specifications.DebugMetadataType;
+const Opcode = specs.Opcode;
+const DebugMetadataType = specs.DebugMetadataType;
 
 /// f: [tokens] -> [rom]
 pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
@@ -53,7 +53,13 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
     var activeByteDefiner: tok.TokenType = .UNDEFINED;
 
     // start with the 16 bytes of the ROM file header
-    try Append_Header(&rom_vector, 1, flags.debug_mode);
+    const rom_header = specs.Header{
+        .magic_number = specs.rom_magic_number,
+        .language_version = specs.current_assembly_version,
+        .entry_point = 0x0010,
+        .debug_mode = flags.debug_mode,
+    };
+    try rom_vector.appendSlice(&rom_header.Parse_To_Byte_Array());
 
     // if the "_START:" special label has been defined already
     // put its value address on the appropriate rom header bytes
@@ -625,37 +631,6 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
     }
 }
 
-/// Create and append the 16 byte rom header
-fn Append_Header(rom_vector: *std.ArrayList(u8), version: u8, debug: bool) !void {
-    var header: [16]u8 = undefined;
-
-    // byte [0] = magic number
-    header[0] = 0x69;
-    // byte [1] = assembly language version
-    header[1] = version;
-    // bytes [2..4] = execution address entry point
-    //  right after header is the default, but can be
-    //  altered with the special "_START:" label.
-    header[2] = 0x10;
-    header[3] = 0x00;
-    // bytes [4..15] = free space, for now
-    header[4] = 0xCC;
-    header[5] = 0xCC;
-    header[6] = 0xCC;
-    header[7] = 0xCC;
-    header[8] = 0xCC;
-    header[9] = 0xCC;
-    header[10] = 0xCC;
-    header[11] = 0xCC;
-    header[12] = 0xCC;
-    header[13] = 0xCC;
-    header[14] = 0xCC;
-    // byte [15] = debug mode enable
-    header[15] = @intFromBool(debug);
-
-    try rom_vector.appendSlice(&header);
-}
-
 fn Debug_Print_Rom(rom: []u8, flags: clap.Flags) void {
     std.debug.print("\nROM dump:\n", .{});
     if (flags.debug_mode) {
@@ -793,20 +768,25 @@ test "limited byte vector appending" {
 }
 
 test "assert rom header data" {
-    var dummy_vec = std.ArrayList(u8).init(std.testing.allocator);
-    defer dummy_vec.deinit();
+    var vector = std.ArrayList(u8).init(std.testing.allocator);
+    defer vector.deinit();
 
-    try Append_Header(&dummy_vec, 9, true);
+    const rom_header = specs.Header{
+        .magic_number = specs.rom_magic_number,
+        .language_version = 9,
+        .entry_point = 0x0010,
+        .debug_mode = true,
+    };
+    const rom_vector_bytes = rom_header.Parse_To_Byte_Array();
+    try vector.appendSlice(&rom_vector_bytes);
 
-    const magic_number: u8 = dummy_vec.items[0];
-    try std.testing.expectEqual(specifications.rom_magic_number, magic_number);
-
-    const version: u8 = dummy_vec.items[1];
+    const magic_number: u8 = vector.items[0];
+    try std.testing.expectEqual(specs.rom_magic_number, magic_number);
+    const version: u8 = vector.items[1];
     try std.testing.expectEqual(@as(u8, 0x09), version);
-
-    const entry_point: u16 = std.mem.readInt(u16, dummy_vec.items[2..4], .little);
+    const entry_point: u16 = std.mem.readInt(u16, vector.items[2..4], .little);
     try std.testing.expectEqual(@as(u16, 0x0010), entry_point);
 
     // must be 16 bytes long, where $0xF is the last available header byte
-    try std.testing.expectEqual(specifications.rom_header_bytelen, dummy_vec.items.len);
+    try std.testing.expectEqual(specs.rom_header_bytelen, vector.items.len);
 }

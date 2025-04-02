@@ -7,6 +7,8 @@
 //                                                             //
 //=============================================================//
 
+const std = @import("std");
+
 // -version 1
 //  All basic opcodes introduced.
 /// current toy assembly language revision
@@ -29,7 +31,33 @@ pub const stack_address_space: usize = 0x3FF + 1;
 /// rom specifications
 pub const rom_header_bytelen: u8 = 16;
 pub const rom_magic_number: u8 = 0x69;
-pub const rom_max_size: usize = rom_address_space - 1;
+
+/// standardized ROM header parsing
+pub const Header = struct {
+    magic_number: u8,
+    language_version: u8,
+    entry_point: u16,
+    debug_mode: bool,
+
+    pub fn Parse_From_Byte_Array(header_bytes: [16]u8) Header {
+        return Header{
+            .magic_number = header_bytes[0],
+            .language_version = header_bytes[1],
+            .entry_point = std.mem.bytesToValue(u16, header_bytes[2..4]),
+            .debug_mode = (header_bytes[15] != 0),
+        };
+    }
+
+    pub fn Parse_To_Byte_Array(self: Header) [16]u8 {
+        var result_header: [0x10]u8 = .{@as(u8, 0xCC)} ** 16;
+        result_header[0x0] = self.magic_number;
+        result_header[0x1] = self.language_version;
+        result_header[0x2] = std.mem.toBytes(self.entry_point)[0];
+        result_header[0x3] = std.mem.toBytes(self.entry_point)[1];
+        result_header[0xF] = @intFromBool(self.debug_mode);
+        return result_header;
+    }
+};
 
 /// "MNEMONIC_ARG1_ARG2"
 pub const Opcode = enum(u8) {

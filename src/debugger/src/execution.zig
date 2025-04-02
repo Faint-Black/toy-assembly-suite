@@ -11,6 +11,8 @@ pub fn Run_Virtual_Machine(vm: *machine.State) !void {
     // debug mode specific data
     var debug_metadata_contents = false;
 
+    const log_operation_instruction: bool = true;
+    const log_operation_sideeffects: bool = true;
     var quit = false;
     while (!quit) {
         std.Thread.sleep(utils.Milliseconds_To_Nanoseconds(wait_per_instruction));
@@ -19,6 +21,9 @@ pub fn Run_Virtual_Machine(vm: *machine.State) !void {
             debug_metadata_contents = !debug_metadata_contents;
 
         const opcode_enum: specs.Opcode = @enumFromInt(vm.rom[vm.program_counter]);
+        if (log_operation_instruction) {
+            std.debug.print("Instruction: {s}\n", .{std.enums.tagName(specs.Opcode, opcode_enum).?});
+        }
         switch (opcode_enum) {
             .PANIC => {
                 // useful when fill_byte is set to zero
@@ -52,60 +57,64 @@ pub fn Run_Virtual_Machine(vm: *machine.State) !void {
             },
             .LDA_LIT => {
                 // get literal from following ROM bytes, then put it in the accumulator
-                const literal: u32 = try machine.State.Read_Address_Contents_As(vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
-                vm.Load_Value_Into_Reg(literal, vm.accumulator);
+                const literal: u32 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
+                if (log_operation_sideeffects)
+                    std.debug.print("Before loading \"{}\":\nA = {}\n", .{ literal, vm.accumulator });
+                vm.Load_Value_Into_Reg(literal, &vm.accumulator);
+                if (log_operation_sideeffects)
+                    std.debug.print("After loading \"{}\":\nA = {}\n", .{ literal, vm.accumulator });
             },
             .LDX_LIT => {
                 // get literal from following ROM bytes, then put it in the x index
-                const literal: u32 = try machine.State.Read_Address_Contents_As(vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
-                vm.Load_Value_Into_Reg(literal, vm.x_index);
+                const literal: u32 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
+                vm.Load_Value_Into_Reg(literal, &vm.x_index);
             },
             .LDY_LIT => {
                 // get literal from following ROM bytes, then put it in the y index
-                const literal: u32 = try machine.State.Read_Address_Contents_As(vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
-                vm.Load_Value_Into_Reg(literal, vm.y_index);
+                const literal: u32 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
+                vm.Load_Value_Into_Reg(literal, &vm.y_index);
             },
             .LDA_ADDR => {
                 // get address from following ROM bytes, then fetch address contents from RAM and put it in the accumulator
-                const address: u16 = try machine.State.Read_Address_Contents_As(vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
-                const address_contents: u32 = try machine.State.Read_Address_Contents_As(vm.wram, address, u32);
-                vm.Load_Value_Into_Reg(address_contents, vm.accumulator);
+                const address: u16 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                const address_contents: u32 = try machine.State.Read_Address_Contents_As(&vm.wram, address, u32);
+                vm.Load_Value_Into_Reg(address_contents, &vm.accumulator);
             },
             .LDX_ADDR => {
                 // get address from following ROM bytes, then fetch address contents from RAM and put it in the x index
-                const address: u16 = try machine.State.Read_Address_Contents_As(vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
-                const address_contents: u32 = try machine.State.Read_Address_Contents_As(vm.wram, address, u32);
-                vm.Load_Value_Into_Reg(address_contents, vm.x_index);
+                const address: u16 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                const address_contents: u32 = try machine.State.Read_Address_Contents_As(&vm.wram, address, u32);
+                vm.Load_Value_Into_Reg(address_contents, &vm.x_index);
             },
             .LDY_ADDR => {
                 // get address from following ROM bytes, then fetch address contents from RAM and put it in the y index
-                const address: u16 = try machine.State.Read_Address_Contents_As(vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
-                const address_contents: u32 = try machine.State.Read_Address_Contents_As(vm.wram, address, u32);
-                vm.Load_Value_Into_Reg(address_contents, vm.y_index);
+                const address: u16 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                const address_contents: u32 = try machine.State.Read_Address_Contents_As(&vm.wram, address, u32);
+                vm.Load_Value_Into_Reg(address_contents, &vm.y_index);
             },
             .LDA_X => {
                 // a = x
-                vm.Transfer_Registers(vm.accumulator, vm.x_index);
+                vm.Transfer_Registers(&vm.accumulator, &vm.x_index);
             },
             .LDA_Y => {
                 // a = y
-                vm.Transfer_Registers(vm.accumulator, vm.y_index);
+                vm.Transfer_Registers(&vm.accumulator, &vm.y_index);
             },
             .LDX_A => {
                 // x = a
-                vm.Transfer_Registers(vm.x_index, vm.accumulator);
+                vm.Transfer_Registers(&vm.x_index, &vm.accumulator);
             },
             .LDX_Y => {
                 // x = y
-                vm.Transfer_Registers(vm.x_index, vm.y_index);
+                vm.Transfer_Registers(&vm.x_index, &vm.y_index);
             },
             .LDY_A => {
                 // y = a
-                vm.Transfer_Registers(vm.y_index, vm.accumulator);
+                vm.Transfer_Registers(&vm.y_index, &vm.accumulator);
             },
             .LDY_X => {
                 // y = x
-                vm.Transfer_Registers(vm.y_index, vm.x_index);
+                vm.Transfer_Registers(&vm.y_index, &vm.x_index);
             },
             .LDA_ADDR_X => {
                 // TODO: indexable address
