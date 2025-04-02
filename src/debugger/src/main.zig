@@ -24,5 +24,5 @@ pub fn main() !void {
     }
 
     var vm = machine.State.Init(flags.input_rom_filename, null);
-    try emulator.Run_Virtual_Machine(&vm);
+    try emulator.Run_Virtual_Machine(&vm, flags);
 }

@@ -232,6 +232,7 @@ pub const TokenType = enum {
     /// no operation, do nothing
     NOP,
 
+    /// not sure what to do with this yet...
     pub fn Is_Jump_Instruction(self: TokenType) bool {
         return switch (self) {
             .JMP => true,

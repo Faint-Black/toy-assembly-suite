@@ -11,7 +11,6 @@ const std = @import("std");
 const utils = @import("shared").utils;
 const tok = @import("token.zig");
 
-/// f: [text] -> [tokens]
 pub fn Lexer(allocator: std.mem.Allocator, input: []const u8) ![]tok.Token {
     var token_vector = std.ArrayList(tok.Token).init(allocator);
     defer token_vector.deinit();

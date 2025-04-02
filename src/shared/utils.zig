@@ -99,7 +99,7 @@ pub fn Int_To_Bool(num: anytype) bool {
 }
 
 /// meant for use inside Thread.sleep function parameters
-pub fn Milliseconds_To_Nanoseconds(comptime milliseconds: u64) u64 {
+pub fn Milliseconds_To_Nanoseconds(milliseconds: u64) u64 {
     return milliseconds * 1_000_000;
 }
 

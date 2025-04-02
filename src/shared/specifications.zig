@@ -34,6 +34,9 @@ pub const rom_magic_number: u8 = 0x69;
 
 /// standardized ROM header parsing
 pub const Header = struct {
+    pub const header_byte_size: usize = 16;
+    pub const default_entry_point: u16 = header_byte_size;
+
     magic_number: u8,
     language_version: u8,
     entry_point: u16,

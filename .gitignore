@@ -5,3 +5,8 @@ zig-out/
 # Assembler output files
 *.bin
 *.rom
+
+# Temporary files
+foo.*
+bar.*
+foobar.*

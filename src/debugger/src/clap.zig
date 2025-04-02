@@ -16,6 +16,8 @@ pub const Flags = struct {
     /// core flags
     binary_directory: ?[]u8 = null,
     input_rom_filename: ?[]u8 = null,
+    instruction_delay: u64 = 200,
+    nop_delay: u64 = 1000,
 
     /// debug output flags
     log_instruction_opcode: bool = false,
@@ -55,6 +57,10 @@ pub const Flags = struct {
                 result.input_rom_filename = try allocator.dupe(u8, arg.?[3..]);
             } else if (std.mem.startsWith(u8, arg.?, "--input=")) {
                 result.input_rom_filename = try allocator.dupe(u8, arg.?[8..]);
+            } else if (std.mem.startsWith(u8, arg.?, "--delay=")) {
+                result.instruction_delay = try std.fmt.parseInt(u64, arg.?[8..], 10);
+            } else if (std.mem.startsWith(u8, arg.?, "--nop=")) {
+                result.nop_delay = try std.fmt.parseInt(u64, arg.?[6..], 10);
             } else if (std.mem.eql(u8, arg.?, "--log=all")) {
                 result.log_instruction_opcode = true;
                 result.log_instruction_sideeffects = true;
@@ -89,11 +95,11 @@ pub const Flags = struct {
 
     pub fn Help_String() []const u8 {
         return 
-        \\The toy assembler program.
+        \\The toy debugger program.
         \\
         \\USAGE:
         \\$ ./debugger -i="../foobar.bin"
-        \\$ ./debugger --input="../barbaz.rom" --log=all --nolog=sideeffects
+        \\$ ./debugger --input="../barbaz.rom" --log=all --nolog=sideeffects --delay=100
         \\
         \\INFO FLAGS:
         \\-h, --help
@@ -104,6 +110,10 @@ pub const Flags = struct {
         \\CORE USAGE FLAGS:
         \\-i="path/to/rom.bin", --input="path/to/rom.bin"
         \\    Specify the input ROM file.
+        \\--delay=[unsigned int]
+        \\    Specify the instruction execution delay, in milliseconds. Default is 200.
+        \\--nop=[unsigned int]
+        \\    Specify the execution delay of the NOP instruction, in milliseconds. Default is 1000.
         \\
         \\INDIVIDUAL DEBUG OUTPUT FLAGS:
         \\--log=opcodes

@@ -17,7 +17,6 @@ const clap = @import("clap.zig");
 const Opcode = specs.Opcode;
 const DebugMetadataType = specs.DebugMetadataType;
 
-/// f: [tokens] -> [rom]
 pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
     const first_pass = try Codegen(true, allocator, flags, symTable, expandedTokens);
     allocator.free(first_pass);
@@ -56,7 +55,7 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
     const rom_header = specs.Header{
         .magic_number = specs.rom_magic_number,
         .language_version = specs.current_assembly_version,
-        .entry_point = 0x0010,
+        .entry_point = specs.Header.default_entry_point,
         .debug_mode = flags.debug_mode,
     };
     try rom_vector.appendSlice(&rom_header.Parse_To_Byte_Array());
@@ -774,7 +773,7 @@ test "assert rom header data" {
     const rom_header = specs.Header{
         .magic_number = specs.rom_magic_number,
         .language_version = 9,
-        .entry_point = 0x0010,
+        .entry_point = specs.Header.default_entry_point,
         .debug_mode = true,
     };
     const rom_vector_bytes = rom_header.Parse_To_Byte_Array();

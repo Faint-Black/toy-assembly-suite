@@ -1,27 +1,38 @@
 const std = @import("std");
+const clap = @import("clap.zig");
 const specs = @import("shared").specifications;
 const utils = @import("shared").utils;
 const machine = @import("shared").machine;
 
-pub fn Run_Virtual_Machine(vm: *machine.State) !void {
-    // delay measures, in milliseconds
-    const wait_per_instruction = 500;
-    const wait_per_nop = 1000;
+pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags) !void {
+    const rom_header = specs.Header.Parse_From_Byte_Array(vm.rom[0..16].*);
 
-    // debug mode specific data
-    var debug_metadata_contents = false;
+    if (rom_header.magic_number != specs.rom_magic_number) {
+        std.debug.print("Wrong ROM magic number! expected 0x{X:0>2}, got 0x{X:0>2}\n", .{ specs.rom_magic_number, rom_header.magic_number });
+        return error.BadMagicNumber;
+    }
 
-    const log_operation_instruction: bool = true;
-    const log_operation_sideeffects: bool = true;
+    if (rom_header.language_version != specs.current_assembly_version) {
+        std.debug.print("Outdated ROM! current version is {}, input rom is in version {}\n", .{ specs.current_assembly_version, rom_header.language_version });
+        return error.OutdatedROM;
+    }
+
+    // set current PC execution to the header entry point
+    vm.program_counter = rom_header.entry_point;
+
+    // keep track of bytes between metadata signals
+    var debug_metadata_contents: bool = false;
+
     var quit = false;
     while (!quit) {
-        std.Thread.sleep(utils.Milliseconds_To_Nanoseconds(wait_per_instruction));
+        if (flags.instruction_delay != 0)
+            std.Thread.sleep(utils.Milliseconds_To_Nanoseconds(flags.instruction_delay));
 
         if (vm.rom[vm.program_counter] == @intFromEnum(specs.Opcode.DEBUG_METADATA_SIGNAL))
             debug_metadata_contents = !debug_metadata_contents;
 
         const opcode_enum: specs.Opcode = @enumFromInt(vm.rom[vm.program_counter]);
-        if (log_operation_instruction) {
+        if (flags.log_instruction_opcode) {
             std.debug.print("Instruction: {s}\n", .{std.enums.tagName(specs.Opcode, opcode_enum).?});
         }
         switch (opcode_enum) {
@@ -41,7 +52,8 @@ pub fn Run_Virtual_Machine(vm: *machine.State) !void {
             },
             .NOP => {
                 // NOPs in the debugger trigger delays
-                std.Thread.sleep(utils.Milliseconds_To_Nanoseconds(wait_per_nop));
+                if (flags.nop_delay != 0)
+                    std.Thread.sleep(utils.Milliseconds_To_Nanoseconds(flags.nop_delay));
             },
             .CLC => {
                 // clear carry flag
@@ -58,10 +70,10 @@ pub fn Run_Virtual_Machine(vm: *machine.State) !void {
             .LDA_LIT => {
                 // get literal from following ROM bytes, then put it in the accumulator
                 const literal: u32 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
-                if (log_operation_sideeffects)
+                if (flags.log_instruction_sideeffects)
                     std.debug.print("Before loading \"{}\":\nA = {}\n", .{ literal, vm.accumulator });
                 vm.Load_Value_Into_Reg(literal, &vm.accumulator);
-                if (log_operation_sideeffects)
+                if (flags.log_instruction_sideeffects)
                     std.debug.print("After loading \"{}\":\nA = {}\n", .{ literal, vm.accumulator });
             },
             .LDX_LIT => {
@@ -271,5 +283,8 @@ pub fn Run_Virtual_Machine(vm: *machine.State) !void {
                 quit = true;
             },
         }
+
+        // advance PC pointer
+        vm.program_counter += opcode_enum.Instruction_Byte_Length();
     }
 }
