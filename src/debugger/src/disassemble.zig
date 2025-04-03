@@ -27,6 +27,7 @@ pub fn Disassemble_Rom(rom: []const u8, flags: clap.Flags, original_rom_size: us
     // TODO: rename
     var buffer1: [utils.buffsize.large]u8 = undefined;
     var buffer2: [utils.buffsize.large]u8 = undefined;
+    var buffer3: [utils.buffsize.large]u8 = undefined;
     var addr_str: []const u8 = undefined;
     var instr_bytes_str: []const u8 = undefined;
 
@@ -57,7 +58,8 @@ pub fn Disassemble_Rom(rom: []const u8, flags: clap.Flags, original_rom_size: us
         const opcode_enum: specs.Opcode = @enumFromInt(rom[PC]);
         addr_str = Address_String(&buffer1, PC);
         instr_bytes_str = Instruction_Bytes_String(&buffer2, rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]);
-        std.debug.print("{s}: {s} {s}\n", .{ addr_str, instr_bytes_str, std.enums.tagName(specs.Opcode, opcode_enum).? });
+        const instr_str = try opcode_enum.Instruction_String(&buffer3, rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]);
+        std.debug.print("{s}: {s} {s}\n", .{ addr_str, instr_bytes_str, instr_str });
 
         PC += opcode_enum.Instruction_Byte_Length();
     }

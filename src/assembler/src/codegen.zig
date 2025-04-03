@@ -574,7 +574,6 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
         // Decrement the accumulator by one
         // instruction byte len = 1
         try vec.append(@intFromEnum(Opcode.DEC_A));
-        try Append_Generic(vec, t[1].value);
     } else if (t[0].tokType == .DEC and t[1].tokType == .X) {
         // "DEC X"
         // Decrement the X index by one
