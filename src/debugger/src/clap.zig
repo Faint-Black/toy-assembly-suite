@@ -18,7 +18,8 @@ pub const Flags = struct {
     input_rom_filename: ?[]u8 = null,
     instruction_delay: u64 = 200,
     nop_delay: u64 = 1000,
-    disassemble: bool = false,
+    disassemble_mode: bool = false,
+    run_mode: bool = false,
 
     /// debug output flags
     log_header_info: bool = false,
@@ -64,7 +65,9 @@ pub const Flags = struct {
             } else if (std.mem.startsWith(u8, arg.?, "--nop=")) {
                 result.nop_delay = try std.fmt.parseInt(u64, arg.?[6..], 10);
             } else if (std.mem.startsWith(u8, arg.?, "-d") or std.mem.eql(u8, arg.?, "--disassemble")) {
-                result.disassemble = true;
+                result.disassemble_mode = true;
+            } else if (std.mem.startsWith(u8, arg.?, "-r") or std.mem.eql(u8, arg.?, "--run")) {
+                result.run_mode = true;
             } else if (std.mem.eql(u8, arg.?, "--log=all")) {
                 result.log_header_info = true;
                 result.log_instruction_opcode = true;
@@ -111,6 +114,12 @@ pub const Flags = struct {
         \\$ ./debugger -i="../foobar.bin"
         \\$ ./debugger --input="../barbaz.rom" --log=all --nolog=sideeffects --delay=100
         \\
+        \\DEBUGGER MODE FLAGS:
+        \\-r, --run
+        \\    Set debugger to run mode. Executes the ROM file in a virtual machine.
+        \\-d, --disassemble
+        \\    Set debugger to disassemble mode. Disassembles the ROM file back into humanly readable instructions.
+        \\
         \\INFO FLAGS:
         \\-h, --help
         \\    Output this text.
@@ -124,8 +133,6 @@ pub const Flags = struct {
         \\    Specify the instruction execution delay, in milliseconds. Default is 200.
         \\--nop=[unsigned int]
         \\    Specify the execution delay of the NOP instruction, in milliseconds. Default is 1000.
-        \\-d, --disassemble
-        \\    Enable disassembly mode, print result to stdout then exit program.
         \\
         \\INDIVIDUAL DEBUG OUTPUT FLAGS:
         \\--log=header

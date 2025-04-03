@@ -4,48 +4,27 @@ const specs = @import("shared").specifications;
 const utils = @import("shared").utils;
 const machine = @import("shared").machine;
 
-pub fn Disassemble_Rom(rom: []const u8, flags: clap.Flags, original_rom_size: usize) !void {
-    const rom_header = specs.Header.Parse_From_Byte_Array(rom[0..16].*);
-
-    if (rom_header.magic_number != specs.rom_magic_number) {
-        std.debug.print("Wrong ROM magic number! expected 0x{X:0>2}, got 0x{X:0>2}\n", .{ specs.rom_magic_number, rom_header.magic_number });
-        return error.BadMagicNumber;
-    }
-    if (rom_header.language_version != specs.current_assembly_version) {
-        std.debug.print("Outdated ROM! current version is {}, input rom is in version {}\n", .{ specs.current_assembly_version, rom_header.language_version });
-        return error.OutdatedROM;
-    }
-
-    if (flags.log_header_info) {
-        std.debug.print("HEADER INFO:\n", .{});
-        std.debug.print("magic number: {}\n", .{rom_header.magic_number});
-        std.debug.print("assembly version: {}\n", .{rom_header.language_version});
-        std.debug.print("entry point address: 0x{X:0>4}\n", .{rom_header.entry_point});
-        std.debug.print("rom debug enable: {}\n\n", .{rom_header.debug_mode});
-    }
-
+pub fn Disassemble_Rom(rom: []const u8, original_rom_size: usize, header: specs.Header) !void {
     // TODO: rename
     var buffer1: [utils.buffsize.large]u8 = undefined;
     var buffer2: [utils.buffsize.large]u8 = undefined;
     var buffer3: [utils.buffsize.large]u8 = undefined;
-    var addr_str: []const u8 = undefined;
-    var instr_bytes_str: []const u8 = undefined;
 
-    var PC: u16 = 0;
     std.debug.print("BEGIN DISASSEMBLY DUMP:\n", .{});
+    var PC: u16 = 0;
     while (true) {
         if (PC == 0) {
-            addr_str = Address_String(&buffer1, 0);
-            instr_bytes_str = Instruction_Bytes_String(&buffer2, rom[0..specs.Header.header_byte_size]);
+            const addr_str = Address_String(&buffer1, 0);
+            const instr_bytes_str = Instruction_Bytes_String(&buffer2, rom[0..specs.Header.header_byte_size]);
             std.debug.print("{s}: {s} header bytes\n", .{ addr_str, instr_bytes_str });
             PC = specs.Header.header_byte_size;
             continue;
         }
-        if (PC < rom_header.entry_point) {
-            addr_str = Address_String(&buffer1, PC);
-            instr_bytes_str = Instruction_Bytes_String(&buffer2, rom[PC..rom_header.entry_point]);
+        if (PC < header.entry_point) {
+            const addr_str = Address_String(&buffer1, PC);
+            const instr_bytes_str = Instruction_Bytes_String(&buffer2, rom[PC..header.entry_point]);
             std.debug.print("{s}: {s} data bytes\n", .{ addr_str, instr_bytes_str });
-            PC = rom_header.entry_point;
+            PC = header.entry_point;
             continue;
         }
         if (PC >= original_rom_size) {
@@ -56,8 +35,8 @@ pub fn Disassemble_Rom(rom: []const u8, flags: clap.Flags, original_rom_size: us
         }
 
         const opcode_enum: specs.Opcode = @enumFromInt(rom[PC]);
-        addr_str = Address_String(&buffer1, PC);
-        instr_bytes_str = Instruction_Bytes_String(&buffer2, rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]);
+        const addr_str = Address_String(&buffer1, PC);
+        const instr_bytes_str = Instruction_Bytes_String(&buffer2, rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]);
         const instr_str = try opcode_enum.Instruction_String(&buffer3, rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]);
         std.debug.print("{s}: {s} {s}\n", .{ addr_str, instr_bytes_str, instr_str });
 
