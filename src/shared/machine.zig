@@ -16,6 +16,10 @@ const utils = @import("utils.zig");
 // TODO: loading and storing
 
 pub const State = struct {
+    /// Only meant to be used for debugging and disassembly purposes,
+    /// the actual machine is not meant to know it's own size!
+    original_rom_filesize: usize,
+
     /// Read Only Memory, where the instruction data is stored.
     rom: [specs.rom_address_space]u8,
     /// Work Random Access Memory, writable memory freely available for manipulation.
@@ -61,6 +65,7 @@ pub const State = struct {
                 @panic("ROM file larger than 0xFFFF bytes!");
             _ = filestream.readAll(&machine.rom) catch
                 @panic("failed to read ROM file!");
+            machine.original_rom_filesize = rom_file_size;
         }
         return machine;
     }

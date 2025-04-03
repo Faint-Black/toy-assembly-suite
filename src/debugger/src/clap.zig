@@ -18,8 +18,10 @@ pub const Flags = struct {
     input_rom_filename: ?[]u8 = null,
     instruction_delay: u64 = 200,
     nop_delay: u64 = 1000,
+    disassemble: bool = false,
 
     /// debug output flags
+    log_header_info: bool = false,
     log_instruction_opcode: bool = false,
     log_instruction_sideeffects: bool = false,
 
@@ -61,16 +63,24 @@ pub const Flags = struct {
                 result.instruction_delay = try std.fmt.parseInt(u64, arg.?[8..], 10);
             } else if (std.mem.startsWith(u8, arg.?, "--nop=")) {
                 result.nop_delay = try std.fmt.parseInt(u64, arg.?[6..], 10);
+            } else if (std.mem.startsWith(u8, arg.?, "-d") or std.mem.eql(u8, arg.?, "--disassemble")) {
+                result.disassemble = true;
             } else if (std.mem.eql(u8, arg.?, "--log=all")) {
+                result.log_header_info = true;
                 result.log_instruction_opcode = true;
                 result.log_instruction_sideeffects = true;
+            } else if (std.mem.eql(u8, arg.?, "--log=header")) {
+                result.log_header_info = true;
             } else if (std.mem.eql(u8, arg.?, "--log=opcodes")) {
                 result.log_instruction_opcode = true;
             } else if (std.mem.eql(u8, arg.?, "--log=sideeffects")) {
                 result.log_instruction_sideeffects = true;
             } else if (std.mem.eql(u8, arg.?, "--nolog=all")) {
+                result.log_header_info = false;
                 result.log_instruction_opcode = false;
                 result.log_instruction_sideeffects = false;
+            } else if (std.mem.eql(u8, arg.?, "--nolog=header")) {
+                result.log_instruction_opcode = true;
             } else if (std.mem.eql(u8, arg.?, "--nolog=opcodes")) {
                 result.log_instruction_opcode = false;
             } else if (std.mem.eql(u8, arg.?, "--nolog=sideeffects")) {
@@ -114,13 +124,19 @@ pub const Flags = struct {
         \\    Specify the instruction execution delay, in milliseconds. Default is 200.
         \\--nop=[unsigned int]
         \\    Specify the execution delay of the NOP instruction, in milliseconds. Default is 1000.
+        \\-d, --disassemble
+        \\    Enable disassembly mode, print result to stdout then exit program.
         \\
         \\INDIVIDUAL DEBUG OUTPUT FLAGS:
+        \\--log=header
+        \\    Enable logging of the ROM's header information
         \\--log=opcodes
         \\    Enable logging of each instruction being executed
         \\--log=sideeffects
         \\    Enable logging of the effect of the instruction on the machine
         \\
+        \\--nolog=header
+        \\    Disable logging of the ROM's header information
         \\--nolog=opcodes
         \\    Disable logging of each instruction being executed
         \\--nolog=sideeffects

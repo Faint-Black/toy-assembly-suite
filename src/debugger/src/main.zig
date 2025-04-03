@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const machine = @import("shared").machine;
 const emulator = @import("execution.zig");
+const disassembler = @import("disassemble.zig");
 const clap = @import("clap.zig");
 
 pub fn main() !void {
@@ -23,6 +24,14 @@ pub fn main() !void {
         return;
     }
 
+    // load and init virtual machine
     var vm = machine.State.Init(flags.input_rom_filename, null);
+
+    // print disassembly then exit
+    if (flags.disassemble) {
+        try disassembler.Disassemble_Rom(&vm.rom, flags, vm.original_rom_filesize);
+        return;
+    }
+
     try emulator.Run_Virtual_Machine(&vm, flags);
 }

@@ -11,10 +11,17 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags) !void {
         std.debug.print("Wrong ROM magic number! expected 0x{X:0>2}, got 0x{X:0>2}\n", .{ specs.rom_magic_number, rom_header.magic_number });
         return error.BadMagicNumber;
     }
-
     if (rom_header.language_version != specs.current_assembly_version) {
         std.debug.print("Outdated ROM! current version is {}, input rom is in version {}\n", .{ specs.current_assembly_version, rom_header.language_version });
         return error.OutdatedROM;
+    }
+
+    if (flags.log_header_info) {
+        std.debug.print("HEADER INFO:\n", .{});
+        std.debug.print("magic number: {}\n", .{rom_header.magic_number});
+        std.debug.print("assembly version: {}\n", .{rom_header.language_version});
+        std.debug.print("entry point address: 0x{X:0>4}\n", .{rom_header.entry_point});
+        std.debug.print("rom debug enable: {}\n\n", .{rom_header.debug_mode});
     }
 
     // set current PC execution to the header entry point
@@ -37,7 +44,7 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags) !void {
         }
         switch (opcode_enum) {
             .PANIC => {
-                // useful when fill_byte is set to zero
+                // useful for debugging when fill_byte is set to zero
                 std.debug.print("Attempted to execute a null byte!\n", .{});
                 quit = true;
             },
@@ -47,21 +54,39 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags) !void {
             },
             .BRK => {
                 // graciously exit
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("BRK, exiting program.\n\n", .{});
+                }
                 std.debug.print("Execution complete.\n", .{});
                 quit = true;
             },
             .NOP => {
-                // NOPs in the debugger trigger delays
+                // NOPs inside the debugger trigger configurable delays
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("NOP, triggering delay of:\n{}ms\n", .{flags.nop_delay});
+                }
                 if (flags.nop_delay != 0)
                     std.Thread.sleep(utils.Milliseconds_To_Nanoseconds(flags.nop_delay));
             },
             .CLC => {
                 // clear carry flag
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before clearing flag:\nC = {}\n", .{@intFromBool(vm.carry_flag)});
+                }
                 vm.carry_flag = false;
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After clearing flag:\nC = {}\n", .{@intFromBool(vm.carry_flag)});
+                }
             },
             .SEC => {
                 // set carry flag
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before setting flag:\nC = {}\n", .{@intFromBool(vm.carry_flag)});
+                }
                 vm.carry_flag = true;
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After setting flag:\nC = {}\n", .{@intFromBool(vm.carry_flag)});
+                }
             },
             .RET => {
                 // only instruction capable of returning from subroutines
@@ -70,39 +95,71 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags) !void {
             .LDA_LIT => {
                 // get literal from following ROM bytes, then put it in the accumulator
                 const literal: u32 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
-                if (flags.log_instruction_sideeffects)
+                if (flags.log_instruction_sideeffects) {
                     std.debug.print("Before loading \"{}\":\nA = {}\n", .{ literal, vm.accumulator });
+                }
                 vm.Load_Value_Into_Reg(literal, &vm.accumulator);
-                if (flags.log_instruction_sideeffects)
+                if (flags.log_instruction_sideeffects) {
                     std.debug.print("After loading \"{}\":\nA = {}\n", .{ literal, vm.accumulator });
+                }
             },
             .LDX_LIT => {
                 // get literal from following ROM bytes, then put it in the x index
                 const literal: u32 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before loading \"{}\":\nX = {}\n", .{ literal, vm.x_index });
+                }
                 vm.Load_Value_Into_Reg(literal, &vm.x_index);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After loading \"{}\":\nX = {}\n", .{ literal, vm.x_index });
+                }
             },
             .LDY_LIT => {
                 // get literal from following ROM bytes, then put it in the y index
                 const literal: u32 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before loading \"{}\":\nY = {}\n", .{ literal, vm.y_index });
+                }
                 vm.Load_Value_Into_Reg(literal, &vm.y_index);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After loading \"{}\":\nY = {}\n", .{ literal, vm.y_index });
+                }
             },
             .LDA_ADDR => {
                 // get address from following ROM bytes, then fetch address contents from RAM and put it in the accumulator
                 const address: u16 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
                 const address_contents: u32 = try machine.State.Read_Address_Contents_As(&vm.wram, address, u32);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before loading \"{}\" from 0x{X:0>4}:\nA = {}\n", .{ address_contents, address, vm.accumulator });
+                }
                 vm.Load_Value_Into_Reg(address_contents, &vm.accumulator);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After loading \"{}\" from 0x{X:0>4}:\nA = {}\n", .{ address_contents, address, vm.accumulator });
+                }
             },
             .LDX_ADDR => {
                 // get address from following ROM bytes, then fetch address contents from RAM and put it in the x index
                 const address: u16 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
                 const address_contents: u32 = try machine.State.Read_Address_Contents_As(&vm.wram, address, u32);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before loading \"{}\" from 0x{X:0>4}:\nX = {}\n", .{ address_contents, address, vm.x_index });
+                }
                 vm.Load_Value_Into_Reg(address_contents, &vm.x_index);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After loading \"{}\" from 0x{X:0>4}:\nX = {}\n", .{ address_contents, address, vm.x_index });
+                }
             },
             .LDY_ADDR => {
                 // get address from following ROM bytes, then fetch address contents from RAM and put it in the y index
                 const address: u16 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
                 const address_contents: u32 = try machine.State.Read_Address_Contents_As(&vm.wram, address, u32);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before loading \"{}\" from 0x{X:0>4}:\nY = {}\n", .{ address_contents, address, vm.y_index });
+                }
                 vm.Load_Value_Into_Reg(address_contents, &vm.y_index);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After loading \"{}\" from 0x{X:0>4}:\nY = {}\n", .{ address_contents, address, vm.y_index });
+                }
             },
             .LDA_X => {
                 // a = x
