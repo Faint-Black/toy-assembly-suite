@@ -72,6 +72,8 @@ pub const Opcode = enum(u8) {
     // ARG1 = X
     // ARG2 = Y
     SYSTEMCALL,
+    // Define index instructions byte stride
+    STRIDE_LIT,
     // No argument opcodes
     BRK,
     NOP,
@@ -160,6 +162,7 @@ pub const Opcode = enum(u8) {
         return switch (self) {
             .PANIC => opcode_bytelen,
             .SYSTEMCALL => opcode_bytelen,
+            .STRIDE_LIT => opcode_bytelen + 1, // special case
             .BRK => opcode_bytelen,
             .NOP => opcode_bytelen,
             .CLC => opcode_bytelen,
@@ -236,6 +239,7 @@ pub const Opcode = enum(u8) {
         switch (self) {
             .PANIC => return try std.fmt.bufPrint(buffer, "PANIC", .{}),
             .SYSTEMCALL => return try std.fmt.bufPrint(buffer, "SYSCALL", .{}),
+            .STRIDE_LIT => return try std.fmt.bufPrint(buffer, "STRIDE {}", .{bytes[1]}),
             .BRK => return try std.fmt.bufPrint(buffer, "BRK", .{}),
             .NOP => return try std.fmt.bufPrint(buffer, "NOP", .{}),
             .CLC => return try std.fmt.bufPrint(buffer, "CLC", .{}),

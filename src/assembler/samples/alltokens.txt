@@ -66,6 +66,7 @@ JMP @++    ; refers to label "ForwardReference:"
 ;; it determines a custom entry point for the program
 _START:
 SYSCALL
+STRIDE 0x4
 BRK
 NOP
 CLC

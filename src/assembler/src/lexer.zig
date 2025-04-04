@@ -173,6 +173,8 @@ fn Word_To_Token(allocator: std.mem.Allocator, str: []const u8) !tok.Token {
         return tok.Token{ .tokType = .DEFINE };
     } else if (std.mem.eql(u8, str, "SYSCALL")) {
         return tok.Token{ .tokType = .SYSCALL };
+    } else if (std.mem.eql(u8, str, "STRIDE")) {
+        return tok.Token{ .tokType = .STRIDE };
     } else if (std.mem.eql(u8, str, "LDA")) {
         return tok.Token{ .tokType = .LDA };
     } else if (std.mem.eql(u8, str, "LDX")) {

@@ -20,6 +20,9 @@ pub const State = struct {
     /// the actual machine is not meant to know it's own size!
     original_rom_filesize: usize,
 
+    /// hold the byte stride for indexing instructions
+    index_byte_stride: u8,
+
     /// Read Only Memory, where the instruction data is stored.
     rom: [specs.rom_address_space]u8,
     /// Work Random Access Memory, writable memory freely available for manipulation.
@@ -51,6 +54,7 @@ pub const State = struct {
             @memset(&machine.rom, fill_byte);
             @memset(&machine.wram, fill_byte);
             @memset(&machine.stack, fill_byte);
+            machine.index_byte_stride = fill_byte;
             machine.accumulator = fill_byte;
             machine.x_index = fill_byte;
             machine.y_index = fill_byte;

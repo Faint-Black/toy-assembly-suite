@@ -257,6 +257,12 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
         // Initiate a (virtual) machine system call
         // instruction byte len = 1
         try vec.append(@intFromEnum(Opcode.SYSTEMCALL));
+    } else if (t[0].tokType == .STRIDE and t[1].tokType == .LITERAL) {
+        // "STRIDE 0x4"
+        // Sets the index instructions' byte stride
+        // instruction byte len = 1 + 1 (special case where only the low byte of the input literal is used)
+        try vec.append(@intFromEnum(Opcode.STRIDE_LIT));
+        try Append_Generic(vec, @as(u8, @truncate(t[1].value)));
     } else if (t[0].tokType == .BRK) {
         // "BRK"
         // Break, exits execution

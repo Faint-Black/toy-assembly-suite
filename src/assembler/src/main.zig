@@ -139,3 +139,5 @@ pub fn main() !void {
 //  -(probably) stable release for practical use
 // Assembler 1.1
 //  -changed CLAP arguments style
+// Assembler 1.2
+//  -added the STRIDE instruction

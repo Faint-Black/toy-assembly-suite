@@ -143,6 +143,8 @@ pub const TokenType = enum {
     // direct VIRTUAL MACHINE instructions
     /// perform special operations based on the code
     SYSCALL,
+    /// defines byte stride of indexing instructions
+    STRIDE,
 
     // REGISTER tokens
     /// Accumulator

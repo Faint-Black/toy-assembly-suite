@@ -38,6 +38,17 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags, header: specs.
                 std.log.err("Syscall caught! implement me dumbass!\n", .{});
                 break;
             },
+            .STRIDE_LIT => {
+                // get char literal from following ROM byte
+                const stride: u8 = vm.rom[vm.program_counter + specs.opcode_bytelen];
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before:\nByte stride = {}\n", .{vm.index_byte_stride});
+                }
+                vm.index_byte_stride = stride;
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After:\nByte stride = {}\n", .{vm.index_byte_stride});
+                }
+            },
             .BRK => {
                 // graciously exit
                 if (flags.log_instruction_sideeffects) {
