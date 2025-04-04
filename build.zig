@@ -11,11 +11,11 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const shared_module = b.addModule("shared", .{
-        .root_source_file = b.path("src/shared/shared.zig"),
+        .root_source_file = b.path("src/shared/src/shared.zig"),
         .target = target,
         .optimize = optimize,
     });
-    const shared_module_tests = b.addTest(.{ .root_source_file = b.path("src/shared/shared.zig") });
+    const shared_module_tests = b.addTest(.{ .root_source_file = b.path("src/shared/src/shared.zig") });
     const performStep_shared_test = b.addRunArtifact(shared_module_tests);
     b.default_step.dependOn(&performStep_shared_test.step);
 
