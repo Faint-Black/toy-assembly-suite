@@ -1,3 +1,11 @@
+//=============================================================//
+//                                                             //
+//                           MAIN                              //
+//                                                             //
+//   Patch notes and license details at the bottom.            //
+//                                                             //
+//=============================================================//
+
 const std = @import("std");
 const builtin = @import("builtin");
 const machine = @import("shared").machine;
@@ -59,3 +67,8 @@ pub fn main() !void {
         return;
     }
 }
+
+// LICENSE:
+// The entire Toy Assembly Suite Codebase is under the GNU General Public License Version 3.0
+//
+// PATCH NOTES:

@@ -1,3 +1,14 @@
+//=============================================================//
+//                                                             //
+//                         EXECUTION                           //
+//                                                             //
+//   Responsible for the run vm debugger function, which is    //
+//  the same as a normal vm execution, except with extra user  //
+//  features. Primarily focused on logging the effect of each  //
+//  instructions on the virtual machine.                       //
+//                                                             //
+//=============================================================//
+
 const std = @import("std");
 const clap = @import("clap.zig");
 const specs = @import("shared").specifications;

@@ -7,7 +7,7 @@ Fully written in Zig.
 Responsible for taking an assembly source file as input and outputting a rom binary file that can be executed by the virtual machine or debugger.
 
 ## - The Debugger
-Coming soon!
+Responsible for running or disassembling the input ROM file on a controlled virtual machine with many optional user options, mainly focused on logging the effects of the instructions rather than actually altering the machine state mid-execution.
 
 ## - The Virtual Machine
 Coming soon!
@@ -15,33 +15,12 @@ Coming soon!
 ---
 
 ## Build
+*Requires Zig 0.14.0 or higher*
 
-### Dependencies
-* Zig version 0.14.0 or higher
+To build the Assembler, Debugger and Virtual Machine binary executables simply use the following Zig build command on any directory inside the project.
 
-### Build Commands
-To build the Assembler, Debugger and Virtual Machine binary executables simply use a Zig build command in any directory inside the project.
-
-Which type of executable you need is completely up to you, Zig provides 4 choices by default:
-
-* (Recommended) Safe version, in case you need optimizations as well as runtime safety
 ```sh
 zig build --release=safe
-```
-
-* Fast version, the highly optimized non-debug release version with minimal runtime safety checks
-```sh
-zig build --release=fast
-```
-
-* Small version, if you care about binary executable file sizes
-```sh
-zig build --release=small
-```
-
-* Debug version
-```sh
-zig build
 ```
 
 ## Run

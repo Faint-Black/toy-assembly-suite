@@ -9,10 +9,10 @@
 
 const std = @import("std");
 
-// -version 1
-//  All basic opcodes introduced.
 /// current toy assembly language revision
 pub const current_assembly_version: u8 = 1;
+// -version 1
+//  All basic opcodes introduced.
 
 /// "NOP" -> 1 byte
 pub const opcode_bytelen: u8 = 1;
@@ -29,7 +29,6 @@ pub const wram_address_space: usize = 0xFFFF + 1;
 pub const stack_address_space: usize = 0x3FF + 1;
 
 /// rom specifications
-pub const rom_header_bytelen: u8 = 16;
 pub const rom_magic_number: u8 = 0x69;
 
 /// standardized ROM header parsing

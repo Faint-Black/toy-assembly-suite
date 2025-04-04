@@ -1,3 +1,12 @@
+//=============================================================//
+//                                                             //
+//                        DISASSEMBLER                         //
+//                                                             //
+//   Responsible for the disassembler debugger function, which //
+//  turns a ROM binary back into human readable instructions.  //
+//                                                             //
+//=============================================================//
+
 const std = @import("std");
 const clap = @import("clap.zig");
 const specs = @import("shared").specifications;
@@ -44,6 +53,10 @@ pub fn Disassemble_Rom(rom: []const u8, original_rom_size: usize, header: specs.
     }
 }
 
+//-------------------------------------------------------------//
+// STATIC PRIVATE FUNCTIONS                                    //
+//-------------------------------------------------------------//
+
 fn Address_String(buffer: []u8, addr: u16) []const u8 {
     return std.fmt.bufPrint(buffer, "${x:0>4}", .{addr}) catch {
         @panic("format print failed!");
@@ -81,6 +94,9 @@ fn Instruction_Bytes_String(buffer: []u8, bytes: []const u8) []const u8 {
     return buffer[0..str_index];
 }
 
+//-------------------------------------------------------------//
+// ONLY TESTS BELOW THIS POINT                                 //
+//-------------------------------------------------------------//
 test "address strings" {
     var buffer: [512]u8 = undefined;
     var str: []const u8 = undefined;

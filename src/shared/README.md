@@ -10,12 +10,15 @@ ROM and WRAM do *not* share address spaces. Example: "LDA $0x1337" and "JMP $0x1
 As a rule of thumb, every jumping/branching instruction uses the input address to point to an address inside ROM space, while every other instruction points to WRAM.
 
 * The ROM
+
 Since the maximum address space is only a 16-bits integer, the ROM can be up to 0xFFFF + 1 bytes long. Writing to ROM during the machine's execution should be completely impossible since the ROM and WRAM address spaces are completely isolated.
 
 * The WRAM
+
 Following the same length logic from the ROM, work RAM can be up to 0xFFFF + 1 bytes long. The user may modify it's contents as they wish.
 
 * The Stack
+
 The stack only has 0x0200 bytes of usable space, this choice value was chosen arbitrarily. Although it has a dedicated address space, it cannot be directly accessed by the user, the only instructions that alter the stack memory and stack pointer are the pushing instructions, popping instructions and subroutine instructions.
 
 ## Undefined Behavior Handling
@@ -46,7 +49,9 @@ A = {$0x0003, $0x0004, $0x0005, $0x0006}
 ```
 
 * ROM out of bounds memory access:
-Incorrectly loading a ROM address is impossible. Run-time is not necessary.
+
+Incorrectly loading a ROM address is impossible. Run-time checks are not necessary.
 
 * Stack out of bounds memory access:
+
 Popping from an empty stack or pushing to a full stack should result in a crash or otherwise fatal error.

@@ -792,5 +792,5 @@ test "assert rom header data" {
     try std.testing.expectEqual(@as(u16, 0x0010), entry_point);
 
     // must be 16 bytes long, where $0xF is the last available header byte
-    try std.testing.expectEqual(specs.rom_header_bytelen, vector.items.len);
+    try std.testing.expectEqual(specs.Header.header_byte_size, vector.items.len);
 }

@@ -7,9 +7,6 @@
 //                                                             //
 //=============================================================//
 
-// hardcoded filepath in build.zig until the Zig engineers figure out how
-// to recursively and automatically find and execute the tests in all the
-// individual source files...
 test {
     _ = @import("shared");
     _ = @import("main.zig");
