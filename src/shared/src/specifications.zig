@@ -381,4 +381,33 @@ pub const DebugMetadataType = enum(u8) {
     // ```
     //
     //OPCODES_BEGIN,
+
+    /// finds closing debug sinal on variable width metadata, such as strings.
+    /// returns static hardcoded numbers for fixed width metadata, such as literals or addresses.
+    /// bytes = {DEBUG_METADATA_SIGNAL, METADATA_TYPE, data, ..., data, DEBUG_METADATA_SIGNAL}
+    pub fn Metadata_Length(self: DebugMetadataType, bytes: []const u8) !usize {
+        if (bytes[0] != @intFromEnum(Opcode.DEBUG_METADATA_SIGNAL))
+            return error.BadMetadata;
+        return switch (self) {
+            .LABEL_NAME => {
+                for (1..bytes.len) |i| {
+                    if (bytes[i] == @intFromEnum(Opcode.DEBUG_METADATA_SIGNAL))
+                        return i + 1;
+                }
+                return error.BadMetadata;
+            },
+        };
+    }
 };
+
+//-------------------------------------------------------------//
+// ONLY TESTS BELOW THIS POINT                                 //
+//-------------------------------------------------------------//
+test "metadata length" {
+    var len: usize = undefined;
+
+    len = try DebugMetadataType.Metadata_Length(.LABEL_NAME, &.{ 0xFF, 0x00, 0xFF });
+    try std.testing.expectEqual(3, len);
+    len = try DebugMetadataType.Metadata_Length(.LABEL_NAME, &.{ 0xFF, 0x00, 0x00, 0xFF });
+    try std.testing.expectEqual(4, len);
+}

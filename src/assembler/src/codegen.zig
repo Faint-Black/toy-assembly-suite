@@ -635,6 +635,7 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
     }
 }
 
+// TODO: needs a complete redesign, possibly even completely removed
 fn Debug_Print_Rom(rom: []u8, flags: clap.Flags) void {
     std.debug.print("\nROM dump:\n", .{});
     if (flags.debug_mode) {

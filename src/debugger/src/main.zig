@@ -58,7 +58,7 @@ pub fn main() !void {
 
     // print disassembly then exit
     if (flags.disassemble_mode) {
-        try disassembler.Disassemble_Rom(&vm.rom, vm.original_rom_filesize, rom_header);
+        try disassembler.Disassemble_Rom(global_allocator, &vm.rom, vm.original_rom_filesize, rom_header);
         return;
     }
     // begin execution then exit
