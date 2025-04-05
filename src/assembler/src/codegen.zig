@@ -24,7 +24,7 @@ pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *
 
     // [DEBUG OUTPUT] print rom bytes
     if (flags.print_rom_bytes)
-        Debug_Print_Rom(second_pass, flags);
+        Debug_Print_Rom(second_pass);
 
     return second_pass;
 }
@@ -635,95 +635,21 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8)) !void {
     }
 }
 
-// TODO: needs a complete redesign, possibly even completely removed
-fn Debug_Print_Rom(rom: []u8, flags: clap.Flags) void {
-    std.debug.print("\nROM dump:\n", .{});
-    if (flags.debug_mode) {
-        std.debug.print("------+------+---------------------------\n", .{});
-        std.debug.print(" addr | val  | value type\n", .{});
-        std.debug.print("------+------+---------------------------\n", .{});
-        const entry_point: u16 = std.mem.readInt(u16, rom[2..4], .little);
-        const debug_signal: u8 = 0xFF;
-        var debug_contents_mode: bool = false;
-        var debug_first_byte: bool = false;
-        var len_counter: i32 = 0;
-        var opcode: Opcode = undefined;
-        // debug mode output
-        for (rom, 0..) |byte, i| {
-            if (i < 16) {
-                len_counter = 0;
-                switch (i) {
-                    0x0 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - magic number\n", .{ i, byte }),
-                    0x1 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - assembly version\n", .{ i, byte }),
-                    0x2 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - entry point (low byte)\n", .{ i, byte }),
-                    0x3 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - entry point (high byte)\n", .{ i, byte }),
-                    0x4 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0x5 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0x6 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0x7 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0x8 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0x9 => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0xA => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0xB => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0xC => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0xD => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0xE => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - free space\n", .{ i, byte }),
-                    0xF => std.debug.print("0x{X:0>4}| 0x{X:0>2} | header - debug mode enable\n", .{ i, byte }),
-                    else => unreachable,
-                }
-                continue;
-            }
-
-            if (len_counter >= 0) {
-                // invert debug contents mode state
-                if (byte == debug_signal) {
-                    debug_contents_mode = !debug_contents_mode;
-                }
-                // what to do the moment debug signal ends
-                if (byte == debug_signal and debug_contents_mode == false) {
-                    std.debug.print("0x{X:0>4}| 0x{X:0>2} | end debug info\n", .{ i, byte });
-                    continue;
-                }
-                // what to do the moment debug signal begins
-                if (byte == debug_signal and debug_contents_mode == true) {
-                    std.debug.print("0x{X:0>4}| 0x{X:0>2} | begin debug info\n", .{ i, byte });
-                    debug_first_byte = true;
-                    continue;
-                }
-                if (debug_contents_mode and debug_first_byte == true) {
-                    std.debug.print("0x{X:0>4}| 0x{X:0>2} | debug info type: {s}\n", .{ i, byte, std.enums.tagName(DebugMetadataType, @enumFromInt(byte)).? });
-                    debug_first_byte = false;
-                    continue;
-                }
-                if (debug_contents_mode and debug_first_byte == false) {
-                    std.debug.print("0x{X:0>4}| 0x{X:0>2} | \'{c}\'\n", .{ i, byte, byte });
-                    debug_first_byte = false;
-                    continue;
-                }
-
-                if (i < entry_point) {
-                    len_counter = 0;
-                    std.debug.print("0x{X:0>4}| 0x{X:0>2} | data\n", .{ i, byte });
-                    continue;
-                } else {
-                    opcode = @enumFromInt(byte);
-                    len_counter -= opcode.Instruction_Byte_Length();
-                    std.debug.print("0x{X:0>4}| 0x{X:0>2} | opcode: {s}\n", .{ i, byte, std.enums.tagName(Opcode, @enumFromInt(byte)).? });
-                }
-            } else {
-                std.debug.print("0x{X:0>4}| 0x{X:0>2} | opcode parameters\n", .{ i, byte });
-            }
-
-            len_counter += 1;
+fn Debug_Print_Rom(rom: []u8) void {
+    var i: u16 = 0;
+    std.debug.print("\nGENERATED ROM BYTES:", .{});
+    while (true) : (i += 1) {
+        if (i % 16 == 0) {
+            if (i >= rom.len) break;
+            std.debug.print("\n${X:0>4}:", .{i});
         }
-    } else {
-        std.debug.print("------+------\n", .{});
-        std.debug.print(" addr | val\n", .{});
-        std.debug.print("------+------\n", .{});
-        // non debug mode output
-        for (rom, 0..) |byte, i|
-            std.debug.print("0x{X:0>4}| 0x{X:0>2}\n", .{ i, byte });
+        if (i < rom.len) {
+            std.debug.print(" {x:0>2}", .{rom[i]});
+        } else {
+            std.debug.print(" ..", .{});
+        }
     }
+    std.debug.print("\n", .{});
 }
 
 /// Using low-endian, sequentially append the bytes of a value to an u8 arraylist

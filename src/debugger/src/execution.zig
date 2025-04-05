@@ -19,8 +19,6 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags, header: specs.
     // set current PC execution to the header entry point
     vm.program_counter = header.entry_point;
 
-    // keep track of bytes between metadata signals
-    var debug_metadata_contents: bool = false;
     var quit = false;
     while (!quit) {
         if (vm.program_counter >= vm.original_rom_filesize) {
@@ -30,8 +28,12 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags, header: specs.
         if (flags.instruction_delay != 0)
             std.Thread.sleep(utils.Milliseconds_To_Nanoseconds(flags.instruction_delay));
 
-        if (vm.rom[vm.program_counter] == @intFromEnum(specs.Opcode.DEBUG_METADATA_SIGNAL))
-            debug_metadata_contents = !debug_metadata_contents;
+        // skip debug metadata bytes
+        if (vm.rom[vm.program_counter] == @intFromEnum(specs.Opcode.DEBUG_METADATA_SIGNAL)) {
+            const metadata_type: specs.DebugMetadataType = @enumFromInt(vm.rom[vm.program_counter + 1]);
+            vm.program_counter += @truncate(try metadata_type.Metadata_Length(vm.rom[vm.program_counter..]));
+            continue;
+        }
 
         const opcode_enum: specs.Opcode = @enumFromInt(vm.rom[vm.program_counter]);
         if (flags.log_instruction_opcode) {

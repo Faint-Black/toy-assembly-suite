@@ -141,3 +141,5 @@ pub fn main() !void {
 //  -changed CLAP arguments style
 // Assembler 1.2
 //  -added the STRIDE instruction
+// Assembler 1.3
+//  -changed the ROM dump debug print output format
