@@ -17,27 +17,27 @@ const pp = @import("preprocessor.zig");
 const codegen = @import("codegen.zig");
 const warn = @import("shared").warn;
 
-pub fn main() void {
-    // begin benchmark
-    var timer = std.time.Timer.start() catch {
-        warn.Error_Message("UPSTREAM: could not begin benchmark timer!", .{});
-        return;
-    };
-
+pub fn main() !void {
     // use DebugAllocator on debug mode
     // use SmpAllocator on release mode
     var debug_struct_allocator = std.heap.DebugAllocator(.{}).init;
     defer _ = debug_struct_allocator.deinit();
     var global_allocator: std.mem.Allocator = if (builtin.mode == .Debug) debug_struct_allocator.allocator() else std.heap.smp_allocator;
 
+    // begin benchmark
+    var timer = std.time.Timer.start() catch |err| {
+        warn.Fatal_Error_Message("could not begin benchmark timer!", .{});
+        if (builtin.mode == .Debug) return err else return;
+    };
+
     // keep track of identifiers through all steps
     var global_symbol_table = sym.SymbolTable.Init(global_allocator);
     defer global_symbol_table.Deinit();
 
     // command-line flags, filenames and filepath specifications
-    const flags = clap.Flags.Parse(global_allocator) catch {
-        warn.Error_Message("UPSTREAM: could not parse command line flags!", .{});
-        return;
+    const flags = clap.Flags.Parse(global_allocator) catch |err| {
+        warn.Fatal_Error_Message("could not parse command line flags!", .{});
+        if (builtin.mode == .Debug) return err else return;
     };
     defer flags.Deinit();
     if (flags.help == true) {
@@ -68,20 +68,20 @@ pub fn main() void {
     }
 
     // load file into a newly allocated buffer
-    const filestream = std.fs.cwd().openFile(flags.input_filename.?, .{}) catch {
-        warn.Error_Message("UPSTREAM: could not open file \"{?s}\"!", .{flags.input_filename});
-        return;
+    const filestream = std.fs.cwd().openFile(flags.input_filename.?, .{}) catch |err| {
+        warn.Fatal_Error_Message("could not open file \"{?s}\"!", .{flags.input_filename});
+        if (builtin.mode == .Debug) return err else return;
     };
-    const filecontents = utils.Read_And_Allocate_File(filestream, global_allocator, 4096) catch {
-        warn.Error_Message("UPSTREAM: could not read or allocate file contents!", .{});
-        return;
+    const filecontents = utils.Read_And_Allocate_File(filestream, global_allocator, 4096) catch |err| {
+        warn.Fatal_Error_Message("could not read or allocate file contents!", .{});
+        if (builtin.mode == .Debug) return err else return;
     };
     defer global_allocator.free(filecontents);
 
     // lex and parse input file into individual tokens
-    const lexed_tokens = lex.Lexer(global_allocator, filecontents) catch {
-        warn.Error_Message("UPSTREAM: lexing failed!", .{});
-        return;
+    const lexed_tokens = lex.Lexer(global_allocator, filecontents) catch |err| {
+        warn.Fatal_Error_Message("lexing failed!", .{});
+        if (builtin.mode == .Debug) return err else return;
     };
     defer global_allocator.free(lexed_tokens);
     defer tok.Destroy_Tokens_Contents(global_allocator, lexed_tokens);
@@ -93,9 +93,9 @@ pub fn main() void {
     }
 
     // expand macros
-    const expanded_tokens = pp.Preprocessor_Expansion(global_allocator, flags, &global_symbol_table, lexed_tokens) catch {
-        warn.Error_Message("UPSTREAM: macro expansion failed!", .{});
-        return;
+    const expanded_tokens = pp.Preprocessor_Expansion(global_allocator, flags, &global_symbol_table, lexed_tokens) catch |err| {
+        warn.Fatal_Error_Message("macro expansion failed!", .{});
+        if (builtin.mode == .Debug) return err else return;
     };
     defer global_allocator.free(expanded_tokens);
     defer tok.Destroy_Tokens_Contents(global_allocator, expanded_tokens);
@@ -107,23 +107,23 @@ pub fn main() void {
     }
 
     // start the code generation
-    const rom = codegen.Generate_Rom(global_allocator, flags, &global_symbol_table, expanded_tokens) catch {
-        warn.Error_Message("UPSTREAM: rom bytecode generation failed!", .{});
-        return;
+    const rom = codegen.Generate_Rom(global_allocator, flags, &global_symbol_table, expanded_tokens) catch |err| {
+        warn.Fatal_Error_Message("rom bytecode generation failed!", .{});
+        if (builtin.mode == .Debug) return err else return;
     };
     defer global_allocator.free(rom);
 
     // create rom bytecode bin file relative to the current working directory
     // only perform this if an output name was specified with the "-o" flag
     if (flags.output_filename) |output_filename| {
-        const rom_file = std.fs.cwd().createFile(output_filename, std.fs.File.CreateFlags{}) catch {
-            warn.Error_Message("UPSTREAM: failed to create rom file!", .{});
-            return;
+        const rom_file = std.fs.cwd().createFile(output_filename, std.fs.File.CreateFlags{}) catch |err| {
+            warn.Fatal_Error_Message("failed to create rom file!", .{});
+            if (builtin.mode == .Debug) return err else return;
         };
         defer rom_file.close();
-        utils.Write_To_File(rom_file, rom) catch {
-            warn.Error_Message("UPSTREAM: failed to write to created rom file!", .{});
-            return;
+        utils.Write_To_File(rom_file, rom) catch |err| {
+            warn.Fatal_Error_Message("failed to write to created rom file!", .{});
+            if (builtin.mode == .Debug) return err else return;
         };
     }
 
@@ -175,3 +175,5 @@ pub fn main() void {
 //  -release error handling
 // Assembler 1.4.1
 //  -warn for undefined STRIDEs and changed the codegen function
+// Assembler 1.4.2
+//  -even better error handling

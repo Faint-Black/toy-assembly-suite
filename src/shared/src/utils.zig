@@ -15,7 +15,7 @@ pub const buffsize = enum {
     pub const large: usize = 4096;
 };
 
-/// only meant for debugging as terminal colors aren't portable!
+/// ANSI terminal color codes
 pub const textColor = enum {
     pub const red: []const u8 = "\x1b[31m";
     pub const red_bold: []const u8 = "\x1b[31;1m";
