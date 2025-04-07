@@ -13,6 +13,7 @@ const specs = @import("shared").specifications;
 const tok = @import("token.zig");
 const sym = @import("symbol.zig");
 const clap = @import("clap.zig");
+const warn = @import("shared").warn;
 
 const Opcode = specs.Opcode;
 const DebugMetadataType = specs.DebugMetadataType;
@@ -65,7 +66,7 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
     if (isFirstPass == false) {
         if (symTable.Get("_START")) |symbol| {
             if (symbol.value != .label) {
-                std.log.err("the \"_START\" keyword is reserved for labels!", .{});
+                warn.Error_Message("The \"_START\" keyword is reserved for labels!", .{});
                 return error.MisuseOfLabels;
             }
             const address_value = symbol.value.label.value;
@@ -159,7 +160,7 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
         // process direct byte definitions here
         if (activeByteDefiner != .UNDEFINED) {
             if (token.tokType != .LITERAL and token.tokType != .ADDRESS) {
-                std.log.err("Token \"{s}\" is not a valid value!", .{std.enums.tagName(tok.TokenType, token.tokType).?});
+                warn.Error_Message("Token \"{s}\" is not a valid value!", .{std.enums.tagName(tok.TokenType, token.tokType).?});
                 return error.BadByteDefinition;
             }
             switch (activeByteDefiner) {

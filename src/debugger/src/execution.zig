@@ -14,6 +14,7 @@ const clap = @import("clap.zig");
 const specs = @import("shared").specifications;
 const utils = @import("shared").utils;
 const machine = @import("shared").machine;
+const warn = @import("shared").warn;
 
 pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags, header: specs.Header) !void {
     // set current PC execution to the header entry point
@@ -22,7 +23,7 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags, header: specs.
     var quit = false;
     while (!quit) {
         if (vm.program_counter >= vm.original_rom_filesize) {
-            std.log.err("Program counter reached outside of original rom file's address space!\n", .{});
+            warn.Error_Message("Program counter (PC = 0x{}) reached outside of original rom file's (ROM filesize = 0x{}) address space!", .{ vm.program_counter, vm.original_rom_filesize });
             break;
         }
         if (flags.instruction_delay != 0)
@@ -43,12 +44,12 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags, header: specs.
         switch (opcode_enum) {
             .PANIC => {
                 // useful for debugging when fill_byte is set to zero
-                std.log.err("Attempted to execute a null byte!\n", .{});
+                warn.Error_Message("Attempted to execute a null byte!", .{});
                 break;
             },
             .SYSTEMCALL => {
                 // TODO
-                std.log.err("Syscall caught! implement me dumbass!\n", .{});
+                warn.Error_Message("Syscall caught! implement me dumbass!", .{});
                 break;
             },
             .STRIDE_LIT => {

@@ -15,10 +15,14 @@ const lex = @import("lexer.zig");
 const sym = @import("symbol.zig");
 const pp = @import("preprocessor.zig");
 const codegen = @import("codegen.zig");
+const warn = @import("shared").warn;
 
-pub fn main() !void {
+pub fn main() void {
     // begin benchmark
-    var timer = try std.time.Timer.start();
+    var timer = std.time.Timer.start() catch {
+        warn.Error_Message("UPSTREAM: could not begin benchmark timer!", .{});
+        return;
+    };
 
     // use DebugAllocator on debug mode
     // use SmpAllocator on release mode
@@ -31,18 +35,21 @@ pub fn main() !void {
     defer global_symbol_table.Deinit();
 
     // command-line flags, filenames and filepath specifications
-    const flags = try clap.Flags.Parse(global_allocator);
+    const flags = clap.Flags.Parse(global_allocator) catch {
+        warn.Error_Message("UPSTREAM: could not parse command line flags!", .{});
+        return;
+    };
     defer flags.Deinit();
     if (flags.help == true) {
-        try std.io.getStdOut().writer().print(clap.Flags.Help_String(), .{});
+        std.debug.print(clap.Flags.Help_String(), .{});
         return;
     }
     if (flags.version == true) {
-        try std.io.getStdOut().writer().print(clap.Flags.Version_String(), .{});
+        std.debug.print(clap.Flags.Version_String(), .{});
         return;
     }
     if (flags.debug_mode == true) {
-        try std.io.getStdOut().writer().print("DEBUG MODE ENABLED\n\n", .{});
+        std.debug.print("DEBUG MODE ENABLED\n\n", .{});
     }
 
     // [DEBUG OUTPUT] print flag informations
@@ -61,12 +68,21 @@ pub fn main() !void {
     }
 
     // load file into a newly allocated buffer
-    const filestream = try std.fs.cwd().openFile(flags.input_filename.?, .{});
-    const filecontents = try utils.Read_And_Allocate_File(filestream, global_allocator, 4096);
+    const filestream = std.fs.cwd().openFile(flags.input_filename.?, .{}) catch {
+        warn.Error_Message("UPSTREAM: could not open file \"{?s}\"!", .{flags.input_filename});
+        return;
+    };
+    const filecontents = utils.Read_And_Allocate_File(filestream, global_allocator, 4096) catch {
+        warn.Error_Message("UPSTREAM: could not read or allocate file contents!", .{});
+        return;
+    };
     defer global_allocator.free(filecontents);
 
     // lex and parse input file into individual tokens
-    const lexed_tokens = try lex.Lexer(global_allocator, filecontents);
+    const lexed_tokens = lex.Lexer(global_allocator, filecontents) catch {
+        warn.Error_Message("UPSTREAM: lexing failed!", .{});
+        return;
+    };
     defer global_allocator.free(lexed_tokens);
     defer tok.Destroy_Tokens_Contents(global_allocator, lexed_tokens);
 
@@ -77,7 +93,10 @@ pub fn main() !void {
     }
 
     // expand macros
-    const expanded_tokens = try pp.Preprocessor_Expansion(global_allocator, flags, &global_symbol_table, lexed_tokens);
+    const expanded_tokens = pp.Preprocessor_Expansion(global_allocator, flags, &global_symbol_table, lexed_tokens) catch {
+        warn.Error_Message("UPSTREAM: macro expansion failed!", .{});
+        return;
+    };
     defer global_allocator.free(expanded_tokens);
     defer tok.Destroy_Tokens_Contents(global_allocator, expanded_tokens);
 
@@ -88,15 +107,24 @@ pub fn main() !void {
     }
 
     // start the code generation
-    const rom = try codegen.Generate_Rom(global_allocator, flags, &global_symbol_table, expanded_tokens);
+    const rom = codegen.Generate_Rom(global_allocator, flags, &global_symbol_table, expanded_tokens) catch {
+        warn.Error_Message("UPSTREAM: rom bytecode generation failed!", .{});
+        return;
+    };
     defer global_allocator.free(rom);
 
     // create rom bytecode bin file relative to the current working directory
     // only perform this if an output name was specified with the "-o" flag
     if (flags.output_filename) |output_filename| {
-        const rom_file = try std.fs.cwd().createFile(output_filename, std.fs.File.CreateFlags{});
+        const rom_file = std.fs.cwd().createFile(output_filename, std.fs.File.CreateFlags{}) catch {
+            warn.Error_Message("UPSTREAM: failed to create rom file!", .{});
+            return;
+        };
         defer rom_file.close();
-        try utils.Write_To_File(rom_file, rom);
+        utils.Write_To_File(rom_file, rom) catch {
+            warn.Error_Message("UPSTREAM: failed to write to created rom file!", .{});
+            return;
+        };
     }
 
     // [DEBUG OUTPUT] print symbol hashtable
@@ -105,11 +133,11 @@ pub fn main() !void {
 
     // end and print benchmark
     const nanoseconds = timer.read();
-    try std.io.getStdOut().writer().print("Compilation done in {}\n", .{std.fmt.fmtDuration(nanoseconds)});
+    std.debug.print("Compilation done in {}\n", .{std.fmt.fmtDuration(nanoseconds)});
 
     // print emit information
     if (flags.output_filename) |output_filename|
-        try std.io.getStdOut().writer().print("Written {} bytes to {s}\n", .{ rom.len, output_filename });
+        std.debug.print("Written {} bytes to {s}\n", .{ rom.len, output_filename });
 }
 
 // LICENSE:
@@ -143,3 +171,5 @@ pub fn main() !void {
 //  -added the STRIDE instruction
 // Assembler 1.3
 //  -changed the ROM dump debug print output format
+// Assembler 1.4
+//  -release error handling

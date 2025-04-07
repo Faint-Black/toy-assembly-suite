@@ -8,6 +8,7 @@
 //=============================================================//
 
 const std = @import("std");
+const warn = @import("shared").warn;
 
 pub const Flags = struct {
     /// remember allocator for Deinit method
@@ -89,17 +90,18 @@ pub const Flags = struct {
             } else if (std.mem.eql(u8, arg.?, "--nolog=sideeffects")) {
                 result.log_instruction_sideeffects = false;
             } else {
-                std.log.err("Unknown argument: \"{s}\"", .{arg.?});
+                warn.Error_Message("Unknown argument: \"{s}\"", .{arg.?});
                 return error.BadArgument;
             }
         }
 
         if (result.binary_directory == null) {
-            std.log.err("Binary directory could not be resolved!", .{});
+            warn.Error_Message("Binary directory could not be resolved!", .{});
             return error.BadArgument;
         }
 
         if (result.input_rom_filename == null) {
+            warn.Warn_Message("No input file specified, using stdin instead.", .{});
             result.input_rom_filename = try allocator.dupe(u8, "stdin");
         }
 

@@ -9,9 +9,11 @@
 pub const utils = @import("utils.zig");
 pub const specifications = @import("specifications.zig");
 pub const machine = @import("machine.zig");
+pub const warn = @import("warning.zig");
 
 test {
     _ = @import("utils.zig");
     _ = @import("specifications.zig");
     _ = @import("machine.zig");
+    _ = @import("warning.zig");
 }

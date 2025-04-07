@@ -12,6 +12,7 @@ const utils = @import("shared").utils;
 const tok = @import("token.zig");
 const sym = @import("symbol.zig");
 const clap = @import("clap.zig");
+const warn = @import("shared").warn;
 
 /// Removes, replaces and expands preprocessor instructions,
 /// like macros.
@@ -100,7 +101,7 @@ fn Remove_Macros(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, token
 
         if (token.tokType == .MACRO) {
             if (build_macro_mode == true) {
-                std.log.err("Cannot define a macro inside another macro!", .{});
+                warn.Error_Message("Cannot define a macro inside another macro!", .{});
                 return error.BadMacro;
             }
             build_macro_mode = true;
@@ -109,7 +110,7 @@ fn Remove_Macros(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, token
 
         if (token.tokType == .ENDMACRO) {
             if (build_macro_mode == false) {
-                std.log.err("No macro to end!", .{});
+                warn.Error_Message("No macro to end!", .{});
                 return error.BadMacro;
             }
             build_macro_mode = false;
@@ -118,7 +119,7 @@ fn Remove_Macros(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, token
 
         // when you forget to add .endmacro at the end of a definition
         if (token.tokType == .ENDOFFILE and build_macro_mode == true) {
-            std.log.err("Found EOF while building macro!", .{});
+            warn.Error_Message("Found EOF while building macro!", .{});
             return error.BadMacro;
         }
 
@@ -157,7 +158,7 @@ fn Remove_Macros(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, token
     }
 
     if (macro_vector.items.len > 0) {
-        std.log.err("Unflushed macro!", .{});
+        warn.Error_Message("Unflushed macro!", .{});
         return error.BadMacro;
     }
 

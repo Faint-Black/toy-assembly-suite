@@ -21,6 +21,11 @@ pub const textColor = enum {
     pub const red_bold: []const u8 = "\x1b[31;1m";
     pub const red_dim: []const u8 = "\x1b[31;2m";
     pub const green: []const u8 = "\x1b[32m";
+    pub const green_bold: []const u8 = "\x1b[32;1m";
+    pub const green_dim: []const u8 = "\x1b[32;2m";
+    pub const yellow: []const u8 = "\x1b[33m";
+    pub const yellow_bold: []const u8 = "\x1b[33;1m";
+    pub const yellow_dim: []const u8 = "\x1b[33;2m";
     pub const bold: []const u8 = "\x1b[1m";
     pub const reset: []const u8 = "\x1b[0m";
 };
