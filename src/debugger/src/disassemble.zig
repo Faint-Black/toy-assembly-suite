@@ -18,6 +18,7 @@ pub fn Disassemble_Rom(allocator: std.mem.Allocator, rom: []const u8, original_r
     var buffer1: [utils.buffsize.large]u8 = undefined;
     var buffer2: [utils.buffsize.large]u8 = undefined;
     var buffer3: [utils.buffsize.large]u8 = undefined;
+    var buffer4: [utils.buffsize.large]u8 = undefined;
 
     // completely disconsidered if ROM is not in debug mode
     // key = label address
@@ -73,7 +74,13 @@ pub fn Disassemble_Rom(allocator: std.mem.Allocator, rom: []const u8, original_r
         const addr_str = Address_String(&buffer1, PC);
         const instr_bytes_str = Instruction_Bytes_String(&buffer2, rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]);
         const instr_str = try opcode_enum.Instruction_String(&buffer3, rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]);
-        std.debug.print("{s}: {s} {s}\n", .{ addr_str, instr_bytes_str, instr_str });
+        if (opcode_enum.What_Address_Space() == .rom) {
+            const instruction_address_value = std.mem.bytesToValue(u16, rom[PC + 1 .. PC + 2]);
+            const addr_name_str = Address_Name_String(&buffer4, label_hashmap, instruction_address_value);
+            std.debug.print("{s}: {s} {s} <{s}>\n", .{ addr_str, instr_bytes_str, instr_str, addr_name_str });
+        } else {
+            std.debug.print("{s}: {s} {s}\n", .{ addr_str, instr_bytes_str, instr_str });
+        }
 
         PC += opcode_enum.Instruction_Byte_Length();
     }
@@ -87,6 +94,24 @@ fn Address_String(buffer: []u8, addr: u16) []const u8 {
     return std.fmt.bufPrint(buffer, "${x:0>4}", .{addr}) catch {
         @panic("format print failed!");
     };
+}
+
+/// returns "???" on fail
+fn Address_Name_String(buffer: []u8, hashmap: ?std.AutoArrayHashMap(u16, []const u8), address: u16) []const u8 {
+    if (hashmap == null) {
+        return std.fmt.bufPrint(buffer, "???", .{}) catch
+            @panic("format print failed!");
+    }
+
+    const get = hashmap.?.get(address);
+
+    if (get == null) {
+        return std.fmt.bufPrint(buffer, "???", .{}) catch
+            @panic("format print failed!");
+    }
+
+    return std.fmt.bufPrint(buffer, "{s}", .{get.?}) catch
+        @panic("format print failed!");
 }
 
 fn Instruction_Bytes_String(buffer: []u8, bytes: []const u8) []const u8 {
@@ -113,9 +138,9 @@ fn Instruction_Bytes_String(buffer: []u8, bytes: []const u8) []const u8 {
         }
         str_index += chars_per_entry;
     }
-    _ = std.fmt.bufPrint(buffer[str_index..], "= ", .{}) catch
+    _ = std.fmt.bufPrint(buffer[str_index..], "=", .{}) catch
         @panic("format print failed!");
-    str_index += 2;
+    str_index += 1;
 
     return buffer[0..str_index];
 }
@@ -199,13 +224,13 @@ test "instruction bytes strings" {
     const nl = " \n       ";
 
     str = Instruction_Bytes_String(&buffer, &.{});
-    try std.testing.expectEqualStrings(".. .. .. .. .. .. .. .. = ", str);
+    try std.testing.expectEqualStrings(".. .. .. .. .. .. .. .. =", str);
     str = Instruction_Bytes_String(&buffer, &.{ 16, 17, 18, 19 });
-    try std.testing.expectEqualStrings("10 11 12 13 .. .. .. .. = ", str);
+    try std.testing.expectEqualStrings("10 11 12 13 .. .. .. .. =", str);
     str = Instruction_Bytes_String(&buffer, &.{ 0, 1, 2, 3, 4, 5, 6, 7 });
-    try std.testing.expectEqualStrings("00 01 02 03 04 05 06 07 = ", str);
+    try std.testing.expectEqualStrings("00 01 02 03 04 05 06 07 =", str);
     str = Instruction_Bytes_String(&buffer, &.{ 0, 1, 2, 3, 4, 5, 6, 7, 8 });
-    try std.testing.expectEqualStrings("00 01 02 03 04 05 06 07" ++ nl ++ "08 .. .. .. .. .. .. .. = ", str);
+    try std.testing.expectEqualStrings("00 01 02 03 04 05 06 07" ++ nl ++ "08 .. .. .. .. .. .. .. =", str);
     str = Instruction_Bytes_String(&buffer, &.{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 });
-    try std.testing.expectEqualStrings("00 01 02 03 04 05 06 07" ++ nl ++ "08 09 0a 0b 0c 0d 0e 0f" ++ nl ++ "10 .. .. .. .. .. .. .. = ", str);
+    try std.testing.expectEqualStrings("00 01 02 03 04 05 06 07" ++ nl ++ "08 09 0a 0b 0c 0d 0e 0f" ++ nl ++ "10 .. .. .. .. .. .. .. =", str);
 }

@@ -61,6 +61,13 @@ pub const Header = struct {
     }
 };
 
+pub const AddressSpace = enum {
+    not_applicable,
+    rom,
+    wram,
+    stack,
+};
+
 /// "MNEMONIC_ARG1_ARG2"
 pub const Opcode = enum(u8) {
     // Exit immediately upon trying to execute a null byte as an instruction
@@ -229,6 +236,43 @@ pub const Opcode = enum(u8) {
             .POP_X => opcode_bytelen,
             .POP_Y => opcode_bytelen,
             .DEBUG_METADATA_SIGNAL => opcode_bytelen,
+        };
+    }
+
+    pub fn What_Address_Space(self: Opcode) AddressSpace {
+        return switch (self) {
+            .LDA_ADDR => .wram,
+            .LDX_ADDR => .wram,
+            .LDY_ADDR => .wram,
+            .LDA_ADDR_X => .wram,
+            .LDA_ADDR_Y => .wram,
+            .STA_ADDR => .wram,
+            .STX_ADDR => .wram,
+            .STY_ADDR => .wram,
+            .JMP_ADDR => .rom,
+            .JSR_ADDR => .rom,
+            .CMP_A_ADDR => .wram,
+            .CMP_X_ADDR => .wram,
+            .CMP_Y_ADDR => .wram,
+            .BCS_ADDR => .rom,
+            .BCC_ADDR => .rom,
+            .BEQ_ADDR => .rom,
+            .BNE_ADDR => .rom,
+            .BMI_ADDR => .rom,
+            .BPL_ADDR => .rom,
+            .BVS_ADDR => .rom,
+            .BVC_ADDR => .rom,
+            .ADD_ADDR => .wram,
+            .SUB_ADDR => .wram,
+            .INC_ADDR => .wram,
+            .DEC_ADDR => .wram,
+            .PUSH_A => .stack,
+            .PUSH_X => .stack,
+            .PUSH_Y => .stack,
+            .POP_A => .stack,
+            .POP_X => .stack,
+            .POP_Y => .stack,
+            else => .not_applicable,
         };
     }
 

@@ -233,21 +233,4 @@ pub const TokenType = enum {
     BRK,
     /// no operation, do nothing
     NOP,
-
-    /// not sure what to do with this yet...
-    pub fn Is_Jump_Instruction(self: TokenType) bool {
-        return switch (self) {
-            .JMP => true,
-            .JSR => true,
-            .BCS => true,
-            .BCC => true,
-            .BEQ => true,
-            .BNE => true,
-            .BMI => true,
-            .BPL => true,
-            .BVS => true,
-            .BVC => true,
-            else => false,
-        };
-    }
 };
