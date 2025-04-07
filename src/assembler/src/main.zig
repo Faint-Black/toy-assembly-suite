@@ -173,3 +173,5 @@ pub fn main() void {
 //  -changed the ROM dump debug print output format
 // Assembler 1.4
 //  -release error handling
+// Assembler 1.4.1
+//  -warn for undefined STRIDEs and changed the codegen function
