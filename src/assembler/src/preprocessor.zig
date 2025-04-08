@@ -76,7 +76,7 @@ fn Second_Pass(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens:
 fn Add_Labels(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: []const tok.Token) !void {
     for (tokens) |token| {
         if (token.tokType == .LABEL) {
-            const label_symbol = sym.Symbol{ .name = try utils.Copy_Of_ConstString(allocator, token.identKey.?), .value = .{ .label = tok.Token.Init() } };
+            const label_symbol = sym.Symbol{ .name = try utils.Copy_Of_String(allocator, token.identKey.?), .value = .{ .label = tok.Token.Init() } };
             try symTable.Add(label_symbol);
         }
     }
@@ -199,7 +199,7 @@ fn Remove_Defines(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, toke
                 return error.NamelessDefine;
 
             const define_symbol = sym.Symbol{
-                .name = try utils.Copy_Of_ConstString(allocator, define_buffer[0].identKey.?),
+                .name = try utils.Copy_Of_String(allocator, define_buffer[0].identKey.?),
                 .value = .{ .define = try define_buffer[1].Copy(allocator) },
             };
             try symTable.Add(define_symbol);

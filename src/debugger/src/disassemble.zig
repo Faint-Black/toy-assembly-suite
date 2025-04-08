@@ -178,7 +178,7 @@ fn Resolve_Metadata_Labels(allocator: std.mem.Allocator, rom: []const u8, origin
             if (inside_metadata == true) {
                 inside_metadata = false;
                 PC += 1;
-                const label_allocated_string = utils.Copy_Of_ConstString(allocator, buffer[0..buf_len]) catch
+                const label_allocated_string = utils.Copy_Of_String(allocator, buffer[0..buf_len]) catch
                     return null;
                 result.put(PC, label_allocated_string) catch
                     return null;

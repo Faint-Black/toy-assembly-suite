@@ -42,8 +42,8 @@ pub const Token = struct {
     pub fn Copy(self: Token, allocator: std.mem.Allocator) !Token {
         return Token{
             .tokType = self.tokType,
-            .identKey = if (self.identKey) |str| try utils.Copy_Of_ConstString(allocator, str) else null,
-            .text = if (self.text) |str| try utils.Copy_Of_ConstString(allocator, str) else null,
+            .identKey = if (self.identKey) |str| try utils.Copy_Of_String(allocator, str) else null,
+            .text = if (self.text) |str| try utils.Copy_Of_String(allocator, str) else null,
             .value = self.value,
         };
     }

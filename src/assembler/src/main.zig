@@ -72,7 +72,7 @@ pub fn main() !void {
         warn.Fatal_Error_Message("could not open file \"{?s}\"!", .{flags.input_filename});
         if (builtin.mode == .Debug) return err else return;
     };
-    const filecontents = utils.Read_And_Allocate_File(filestream, global_allocator, 4096) catch |err| {
+    const filecontents = filestream.readToEndAlloc(global_allocator, 4096) catch |err| {
         warn.Fatal_Error_Message("could not read or allocate file contents!", .{});
         if (builtin.mode == .Debug) return err else return;
     };
@@ -121,7 +121,7 @@ pub fn main() !void {
             if (builtin.mode == .Debug) return err else return;
         };
         defer rom_file.close();
-        utils.Write_To_File(rom_file, rom) catch |err| {
+        rom_file.writeAll(rom) catch |err| {
             warn.Fatal_Error_Message("failed to write to created rom file!", .{});
             if (builtin.mode == .Debug) return err else return;
         };

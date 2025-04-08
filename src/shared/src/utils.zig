@@ -30,21 +30,6 @@ pub const textColor = enum {
     pub const reset: []const u8 = "\x1b[0m";
 };
 
-/// writes file contents to the input buffer, then returns the amount of bytes written
-pub fn Read_File_Into_Buffer(buff: []u8, file: std.fs.File) !usize {
-    return try file.reader().read(buff[0..]);
-}
-
-/// allocates the contents of a file into a u8 slice
-pub fn Read_And_Allocate_File(file: std.fs.File, allocator: std.mem.Allocator, maxsize: usize) ![]u8 {
-    return try file.readToEndAlloc(allocator, maxsize);
-}
-
-/// writes a slice of bytes into a file
-pub fn Write_To_File(file: std.fs.File, bytes: []const u8) !void {
-    try file.writeAll(bytes);
-}
-
 /// spacebar, null terminator, newline or tabs
 pub fn Is_Char_Whitespace(c: u8) bool {
     return std.ascii.isWhitespace(c) or (c == 0);
@@ -94,7 +79,7 @@ pub fn Append_Char_To_String(buffer: []u8, buffer_size: *usize, character: u8) !
 }
 
 /// alias for better readability
-pub fn Copy_Of_ConstString(allocator: std.mem.Allocator, str: []const u8) ![]u8 {
+pub fn Copy_Of_String(allocator: std.mem.Allocator, str: []const u8) ![]u8 {
     return Copy_Of_Slice(u8, allocator, str);
 }
 
@@ -164,7 +149,7 @@ test "element buffer appending" {
 }
 
 test "copy of slice" {
-    const string = try Copy_Of_ConstString(std.testing.allocator, "Huzzah!");
+    const string = try Copy_Of_String(std.testing.allocator, "Huzzah!");
     const huzzah = "Huzzah!";
     try std.testing.expectEqualStrings(huzzah, string);
     try std.testing.expectEqual(huzzah.len, string.len);

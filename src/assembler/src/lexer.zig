@@ -143,7 +143,7 @@ fn Word_To_Token(allocator: std.mem.Allocator, str: []const u8) !tok.Token {
         return tok.Token{
             .tokType = .LABEL,
             // "minus one" to exclude the colon from the identifier string
-            .identKey = try utils.Copy_Of_ConstString(allocator, str[0 .. str.len - 1]),
+            .identKey = try utils.Copy_Of_String(allocator, str[0 .. str.len - 1]),
         };
     }
 

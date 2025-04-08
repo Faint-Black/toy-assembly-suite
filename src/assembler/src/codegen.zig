@@ -110,11 +110,11 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
             if (isFirstPass and token.tokType == .LABEL) {
                 const current_address_value_token: tok.Token = tok.Token{
                     .tokType = .ADDRESS,
-                    .identKey = try utils.Copy_Of_ConstString(allocator, token.identKey.?),
+                    .identKey = try utils.Copy_Of_String(allocator, token.identKey.?),
                     .value = @truncate(rom_vector.items.len),
                 };
                 const label_symbol = sym.Symbol{
-                    .name = try utils.Copy_Of_ConstString(allocator, token.identKey.?),
+                    .name = try utils.Copy_Of_String(allocator, token.identKey.?),
                     .value = .{ .label = current_address_value_token },
                 };
                 // replaces if already exists
@@ -130,11 +130,11 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
 
                 const current_address_value_token: tok.Token = tok.Token{
                     .tokType = .ADDRESS,
-                    .identKey = try utils.Copy_Of_ConstString(allocator, slice),
+                    .identKey = try utils.Copy_Of_String(allocator, slice),
                     .value = @truncate(rom_vector.items.len),
                 };
                 const anonlabel_symbol = sym.Symbol{
-                    .name = try utils.Copy_Of_ConstString(allocator, slice),
+                    .name = try utils.Copy_Of_String(allocator, slice),
                     .value = .{ .label = current_address_value_token },
                 };
                 try symTable.Add(anonlabel_symbol);
