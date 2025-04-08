@@ -38,7 +38,7 @@ pub fn main() !void {
     }
 
     // load and init virtual machine
-    var vm = machine.State.Init(flags.input_rom_filename, null);
+    var vm = machine.VirtualMachine.Init(flags.input_rom_filename, null);
     const rom_header = specs.Header.Parse_From_Byte_Array(vm.rom[0..16].*);
     if (rom_header.magic_number != specs.rom_magic_number) {
         std.debug.print("Wrong ROM magic number! expected 0x{X:0>2}, got 0x{X:0>2}\n", .{ specs.rom_magic_number, rom_header.magic_number });

@@ -16,7 +16,7 @@ const utils = @import("shared").utils;
 const machine = @import("shared").machine;
 const warn = @import("shared").warn;
 
-pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags, header: specs.Header) !void {
+pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, header: specs.Header) !void {
     // set current PC execution to the header entry point
     vm.program_counter = header.entry_point;
 
@@ -105,7 +105,7 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags, header: specs.
             },
             .LDA_LIT => {
                 // get literal from following ROM bytes, then put it in the accumulator
-                const literal: u32 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
+                const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
                 if (flags.log_instruction_sideeffects) {
                     std.debug.print("Before loading \"{}\":\nA = {}\n", .{ literal, vm.accumulator });
                 }
@@ -116,7 +116,7 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags, header: specs.
             },
             .LDX_LIT => {
                 // get literal from following ROM bytes, then put it in the x index
-                const literal: u32 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
+                const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
                 if (flags.log_instruction_sideeffects) {
                     std.debug.print("Before loading \"{}\":\nX = {}\n", .{ literal, vm.x_index });
                 }
@@ -127,7 +127,7 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags, header: specs.
             },
             .LDY_LIT => {
                 // get literal from following ROM bytes, then put it in the y index
-                const literal: u32 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
+                const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
                 if (flags.log_instruction_sideeffects) {
                     std.debug.print("Before loading \"{}\":\nY = {}\n", .{ literal, vm.y_index });
                 }
@@ -138,8 +138,8 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags, header: specs.
             },
             .LDA_ADDR => {
                 // get address from following ROM bytes, then fetch address contents from RAM and put it in the accumulator
-                const address: u16 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
-                const address_contents: u32 = try machine.State.Read_Address_Contents_As(&vm.wram, address, u32);
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
                 if (flags.log_instruction_sideeffects) {
                     std.debug.print("Before loading \"{}\" from 0x{X:0>4}:\nA = {}\n", .{ address_contents, address, vm.accumulator });
                 }
@@ -150,8 +150,8 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags, header: specs.
             },
             .LDX_ADDR => {
                 // get address from following ROM bytes, then fetch address contents from RAM and put it in the x index
-                const address: u16 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
-                const address_contents: u32 = try machine.State.Read_Address_Contents_As(&vm.wram, address, u32);
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
                 if (flags.log_instruction_sideeffects) {
                     std.debug.print("Before loading \"{}\" from 0x{X:0>4}:\nX = {}\n", .{ address_contents, address, vm.x_index });
                 }
@@ -162,8 +162,8 @@ pub fn Run_Virtual_Machine(vm: *machine.State, flags: clap.Flags, header: specs.
             },
             .LDY_ADDR => {
                 // get address from following ROM bytes, then fetch address contents from RAM and put it in the y index
-                const address: u16 = try machine.State.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
-                const address_contents: u32 = try machine.State.Read_Address_Contents_As(&vm.wram, address, u32);
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
                 if (flags.log_instruction_sideeffects) {
                     std.debug.print("Before loading \"{}\" from 0x{X:0>4}:\nY = {}\n", .{ address_contents, address, vm.y_index });
                 }
