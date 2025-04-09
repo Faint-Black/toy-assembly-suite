@@ -48,6 +48,9 @@ pub fn main() !void {
         std.debug.print(clap.Flags.Version_String(), .{});
         return;
     }
+    if (std.mem.eql(u8, flags.input_filename.?, "stdin")) {
+        warn.Warn_Message("input through stdin input not implemented yet.", .{});
+    }
     if (flags.debug_mode == true) {
         std.debug.print("DEBUG MODE ENABLED\n\n", .{});
     }

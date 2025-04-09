@@ -37,6 +37,7 @@ pub const VirtualMachine = struct {
     /// processor flags
     carry_flag: bool,
     zero_flag: bool,
+    negative_flag: bool,
     overflow_flag: bool,
 
     /// fill determines the byte that will fill the vacant empty space,

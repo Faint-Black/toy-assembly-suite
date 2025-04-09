@@ -233,19 +233,29 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
                 // TODO: indexable address
             },
             .STA_ADDR => {
-                // TODO
+                // store value of accumulator into an address
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                machine.VirtualMachine.Write_Contents_Into_Memory_As(&vm.wram, address, @TypeOf(vm.accumulator), vm.accumulator);
             },
             .STX_ADDR => {
-                // TODO
+                // store value of X index into an address
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                machine.VirtualMachine.Write_Contents_Into_Memory_As(&vm.wram, address, @TypeOf(vm.x_index), vm.x_index);
             },
             .STY_ADDR => {
-                // TODO
+                // store value of Y index into an address
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                machine.VirtualMachine.Write_Contents_Into_Memory_As(&vm.wram, address, @TypeOf(vm.y_index), vm.y_index);
             },
             .JMP_ADDR => {
-                // TODO
+                // go to ROM address
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                vm.Jump_To_Address(address);
             },
             .JSR_ADDR => {
-                // TODO
+                // go to ROM address and save its position on the stack
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                try vm.Jump_To_Subroutine(address);
             },
             .CMP_A_X => {
                 // TODO
@@ -284,96 +294,152 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
                 // TODO
             },
             .BCS_ADDR => {
-                // TODO
+                // branch if carry set
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                if (vm.carry_flag == true)
+                    vm.Jump_To_Address(address);
             },
             .BCC_ADDR => {
-                // TODO
+                // branch if carry clear
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                if (vm.carry_flag == false)
+                    vm.Jump_To_Address(address);
             },
             .BEQ_ADDR => {
-                // TODO
+                // branch if equal (zero flag is set)
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                if (vm.zero_flag == true)
+                    vm.Jump_To_Address(address);
             },
             .BNE_ADDR => {
-                // TODO
+                // branch if not equal (zero flag is clear)
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                if (vm.zero_flag == false)
+                    vm.Jump_To_Address(address);
             },
             .BMI_ADDR => {
-                // TODO
+                // branch if minus (negative flag is set)
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                if (vm.negative_flag == true)
+                    vm.Jump_To_Address(address);
             },
             .BPL_ADDR => {
-                // TODO
+                // branch if plus (negative flag is clear)
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                if (vm.negative_flag == false)
+                    vm.Jump_To_Address(address);
             },
             .BVS_ADDR => {
-                // TODO
+                // branch if overflow is set
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                if (vm.overflow_flag == true)
+                    vm.Jump_To_Address(address);
             },
             .BVC_ADDR => {
-                // TODO
+                // branch if overflow is clear
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                if (vm.overflow_flag == false)
+                    vm.Jump_To_Address(address);
             },
             .ADD_LIT => {
-                // TODO
+                // accumulator += literal
+                const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
+                vm.accumulator = vm.Add(vm.accumulator, literal);
             },
             .ADD_ADDR => {
-                // TODO
+                // accumulator += address contents
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
+                vm.accumulator = vm.Add(vm.accumulator, address_contents);
             },
             .ADD_X => {
-                // TODO
+                // accumulator += X index value
+                vm.accumulator = vm.Add(vm.accumulator, vm.x_index);
             },
             .ADD_Y => {
-                // TODO
+                // accumulator += Y index value
+                vm.accumulator = vm.Add(vm.accumulator, vm.y_index);
             },
             .SUB_LIT => {
-                // TODO
+                // accumulator -= literal
+                const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u32);
+                vm.accumulator = vm.Subtract(vm.accumulator, literal);
             },
             .SUB_ADDR => {
-                // TODO
+                // accumulator -= address contents
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
+                vm.accumulator = vm.Subtract(vm.accumulator, address_contents);
             },
             .SUB_X => {
-                // TODO
+                // accumulator -= X index value
+                vm.accumulator = vm.Add(vm.accumulator, vm.x_index);
             },
             .SUB_Y => {
-                // TODO
+                // accumulator -= Y index value
+                vm.accumulator = vm.Add(vm.accumulator, vm.x_index);
             },
             .INC_A => {
-                // TODO
+                // accumulator += 1
+                vm.accumulator = vm.Add(vm.accumulator, 1);
             },
             .INC_X => {
-                // TODO
+                // X index += 1
+                vm.x_index = vm.Add(vm.x_index, 1);
             },
             .INC_Y => {
-                // TODO
+                // Y index += 1
+                vm.y_index = vm.Add(vm.y_index, 1);
             },
             .INC_ADDR => {
-                // TODO
+                // contents of address += 1
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                var address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
+                address_contents = vm.Add(address_contents, 1);
+                machine.VirtualMachine.Write_Contents_Into_Memory_As(&vm.wram, address, @TypeOf(address_contents), address_contents);
             },
             .DEC_A => {
-                // TODO
+                // accumulator -= 1
+                vm.accumulator = vm.Subtract(vm.accumulator, 1);
             },
             .DEC_X => {
-                // TODO
+                // X index -= 1
+                vm.x_index = vm.Subtract(vm.x_index, 1);
             },
             .DEC_Y => {
-                // TODO
+                // Y index -= 1
+                vm.y_index = vm.Subtract(vm.y_index, 1);
             },
             .DEC_ADDR => {
-                // TODO
+                // contents of address -= 1
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                var address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
+                address_contents = vm.Subtract(address_contents, 1);
+                machine.VirtualMachine.Write_Contents_Into_Memory_As(&vm.wram, address, @TypeOf(address_contents), address_contents);
             },
             .PUSH_A => {
+                // push value of accumulator to stack
                 try vm.Push_To_Stack(@TypeOf(vm.accumulator), vm.accumulator);
                 if (flags.log_instruction_sideeffects) {
                     std.debug.print("Pushed the accumulator value 0x{X:0>8} to the stack\n", .{vm.accumulator});
                 }
             },
             .PUSH_X => {
+                // push value of X index to stack
                 try vm.Push_To_Stack(@TypeOf(vm.x_index), vm.x_index);
                 if (flags.log_instruction_sideeffects) {
                     std.debug.print("Pushed the X index value 0x{X:0>8} to the stack\n", .{vm.x_index});
                 }
             },
             .PUSH_Y => {
+                // push value of Y index to stack
                 try vm.Push_To_Stack(@TypeOf(vm.y_index), vm.y_index);
                 if (flags.log_instruction_sideeffects) {
                     std.debug.print("Pushed the Y index value 0x{X:0>8} to the stack\n", .{vm.y_index});
                 }
             },
             .POP_A => {
+                // pops 4 bytes from the stack and store them in the accumulator
                 if (flags.log_instruction_sideeffects) {
                     std.debug.print("Value of accumulator before popping from stack:\nA = {}\n", .{vm.accumulator});
                 }
@@ -383,6 +449,7 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
                 }
             },
             .POP_X => {
+                // pops 4 bytes from the stack and store them in the X index
                 if (flags.log_instruction_sideeffects) {
                     std.debug.print("Value of accumulator before popping from stack:\nA = {}\n", .{vm.accumulator});
                 }
@@ -392,6 +459,7 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
                 }
             },
             .POP_Y => {
+                // pops 4 bytes from the stack and store them in the Y index
                 if (flags.log_instruction_sideeffects) {
                     std.debug.print("Value of accumulator before popping from stack:\nA = {}\n", .{vm.accumulator});
                 }
@@ -401,6 +469,7 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
                 }
             },
             .DEBUG_METADATA_SIGNAL => {
+                // skip execution of metadata
                 const metadata_type: specs.DebugMetadataType = @enumFromInt(vm.rom[vm.program_counter + 1]);
                 const skip_count: usize = try metadata_type.Metadata_Length(vm.rom[vm.program_counter..]);
                 if (flags.log_instruction_sideeffects) {

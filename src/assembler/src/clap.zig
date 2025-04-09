@@ -135,7 +135,6 @@ pub const Flags = struct {
         }
 
         if (result.input_filename == null) {
-            warn.Warn_Message("No input file specified, using stdin instead.", .{});
             result.input_filename = try allocator.dupe(u8, "stdin");
         }
 
@@ -161,6 +160,7 @@ pub const Flags = struct {
         \\    Enable rom debug metadata insertion. (EXPERIMENTAL)
         \\-i="path/to/source.txt", --input="path/to/source.txt"
         \\    Perform the program operation on a text file.
+        \\    You may leave this empty for a stdin input.
         \\-o="new/path/to/rom.bin", --output="new/path/to/rom.bin"
         \\    Define the output filename and filepath.
         \\    You may leave this empty for no file output.
