@@ -177,3 +177,5 @@ pub fn main() !void {
 //  -warn for undefined STRIDEs and changed the codegen function
 // Assembler 1.4.2
 //  -even better error handling
+// Assembler 1.4.3
+//  -warn for undefined BRKs

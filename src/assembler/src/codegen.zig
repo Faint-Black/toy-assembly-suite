@@ -21,14 +21,18 @@ const DebugMetadataType = specs.DebugMetadataType;
 // global variables
 var global_is_stride_defined: bool = false;
 var global_is_indexed_defined: bool = false;
+var global_is_break_defined: bool = false;
 
 pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
     const first_pass = try Codegen(true, allocator, flags, symTable, expandedTokens);
     allocator.free(first_pass);
     const second_pass = try Codegen(false, allocator, flags, symTable, expandedTokens);
 
+    // compiler warnings
     if (global_is_stride_defined == false and global_is_indexed_defined == true)
         warn.Warn_Message("indexing instructions have been found but no STRIDE has been defined! Execution of this ROM is garanteed to cause undefined behavior.", .{});
+    if (global_is_break_defined == false)
+        warn.Warn_Message("no BRK has been defined anywhere! Execution of this ROM is garanteed to run forever or until a fatal error occurs.", .{});
 
     // [DEBUG OUTPUT] print rom bytes
     if (flags.print_rom_bytes)
@@ -275,6 +279,7 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8), is_first
         try vec.append(@intFromEnum(Opcode.STRIDE_LIT));
         try Append_Generic(vec, @as(u8, @truncate(t[1].value)));
     } else if ((t_len == 1) and t[0].tokType == .BRK) {
+        global_is_break_defined = true;
         // "BRK"
         // Break, exits execution
         // instruction byte len = 1
