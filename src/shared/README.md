@@ -55,3 +55,27 @@ Incorrectly loading a ROM address is impossible. Run-time checks are not necessa
 * Stack out of bounds memory access:
 
 Popping from an empty stack or pushing to a full stack should result in a crash or otherwise fatal error.
+
+## Arithmetic Edge Cases
+Every single arithmetic operation is interpreted as an unsigned integers operation. Compliment of 2 was not implemented.
+
+* Addition
+
+```
+1 + 1 = 2
+carry is clear
+
+MAX + 1 = 0
+carry is set
+```
+
+* Subtraction
+
+```
+2 - 1 = 1
+0 - 1 = MAX
+[FLAG TO BE DECIDED] is clear
+
+0 - 1 = MAX
+[FLAG TO BE DECIDED] is set
+```

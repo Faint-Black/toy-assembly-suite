@@ -12,16 +12,12 @@ const builtin = @import("builtin");
 const specs = @import("specifications.zig");
 const utils = @import("utils.zig");
 
-// TODO: instructions change flag bits
-// TODO: unit tests
-// TODO: loading and storing
-
 pub const VirtualMachine = struct {
     /// Only meant to be used for debugging and disassembly purposes,
-    /// the actual machine is not meant to know it's own size!
+    /// the actual machine is not meant to know its own size!
     original_rom_filesize: usize,
 
-    /// hold the byte stride for indexing instructions
+    /// byte stride for indexing instructions
     index_byte_stride: u8,
 
     /// Read Only Memory, where the instruction data is stored.
@@ -104,7 +100,6 @@ pub const VirtualMachine = struct {
     pub fn Push_To_Stack(this: *VirtualMachine, comptime T: type, value: T) !void {
         if (this.stack_pointer < @sizeOf(T))
             return error.StackOverflow;
-
         this.stack_pointer -= @sizeOf(T);
         const value_as_bytes: [@sizeOf(T)]u8 = std.mem.toBytes(value);
         std.mem.copyForwards(u8, this.stack[this.stack_pointer..], &value_as_bytes);
@@ -130,7 +125,7 @@ pub const VirtualMachine = struct {
         // only save the rom address of *the next* instruction
         // harcoded to the "JSR $ADDR" opcode syntax
         const skip_amount = specs.opcode_bytelen + specs.address_bytelen;
-        Push_To_Stack(this, u16, this.program_counter + skip_amount);
+        try Push_To_Stack(this, u16, this.program_counter + skip_amount);
         Jump_To_Address(this, address);
     }
 
@@ -156,7 +151,6 @@ pub const VirtualMachine = struct {
     /// further documentation in assembly standards (src/shared/README.md)
     pub fn Add(this: *VirtualMachine, a: u32, b: u32) u32 {
         const result, const overflow = @addWithOverflow(a, b);
-
         // TODO: accurate flag modifications to be decided
         this.carry_flag = utils.Int_To_Bool(overflow);
         this.zero_flag = (result == 0);
@@ -168,7 +162,6 @@ pub const VirtualMachine = struct {
     /// further documentation in assembly standards (src/shared/README.md)
     pub fn Subtract(this: *VirtualMachine, a: u32, b: u32) u32 {
         const result, const underflow = @subWithOverflow(a, b);
-
         // TODO: accurate flag modifications to be decided
         this.overflow_flag = utils.Int_To_Bool(underflow);
         this.zero_flag = (result == 0);

@@ -26,15 +26,9 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
             warn.Error_Message("Program counter (PC = 0x{}) reached outside of original rom file's (ROM filesize = 0x{}) address space!", .{ vm.program_counter, vm.original_rom_filesize });
             break;
         }
+
         if (flags.instruction_delay != 0)
             std.Thread.sleep(utils.Milliseconds_To_Nanoseconds(flags.instruction_delay));
-
-        // skip debug metadata bytes
-        if (vm.rom[vm.program_counter] == @intFromEnum(specs.Opcode.DEBUG_METADATA_SIGNAL)) {
-            const metadata_type: specs.DebugMetadataType = @enumFromInt(vm.rom[vm.program_counter + 1]);
-            vm.program_counter += @truncate(try metadata_type.Metadata_Length(vm.rom[vm.program_counter..]));
-            continue;
-        }
 
         const opcode_enum: specs.Opcode = @enumFromInt(vm.rom[vm.program_counter]);
         if (flags.log_instruction_opcode) {
@@ -174,27 +168,63 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
             },
             .LDA_X => {
                 // a = x
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before transfering X to A:\nX = {}, A = {}\n", .{ vm.x_index, vm.accumulator });
+                }
                 vm.Transfer_Registers(&vm.accumulator, &vm.x_index);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After transfering X to A:\nX = {}, A = {}\n", .{ vm.x_index, vm.accumulator });
+                }
             },
             .LDA_Y => {
                 // a = y
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before transfering Y to A:\nY = {}, A = {}\n", .{ vm.y_index, vm.accumulator });
+                }
                 vm.Transfer_Registers(&vm.accumulator, &vm.y_index);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After transfering Y to A:\nY = {}, A = {}\n", .{ vm.y_index, vm.accumulator });
+                }
             },
             .LDX_A => {
                 // x = a
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before transfering A to X:\nA = {}, X = {}\n", .{ vm.accumulator, vm.x_index });
+                }
                 vm.Transfer_Registers(&vm.x_index, &vm.accumulator);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After transfering A to X:\nA = {}, X = {}\n", .{ vm.accumulator, vm.x_index });
+                }
             },
             .LDX_Y => {
                 // x = y
-                vm.Transfer_Registers(&vm.x_index, &vm.y_index);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before transfering Y to X:\nY = {}, X = {}\n", .{ vm.y_index, vm.x_index });
+                }
+                vm.Transfer_Registers(&vm.y_index, &vm.y_index);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After transfering Y to X:\nY = {}, X = {}\n", .{ vm.y_index, vm.x_index });
+                }
             },
             .LDY_A => {
                 // y = a
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before transfering A to Y:\nA = {}, Y = {}\n", .{ vm.accumulator, vm.y_index });
+                }
                 vm.Transfer_Registers(&vm.y_index, &vm.accumulator);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After transfering A to Y:\nA = {}, Y = {}\n", .{ vm.accumulator, vm.y_index });
+                }
             },
             .LDY_X => {
                 // y = x
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before transfering X to Y:\nX = {}, Y = {}\n", .{ vm.x_index, vm.y_index });
+                }
                 vm.Transfer_Registers(&vm.y_index, &vm.x_index);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After transfering X to Y:\nX = {}, Y = {}\n", .{ vm.x_index, vm.y_index });
+                }
             },
             .LDA_ADDR_X => {
                 // TODO: indexable address
@@ -326,29 +356,58 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
                 // TODO
             },
             .PUSH_A => {
-                // TODO
+                try vm.Push_To_Stack(@TypeOf(vm.accumulator), vm.accumulator);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Pushed the accumulator value 0x{X:0>8} to the stack\n", .{vm.accumulator});
+                }
             },
             .PUSH_X => {
-                // TODO
+                try vm.Push_To_Stack(@TypeOf(vm.x_index), vm.x_index);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Pushed the X index value 0x{X:0>8} to the stack\n", .{vm.x_index});
+                }
             },
             .PUSH_Y => {
-                // TODO
+                try vm.Push_To_Stack(@TypeOf(vm.y_index), vm.y_index);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Pushed the Y index value 0x{X:0>8} to the stack\n", .{vm.y_index});
+                }
             },
             .POP_A => {
-                // TODO
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Value of accumulator before popping from stack:\nA = {}\n", .{vm.accumulator});
+                }
+                vm.accumulator = try vm.Pop_From_Stack(@TypeOf(vm.accumulator));
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Value of accumulator after popping 4 bytes from the stack:\nA = {}\n", .{vm.accumulator});
+                }
             },
             .POP_X => {
-                // TODO
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Value of accumulator before popping from stack:\nA = {}\n", .{vm.accumulator});
+                }
+                vm.x_index = try vm.Pop_From_Stack(@TypeOf(vm.x_index));
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Value of accumulator after popping 4 bytes from the stack:\nA = {}\n", .{vm.accumulator});
+                }
             },
             .POP_Y => {
-                // TODO
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Value of accumulator before popping from stack:\nA = {}\n", .{vm.accumulator});
+                }
+                vm.y_index = try vm.Pop_From_Stack(@TypeOf(vm.y_index));
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Value of accumulator after popping 4 bytes from the stack:\nA = {}\n", .{vm.accumulator});
+                }
             },
             .DEBUG_METADATA_SIGNAL => {
-                // anything between(inclusive) two metadata signals is
-                // completely ignored during execution, it is not to be
-                // dealt directly, thus the error.
-                std.debug.print("Attempted to execute a debug signal byte!\n", .{});
-                quit = true;
+                const metadata_type: specs.DebugMetadataType = @enumFromInt(vm.rom[vm.program_counter + 1]);
+                const skip_count: usize = try metadata_type.Metadata_Length(vm.rom[vm.program_counter..]);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Skipping {} bytes of ROM metadata\n", .{skip_count});
+                }
+                vm.program_counter += @truncate(skip_count);
+                continue;
             },
         }
 
