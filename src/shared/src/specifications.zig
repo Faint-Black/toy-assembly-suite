@@ -444,6 +444,36 @@ pub const DebugMetadataType = enum(u8) {
     }
 };
 
+pub const SyscallCode = enum(u8) {
+    // Print to stdout a static constant null terminated string.
+    // X = address of str (in ROM)
+    // Y = _unused_
+    PRINT_ROM_STR = 0x00,
+    // Print to stdout a variable null terminated string.
+    // X = address of str (in RAM)
+    // Y = _unused_
+    PRINT_WRAM_STR = 0x01,
+    // Print a newline to stdout.
+    // X = _unused_
+    // Y = _unused_
+    PRINT_NEWLINE = 0x02,
+    // Print an ASCII character to stdout. Special undisplayable characters are shown as '?'.
+    // X = char
+    // Y = _unused_
+    PRINT_CHAR = 0x03,
+    // Print an u32 integer to stdout in decimal format.
+    // X = value
+    // Y = _unused_
+    PRINT_DEC_INT = 0x04,
+    // Print an u32 integer to stdout in hexadecimal format.
+    // X = value
+    // Y = _unused_
+    PRINT_HEX_INT = 0x05,
+
+    // exhaust all remaining integers so it may catch @enumFromInt exceptions at runtime.
+    _,
+};
+
 //-------------------------------------------------------------//
 // ONLY TESTS BELOW THIS POINT                                 //
 //-------------------------------------------------------------//

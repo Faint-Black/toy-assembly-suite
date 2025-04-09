@@ -42,9 +42,8 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
                 break;
             },
             .SYSTEMCALL => {
-                // TODO
-                warn.Error_Message("Syscall caught! implement me dumbass!", .{});
-                break;
+                // perform a system call
+                try vm.Syscall();
             },
             .STRIDE_LIT => {
                 // get char literal from following ROM byte

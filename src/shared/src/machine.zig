@@ -168,6 +168,46 @@ pub const VirtualMachine = struct {
         this.zero_flag = (result == 0);
         return result;
     }
+
+    /// Accumulator = syscall code
+    /// X index = first argument
+    /// Y index = second argument
+    pub fn Syscall(this: *VirtualMachine) !void {
+        const syscall_code: u8 = @truncate(this.accumulator);
+        const syscall_enum: specs.SyscallCode = @enumFromInt(syscall_code);
+        switch (syscall_enum) {
+            .PRINT_ROM_STR => {
+                const str_pointer: u16 = @truncate(this.x_index);
+                const str_slice: [:0]const u8 = this.rom[str_pointer.. :0];
+                std.debug.print("{s}", .{str_slice});
+            },
+            .PRINT_WRAM_STR => {
+                const str_pointer: u16 = @truncate(this.x_index);
+                const str_slice: [:0]const u8 = this.wram[str_pointer.. :0];
+                std.debug.print("{s}", .{str_slice});
+            },
+            .PRINT_NEWLINE => {
+                std.debug.print("\n", .{});
+            },
+            .PRINT_CHAR => {
+                const character: u8 = @truncate(this.x_index);
+                if (std.ascii.isASCII(character) == false) {
+                    std.debug.print("?", .{});
+                } else {
+                    std.debug.print("{c}", .{character});
+                }
+            },
+            .PRINT_DEC_INT => {
+                const integer: u32 = this.x_index;
+                std.debug.print("{}", .{integer});
+            },
+            .PRINT_HEX_INT => {
+                const integer: u32 = this.x_index;
+                std.debug.print("0x{X:0>8}", .{integer});
+            },
+            _ => return error.UnknownSyscallCode,
+        }
+    }
 };
 
 //-------------------------------------------------------------//
