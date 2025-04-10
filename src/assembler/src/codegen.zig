@@ -384,6 +384,21 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8), is_first
         // instruction byte len = 1 + 2
         try vec.append(@intFromEnum(Opcode.LDA_ADDR_Y));
         try Append_Generic_Limited(vec, t[1].value, 2);
+    } else if ((t_len == 2) and t[0].tokType == .LEA and t[1].tokType == .ADDRESS) {
+        // "LEA Foo"
+        // Load effective address into the accumulator
+        try vec.append(@intFromEnum(Opcode.LEA_ADDR));
+        try Append_Generic_Limited(vec, t[1].value, 2);
+    } else if ((t_len == 2) and t[0].tokType == .LEX and t[1].tokType == .ADDRESS) {
+        // "LEX Foo"
+        // Load effective address into the X index
+        try vec.append(@intFromEnum(Opcode.LEX_ADDR));
+        try Append_Generic_Limited(vec, t[1].value, 2);
+    } else if ((t_len == 2) and t[0].tokType == .LEY and t[1].tokType == .ADDRESS) {
+        // "LEY Foo"
+        // Load effective address into the Y index
+        try vec.append(@intFromEnum(Opcode.LEY_ADDR));
+        try Append_Generic_Limited(vec, t[1].value, 2);
     } else if ((t_len == 2) and t[0].tokType == .STA and t[1].tokType == .ADDRESS) {
         // "STA $0x1337"
         // Store accumulator value into address

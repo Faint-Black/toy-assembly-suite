@@ -182,3 +182,5 @@ pub fn main() !void {
 //  -even better error handling
 // Assembler 1.4.3
 //  -warn for undefined BRKs
+// Assembler 1.5
+//  -added the load effective address instructions

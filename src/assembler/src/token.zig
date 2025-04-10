@@ -172,6 +172,14 @@ pub const TokenType = enum {
     /// load to Y index
     LDY,
 
+    // LOAD EFFECTIVE ADDRESS intructions
+    /// load effective address to accumulator
+    LEA,
+    /// load effective address to X index
+    LEX,
+    /// load effective address to Y index
+    LEY,
+
     // STORE instructions
     /// store accumulator to address
     STA,

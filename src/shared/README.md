@@ -19,7 +19,7 @@ Following the same length logic from the ROM, work RAM can be up to 0xFFFF + 1 b
 
 * The Stack
 
-The stack only has 0x0200 bytes of usable space, this choice value was chosen arbitrarily. Although it has a dedicated address space, it cannot be directly accessed by the user, the only instructions that alter the stack memory and stack pointer are the pushing instructions, popping instructions and subroutine instructions.
+The stack only has 0x0400 bytes of usable space, this choice value was chosen arbitrarily. Although it has a dedicated address space, it cannot be directly accessed by the user, the only instructions that alter the stack memory and stack pointer are the pushing instructions, popping instructions and subroutine instructions.
 
 ## Undefined Behavior Handling
 There should be no undefined behavior in the debugger virtual machine or the release virtual machine. Edge cases are to be dealt with accordingly.

@@ -231,6 +231,39 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
             .LDA_ADDR_Y => {
                 // TODO: indexable address
             },
+            .LEA_ADDR => {
+                // load address as a literal number, then store it in the accumulator
+                const address_literal: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before loading effective address of 0x{X:0>4}:\nA = 0x{X:0>8} or {}\n", .{ address_literal, vm.accumulator, vm.accumulator });
+                }
+                vm.accumulator = @intCast(address_literal);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After loading effective address of 0x{X:0>4}:\nA = 0x{X:0>8} or {}\n", .{ address_literal, vm.accumulator, vm.accumulator });
+                }
+            },
+            .LEX_ADDR => {
+                // load address as a literal number, then store it in the X index
+                const address_literal: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before loading effective address of 0x{X:0>4}:\nX = 0x{X:0>8} or {}\n", .{ address_literal, vm.x_index, vm.x_index });
+                }
+                vm.x_index = @intCast(address_literal);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After loading effective address of 0x{X:0>4}:\nX = 0x{X:0>8} or {}\n", .{ address_literal, vm.x_index, vm.x_index });
+                }
+            },
+            .LEY_ADDR => {
+                // load address as a literal number, then store it in the Y index
+                const address_literal: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("Before loading effective address of 0x{X:0>4}:\nY = 0x{X:0>8} or {}\n", .{ address_literal, vm.y_index, vm.y_index });
+                }
+                vm.y_index = @intCast(address_literal);
+                if (flags.log_instruction_sideeffects) {
+                    std.debug.print("After loading effective address of 0x{X:0>4}:\nY = 0x{X:0>8} or {}\n", .{ address_literal, vm.y_index, vm.y_index });
+                }
+            },
             .STA_ADDR => {
                 // store value of accumulator into an address
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.opcode_bytelen, u16);

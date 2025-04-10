@@ -86,6 +86,9 @@ LDY A
 LDY X
 LDA $0x1337 X
 LDA $0x1337 Y
+LEA ForwardReference
+LEX ForwardReference
+LEY ForwardReference
 STA $0x1337
 STX $0x1337
 STY $0x1337

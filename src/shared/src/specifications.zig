@@ -10,6 +10,8 @@
 const std = @import("std");
 
 /// current toy assembly language revision
+// versioning updates will only come into consideration when
+// the entire assembly suite is in a finished state.
 pub const current_assembly_version: u8 = 1;
 // -version 1
 //  All basic opcodes introduced.
@@ -104,6 +106,10 @@ pub const Opcode = enum(u8) {
     // Indexed dereferencing
     LDA_ADDR_X,
     LDA_ADDR_Y,
+    // Loading effective addresses
+    LEA_ADDR,
+    LEX_ADDR,
+    LEY_ADDR,
     // Storing values into addresses
     STA_ADDR,
     STX_ADDR,
@@ -188,6 +194,9 @@ pub const Opcode = enum(u8) {
             .LDY_X => opcode_bytelen,
             .LDA_ADDR_X => opcode_bytelen + address_bytelen,
             .LDA_ADDR_Y => opcode_bytelen + address_bytelen,
+            .LEA_ADDR => opcode_bytelen + address_bytelen,
+            .LEX_ADDR => opcode_bytelen + address_bytelen,
+            .LEY_ADDR => opcode_bytelen + address_bytelen,
             .STA_ADDR => opcode_bytelen + address_bytelen,
             .STX_ADDR => opcode_bytelen + address_bytelen,
             .STY_ADDR => opcode_bytelen + address_bytelen,
@@ -246,6 +255,9 @@ pub const Opcode = enum(u8) {
             .LDY_ADDR => .wram,
             .LDA_ADDR_X => .wram,
             .LDA_ADDR_Y => .wram,
+            .LEA_ADDR => .rom,
+            .LEX_ADDR => .rom,
+            .LEY_ADDR => .rom,
             .STA_ADDR => .wram,
             .STX_ADDR => .wram,
             .STY_ADDR => .wram,
@@ -302,6 +314,9 @@ pub const Opcode = enum(u8) {
             .LDY_X => return try std.fmt.bufPrint(buffer, "LDY X", .{}),
             .LDA_ADDR_X => return try std.fmt.bufPrint(buffer, "LDA $0x{X:0>4}, X", .{std.mem.bytesToValue(u16, bytes[1..3])}),
             .LDA_ADDR_Y => return try std.fmt.bufPrint(buffer, "LDA $0x{X:0>4}, Y", .{std.mem.bytesToValue(u16, bytes[1..3])}),
+            .LEA_ADDR => return try std.fmt.bufPrint(buffer, "LEA $0x{X:0>4}", .{std.mem.bytesToValue(u16, bytes[1..3])}),
+            .LEX_ADDR => return try std.fmt.bufPrint(buffer, "LEX $0x{X:0>4}", .{std.mem.bytesToValue(u16, bytes[1..3])}),
+            .LEY_ADDR => return try std.fmt.bufPrint(buffer, "LEY $0x{X:0>4}", .{std.mem.bytesToValue(u16, bytes[1..3])}),
             .STA_ADDR => return try std.fmt.bufPrint(buffer, "STA $0x{X:0>4}", .{std.mem.bytesToValue(u16, bytes[1..3])}),
             .STX_ADDR => return try std.fmt.bufPrint(buffer, "STX $0x{X:0>4}", .{std.mem.bytesToValue(u16, bytes[1..3])}),
             .STY_ADDR => return try std.fmt.bufPrint(buffer, "STY $0x{X:0>4}", .{std.mem.bytesToValue(u16, bytes[1..3])}),

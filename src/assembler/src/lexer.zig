@@ -181,6 +181,12 @@ fn Word_To_Token(allocator: std.mem.Allocator, str: []const u8) !tok.Token {
         return tok.Token{ .tokType = .LDX };
     } else if (std.mem.eql(u8, str, "LDY")) {
         return tok.Token{ .tokType = .LDY };
+    } else if (std.mem.eql(u8, str, "LEA")) {
+        return tok.Token{ .tokType = .LEA };
+    } else if (std.mem.eql(u8, str, "LEX")) {
+        return tok.Token{ .tokType = .LEX };
+    } else if (std.mem.eql(u8, str, "LEY")) {
+        return tok.Token{ .tokType = .LEY };
     } else if (std.mem.eql(u8, str, "STA")) {
         return tok.Token{ .tokType = .STA };
     } else if (std.mem.eql(u8, str, "STX")) {
