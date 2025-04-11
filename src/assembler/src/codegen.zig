@@ -228,6 +228,7 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
                 }
                 continue;
             } else {
+                warn.Error_Message("unknown identifier: \"{s}\"", .{token.identKey.?});
                 return error.UnknownIdentifier;
             }
         }

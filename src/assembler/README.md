@@ -232,19 +232,3 @@ name: "Skip"
 type: label
 address value: 0x1A
 ```
-
----
-
-# TODO list
-- [X] on march 3rd Zig 0.14 will be fully released, update codebase accordingly.
-- [X] implement (run-time) visibility toggles for debug information
-- [X] clean the lone newline token created by macros
-- [X] set address bytecode size to 16-bit
-- [X] implement ".repeat n"
-- [X] implement ".define"
-- [X] anonymous and relative labels
-- [X] add assembler README.md
-- [X] implement baked-in debug symbols
-- [X] refine unit tests
-- [X] implement "--noprint=[ARG]" flags
-- [X] clean up codebase for the 1.0 release

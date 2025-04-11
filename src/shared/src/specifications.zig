@@ -468,10 +468,10 @@ pub const SyscallCode = enum(u8) {
     // X = address of str (in RAM)
     // Y = _unused_
     PRINT_WRAM_STR = 0x01,
-    // Print a newline to stdout.
-    // X = _unused_
+    // Print n newline characters to stdout.
+    // X = number of newlines
     // Y = _unused_
-    PRINT_NEWLINE = 0x02,
+    PRINT_NEWLINES = 0x02,
     // Print an ASCII character to stdout. Special undisplayable characters are shown as '?'.
     // X = char
     // Y = _unused_

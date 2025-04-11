@@ -11,6 +11,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const specs = @import("specifications.zig");
 const utils = @import("utils.zig");
+const warn = @import("warning.zig");
 
 pub const VirtualMachine = struct {
     /// Only meant to be used for debugging and disassembly purposes,
@@ -177,17 +178,32 @@ pub const VirtualMachine = struct {
         const syscall_enum: specs.SyscallCode = @enumFromInt(syscall_code);
         switch (syscall_enum) {
             .PRINT_ROM_STR => {
-                const str_pointer: u16 = @truncate(this.x_index);
-                const str_slice: [:0]const u8 = this.rom[str_pointer.. :0];
-                std.debug.print("{s}", .{str_slice});
+                const start: u16 = @truncate(this.x_index);
+                const maybe_end: ?usize = std.mem.indexOfScalar(u8, this.rom[start..], 0);
+                if (maybe_end == null) {
+                    warn.Error_Message("could not find end of ROM string!", .{});
+                    return error.BadSyscall;
+                }
+                const end: u16 = start + (@as(u16, @truncate(maybe_end.?)));
+                const string: []const u8 = this.rom[start..end];
+                std.debug.print("{s}", .{string});
             },
             .PRINT_WRAM_STR => {
-                const str_pointer: u16 = @truncate(this.x_index);
-                const str_slice: [:0]const u8 = this.wram[str_pointer.. :0];
-                std.debug.print("{s}", .{str_slice});
+                const start: u16 = @truncate(this.x_index);
+                const maybe_end: ?usize = std.mem.indexOfScalar(u8, this.wram[start..], 0);
+                if (maybe_end == null) {
+                    warn.Error_Message("could not find end of WRAM string!", .{});
+                    return error.BadSyscall;
+                }
+                const end: u16 = start + (@as(u16, @truncate(maybe_end.?)));
+                const string: []const u8 = this.wram[start..end];
+                std.debug.print("{s}", .{string});
             },
-            .PRINT_NEWLINE => {
-                std.debug.print("\n", .{});
+            .PRINT_NEWLINES => {
+                const n: u8 = @truncate(this.x_index);
+                for (0..n) |_| {
+                    std.debug.print("\n", .{});
+                }
             },
             .PRINT_CHAR => {
                 const character: u8 = @truncate(this.x_index);

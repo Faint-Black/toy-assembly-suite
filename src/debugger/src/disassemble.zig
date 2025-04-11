@@ -14,11 +14,8 @@ const utils = @import("shared").utils;
 const machine = @import("shared").machine;
 
 pub fn Disassemble_Rom(allocator: std.mem.Allocator, rom: []const u8, original_rom_size: usize, header: specs.Header) !void {
-    // TODO: rename
-    var buffer1: [utils.buffsize.large]u8 = undefined;
-    var buffer2: [utils.buffsize.large]u8 = undefined;
-    var buffer3: [utils.buffsize.large]u8 = undefined;
-    var buffer4: [utils.buffsize.large]u8 = undefined;
+    // for storing all the bufprint function results that need to exist at the same time
+    var buffers: [4][utils.buffsize.medium]u8 = undefined;
 
     // completely disconsidered if ROM is not in debug mode
     // key = label address
@@ -36,26 +33,26 @@ pub fn Disassemble_Rom(allocator: std.mem.Allocator, rom: []const u8, original_r
         }
     }
 
-    std.debug.print("BEGIN DISASSEMBLY DUMP:\n", .{});
+    std.debug.print("BEGIN DISASSEMBLY:\n", .{});
     var PC: u16 = 0;
     while (true) {
         if (PC == 0) {
-            const addr_str = Address_String(&buffer1, 0);
-            const instr_bytes_str = Instruction_Bytes_String(&buffer2, rom[0..specs.Header.header_byte_size]);
+            const addr_str = Address_String(&buffers[0], 0);
+            const instr_bytes_str = Instruction_Bytes_String(&buffers[1], rom[0..specs.Header.header_byte_size]);
             std.debug.print("{s}: {s} header bytes\n", .{ addr_str, instr_bytes_str });
             PC = specs.Header.header_byte_size;
             continue;
         }
         if (PC < header.entry_point) {
-            const addr_str = Address_String(&buffer1, PC);
-            const instr_bytes_str = Instruction_Bytes_String(&buffer2, rom[PC..header.entry_point]);
+            const addr_str = Address_String(&buffers[0], PC);
+            const instr_bytes_str = Instruction_Bytes_String(&buffers[1], rom[PC..header.entry_point]);
             std.debug.print("{s}: {s} data bytes\n", .{ addr_str, instr_bytes_str });
             PC = header.entry_point;
             continue;
         }
         if (PC >= original_rom_size) {
-            const start = Address_String(&buffer1, PC);
-            const end = Address_String(&buffer2, specs.rom_address_space - 1);
+            const start = Address_String(&buffers[0], PC);
+            const end = Address_String(&buffers[1], specs.rom_address_space - 1);
             std.debug.print("{s} to {s} = trash bytes\n", .{ start, end });
             break;
         }
@@ -64,19 +61,19 @@ pub fn Disassemble_Rom(allocator: std.mem.Allocator, rom: []const u8, original_r
         if (header.debug_mode and opcode_enum == .DEBUG_METADATA_SIGNAL) {
             const metadata_type: specs.DebugMetadataType = @enumFromInt(rom[PC + 1]);
             const metadata_bytelen: u16 = @truncate(metadata_type.Metadata_Length(rom[PC..]) catch 0);
-            const addr_str = Address_String(&buffer1, PC);
-            const instr_bytes_str = Instruction_Bytes_String(&buffer2, rom[PC .. PC + metadata_bytelen]);
+            const addr_str = Address_String(&buffers[0], PC);
+            const instr_bytes_str = Instruction_Bytes_String(&buffers[1], rom[PC .. PC + metadata_bytelen]);
             std.debug.print("{s}: {s} debug metadata (LABEL NAME \"{?s}\")\n", .{ addr_str, instr_bytes_str, label_hashmap.?.get(PC + metadata_bytelen) });
             PC += metadata_bytelen;
             continue;
         }
 
-        const addr_str = Address_String(&buffer1, PC);
-        const instr_bytes_str = Instruction_Bytes_String(&buffer2, rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]);
-        const instr_str = try opcode_enum.Instruction_String(&buffer3, rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]);
+        const addr_str = Address_String(&buffers[0], PC);
+        const instr_bytes_str = Instruction_Bytes_String(&buffers[1], rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]);
+        const instr_str = try opcode_enum.Instruction_String(&buffers[2], rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]);
         if (opcode_enum.What_Address_Space() == .rom) {
             const instruction_address_value = std.mem.bytesToValue(u16, rom[PC + 1 .. PC + 2]);
-            const addr_name_str = Address_Name_String(&buffer4, label_hashmap, instruction_address_value);
+            const addr_name_str = Address_Name_String(&buffers[3], label_hashmap, instruction_address_value);
             std.debug.print("{s}: {s} {s} <{s}>\n", .{ addr_str, instr_bytes_str, instr_str, addr_name_str });
         } else {
             std.debug.print("{s}: {s} {s}\n", .{ addr_str, instr_bytes_str, instr_str });
@@ -118,7 +115,8 @@ fn Instruction_Bytes_String(buffer: []u8, bytes: []const u8) []const u8 {
     const indent = "       ";
     const entries_per_line = 8;
     const chars_per_entry = 3;
-    // TODO: over-engineered non-zero integer divCeil
+    // over-engineered non-zero integer divCeil
+    // do not touch!
     const loop_count: usize = if (bytes.len % entries_per_line == 0 and bytes.len != 0) entries_per_line * ((bytes.len / entries_per_line) + 0) else entries_per_line * ((bytes.len / entries_per_line) + 1);
 
     var str_index: usize = 0;
