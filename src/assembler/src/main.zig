@@ -184,3 +184,6 @@ pub fn main() !void {
 //  -warn for undefined BRKs
 // Assembler 1.5
 //  -added the load effective address instructions
+// Assembler 1.6
+//  -no longer adds metadata in the rom data section, "_START"
+//  definition no longer optional

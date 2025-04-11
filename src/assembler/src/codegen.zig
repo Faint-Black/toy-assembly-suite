@@ -53,7 +53,6 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
     defer rom_vector.deinit();
 
     // avoid needless micro allocations
-    // this only meant to store a few bytes anyway
     try rom_vector.ensureTotalCapacity(0xFFFF);
 
     // build the instruction line, one token at a time for proper symbol substitution
@@ -63,28 +62,18 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
     // for ".db", ".dw" and ".dd" modes
     var activeByteDefiner: tok.TokenType = .UNDEFINED;
 
-    // start with the 16 bytes of the ROM file header
+    // entry point, as is defined by the rom header
+    var rom_header_entry_point = specs.Header.default_entry_point;
+    var passed_START_label = false;
+
+    // begin the rom with its respective 16 bytes of header bytes
     const rom_header = specs.Header{
         .magic_number = specs.rom_magic_number,
         .language_version = specs.current_assembly_version,
-        .entry_point = specs.Header.default_entry_point,
+        .entry_point = rom_header_entry_point,
         .debug_mode = flags.debug_mode,
     };
     try rom_vector.appendSlice(&rom_header.Parse_To_Byte_Array());
-
-    // if the "_START:" special label has been defined already
-    // put its value address on the appropriate rom header bytes
-    if (isFirstPass == false) {
-        if (symTable.Get("_START")) |symbol| {
-            if (symbol.value != .label) {
-                warn.Error_Message("The \"_START\" keyword is reserved for labels!", .{});
-                return error.MisuseOfLabels;
-            }
-            const address_value = symbol.value.label.value;
-            rom_vector.items[2] = @truncate(address_value);
-            rom_vector.items[3] = @truncate(address_value >> 8);
-        }
-    }
 
     // for every token loop
     for (expandedTokens) |token| {
@@ -96,7 +85,8 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
         // ignore LABELs as their symbols and tokens should be already processed and stripped at this stage
         // unless debug mode is active, if so, insert the labels metadata
         if (token.tokType == .LABEL or token.tokType == .ANON_LABEL) {
-            if (flags.debug_mode) {
+            // insert label name metadata, if applicable
+            if (flags.debug_mode and passed_START_label) {
                 // insert label debug metadata
                 try rom_vector.append(@intFromEnum(Opcode.DEBUG_METADATA_SIGNAL));
                 try rom_vector.append(@intFromEnum(DebugMetadataType.LABEL_NAME));
@@ -107,6 +97,13 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
                 if (token.tokType == .ANON_LABEL)
                     try rom_vector.appendSlice("ANON_LABEL");
                 try rom_vector.append(@intFromEnum(Opcode.DEBUG_METADATA_SIGNAL));
+            }
+
+            // check if it's the entry point label
+            if (token.tokType == .LABEL and std.mem.eql(u8, token.identKey.?, "_START")) {
+                passed_START_label = true;
+                rom_header_entry_point = @truncate(rom_vector.items.len);
+                std.mem.copyForwards(u8, rom_vector.items[2..], &std.mem.toBytes(rom_header_entry_point));
             }
 
             // the main purpose of the existance of the first pass:

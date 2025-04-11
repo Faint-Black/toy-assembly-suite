@@ -10,6 +10,10 @@
 const std = @import("std");
 const utils = @import("shared").utils;
 const tok = @import("token.zig");
+const warn = @import("shared").warn;
+
+// global variables
+var global_is_entry_point_defined: bool = false;
 
 pub fn Lexer(allocator: std.mem.Allocator, input: []const u8) ![]tok.Token {
     var token_vector = std.ArrayList(tok.Token).init(allocator);
@@ -111,6 +115,11 @@ pub fn Lexer(allocator: std.mem.Allocator, input: []const u8) ![]tok.Token {
     try token_vector.append(tok.Token{ .tokType = .ENDOFFILE });
     try token_vector.append(tok.Token{ .tokType = tok.TokenType.LINEFINISH });
 
+    if (global_is_entry_point_defined == false) {
+        warn.Error_Message("entry point (\"_START:\" label) not defined!", .{});
+        return error.EntryPointNotDefined;
+    }
+
     return token_vector.toOwnedSlice();
 }
 
@@ -140,6 +149,13 @@ fn Word_To_Token(allocator: std.mem.Allocator, str: []const u8) !tok.Token {
 
     // a label is any word with a ":" as the last character
     if (last_char == ':') {
+        if (std.mem.eql(u8, str, "_START:")) {
+            if (global_is_entry_point_defined == true) {
+                warn.Error_Message("cannot have multiple entry points!", .{});
+                return error.MultipleEntryPoints;
+            }
+            global_is_entry_point_defined = true;
+        }
         return tok.Token{
             .tokType = .LABEL,
             // "minus one" to exclude the colon from the identifier string

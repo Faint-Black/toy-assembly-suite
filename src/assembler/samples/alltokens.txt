@@ -1,18 +1,20 @@
 ;; this file is meant to test all possible instructions and tokens
-;; << only for compilation testing, not for execution >>
+;; ONLY FOR COMPILATION TESTING, NOT FOR EXECUTION!!!
 
 ; i' a'm a com; "me"nt!
 
 ;; equivalent due to low endianness
-.db 0x11 0x22 0x33 0x44
-.dw 0x2211 0x4433
-.dd 0x44332211
+.db 0x11 0x22 0x33 0x44 ; byte
+.dw 0x2211 0x4433       ; word
+.dd 0x44332211          ; double word
+;; quad words are not in the language as an executive decision
 
 ;; double quotes automatically append a null terminator at the end
 .db "ABCD"
 ;; single quotes does not
 .db 'A' 'B' 'C' 'D'
 .db 'ABCD'
+
 ;; full support for escape character syntax:
 ;; (but only for these select characters though)
 .db "\" \' \\ \t \n"
@@ -63,7 +65,8 @@ JMP @++    ; refers to label "ForwardReference:"
 ;; literal syntax: "0xff"
 ;; address syntax: "$0xff"
 ;; use of the special "_START" label
-;; it determines a custom entry point for the program
+;; it determines the entry point for the program
+;; its use in a source file is obligatory.
 _START:
 SYSCALL
 STRIDE 0x4
@@ -138,4 +141,4 @@ POP X
 POP Y
 
 ForwardReference:
-NOP
+BRK
