@@ -16,6 +16,7 @@ const sym = @import("symbol.zig");
 const pp = @import("preprocessor.zig");
 const codegen = @import("codegen.zig");
 const warn = @import("shared").warn;
+const analysis = @import("analyzer.zig");
 
 const stdout = std.io.getStdOut().writer();
 
@@ -117,6 +118,12 @@ pub fn main() !void {
         if (builtin.mode == .Debug) return err else return;
     };
     defer global_allocator.free(rom);
+
+    // analyze user's generated rom
+    analysis.Analyze_Rom(rom) catch |err| {
+        warn.Fatal_Error_Message("compilation analysis caught a fatal mistake!", .{});
+        if (builtin.mode == .Debug) return err else return;
+    };
 
     // create rom bytecode bin file relative to the current working directory
     // only perform this if an output name was specified with the "-o" flag
