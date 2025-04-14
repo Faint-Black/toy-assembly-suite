@@ -57,6 +57,9 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
     var rom_header_entry_point = specs.Header.default_entry_point;
     var passed_START_label = false;
 
+    // for naming the anonymous labels
+    var anon_label_counter: usize = 0;
+
     // begin the rom with its respective 16 bytes of header bytes
     const rom_header = specs.Header{
         .magic_number = specs.Header.required_magic_number,
@@ -85,8 +88,12 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
                 if (token.tokType == .LABEL)
                     try rom_vector.appendSlice(token.identKey.?);
                 // 0xFF LABEL_NAME 'ANON_LABEL' 0xFF
-                if (token.tokType == .ANON_LABEL)
-                    try rom_vector.appendSlice("ANON_LABEL");
+                if (token.tokType == .ANON_LABEL) {
+                    var buf: [64]u8 = undefined;
+                    const str = std.fmt.bufPrint(&buf, "ANON_LABEL_{}", .{anon_label_counter}) catch unreachable;
+                    try rom_vector.appendSlice(str);
+                    anon_label_counter += 1;
+                }
                 try rom_vector.append(@intFromEnum(Opcode.DEBUG_METADATA_SIGNAL));
             }
 
@@ -232,8 +239,8 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
 
 /// Append the bytecode instruction respective to the input instruction line tokens
 fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8), is_first_pass: bool) !void {
-    // 8 token limit for an instruction line
-    const buffsize: usize = 8;
+    // 4 token limit for each instruction line
+    const buffsize: usize = 4;
     if (line.len >= buffsize)
         return error.InstructionLineTooLong;
 
