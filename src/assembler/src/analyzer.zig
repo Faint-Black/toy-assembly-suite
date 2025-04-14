@@ -37,6 +37,10 @@ pub fn Analyze_Rom(rom: []u8) !void {
     }
 }
 
+//-------------------------------------------------------------//
+// STATIC PRIVATE FUNCTIONS                                    //
+//-------------------------------------------------------------//
+
 fn Step_Through(rom: []u8) AnalysisResults {
     var results = AnalysisResults{};
 

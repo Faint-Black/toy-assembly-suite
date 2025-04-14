@@ -228,10 +228,30 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
                 }
             },
             .LDA_ADDR_X => {
-                // TODO: indexable address
+                // accumulator = u32 dereference of (address_ptr + (X * stride))
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
+                const index_addr: u16 = address +% ((@as(u16, @truncate(vm.x_index))) *% vm.index_byte_stride);
+                const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, index_addr, u32);
+                if (flags.log_instruction_sideeffects) {
+                    stdout.print("Before loading \"{}\" from 0x{X:0>4}->0x{X:0>4}:\nA = {}\n", .{ address_contents, address, index_addr, vm.accumulator }) catch unreachable;
+                }
+                vm.Load_Value_Into_Reg(address_contents, &vm.accumulator);
+                if (flags.log_instruction_sideeffects) {
+                    stdout.print("After loading \"{}\" from 0x{X:0>4}->0x{X:0>4}:\nA = {}\n", .{ address_contents, address, index_addr, vm.accumulator }) catch unreachable;
+                }
             },
             .LDA_ADDR_Y => {
-                // TODO: indexable address
+                // accumulator = u32 dereference of (address_ptr + (Y * stride))
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
+                const index_addr: u16 = address +% ((@as(u16, @truncate(vm.y_index))) *% vm.index_byte_stride);
+                const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, index_addr, u32);
+                if (flags.log_instruction_sideeffects) {
+                    stdout.print("Before loading \"{}\" from 0x{X:0>4}->0x{X:0>4}:\nA = {}\n", .{ address_contents, address, index_addr, vm.accumulator }) catch unreachable;
+                }
+                vm.Load_Value_Into_Reg(address_contents, &vm.accumulator);
+                if (flags.log_instruction_sideeffects) {
+                    stdout.print("After loading \"{}\" from 0x{X:0>4}->0x{X:0>4}:\nA = {}\n", .{ address_contents, address, index_addr, vm.accumulator }) catch unreachable;
+                }
             },
             .LEA_ADDR => {
                 // load address as a literal number, then store it in the accumulator
@@ -292,40 +312,61 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
                 try vm.Jump_To_Subroutine(address);
             },
             .CMP_A_X => {
-                // TODO
+                // modify flags by subtracting the accumulator with the X index
+                _ = vm.Subtract(vm.accumulator, vm.x_index);
             },
             .CMP_A_Y => {
-                // TODO
+                // modify flags by subtracting the accumulator with the Y index
+                _ = vm.Subtract(vm.accumulator, vm.y_index);
             },
             .CMP_A_LIT => {
-                // TODO
+                // modify flags by subtracting the accumulator with a literal
+                const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u32);
+                _ = vm.Subtract(vm.accumulator, literal);
             },
             .CMP_A_ADDR => {
-                // TODO
+                // modify flags by subtracting the accumulator with the contents of an address
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
+                const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
+                _ = vm.Subtract(vm.accumulator, address_contents);
             },
             .CMP_X_A => {
-                // TODO
+                // modify flags by subtracting the X index with the accumulator
+                _ = vm.Subtract(vm.x_index, vm.accumulator);
             },
             .CMP_X_Y => {
-                // TODO
+                // modify flags by subtracting the X index with the Y index
+                _ = vm.Subtract(vm.x_index, vm.y_index);
             },
             .CMP_X_LIT => {
-                // TODO
+                // modify flags by subtracting the X index with a literal
+                const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u32);
+                _ = vm.Subtract(vm.x_index, literal);
             },
             .CMP_X_ADDR => {
-                // TODO
+                // modify flags by subtracting the X index with the contents of an address
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
+                const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
+                _ = vm.Subtract(vm.x_index, address_contents);
             },
             .CMP_Y_X => {
-                // TODO
+                // modify flags by subtracting the Y index with the X index
+                _ = vm.Subtract(vm.y_index, vm.x_index);
             },
             .CMP_Y_A => {
-                // TODO
+                // modify flags by subtracting the Y index with the accumulator
+                _ = vm.Subtract(vm.y_index, vm.accumulator);
             },
             .CMP_Y_LIT => {
-                // TODO
+                // modify flags by subtracting the Y index with a literal
+                const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u32);
+                _ = vm.Subtract(vm.y_index, literal);
             },
             .CMP_Y_ADDR => {
-                // TODO
+                // modify flags by subtracting the Y index with the contents of an address
+                const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
+                const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
+                _ = vm.Subtract(vm.y_index, address_contents);
             },
             .BCS_ADDR => {
                 // branch if carry set
