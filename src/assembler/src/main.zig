@@ -17,6 +17,8 @@ const pp = @import("preprocessor.zig");
 const codegen = @import("codegen.zig");
 const warn = @import("shared").warn;
 
+const stdout = std.io.getStdOut().writer();
+
 pub fn main() !void {
     // use DebugAllocator on debug mode
     // use SmpAllocator on release mode
@@ -41,33 +43,33 @@ pub fn main() !void {
     };
     defer flags.Deinit();
     if (flags.help == true) {
-        std.debug.print(clap.Flags.Help_String(), .{});
+        stdout.print(clap.Flags.Help_String(), .{}) catch unreachable;
         return;
     }
     if (flags.version == true) {
-        std.debug.print(clap.Flags.Version_String(), .{});
+        stdout.print(clap.Flags.Version_String(), .{}) catch unreachable;
         return;
     }
     if (std.mem.eql(u8, flags.input_filename.?, "stdin")) {
         warn.Warn_Message("input through stdin input not implemented yet.", .{});
     }
     if (flags.debug_mode == true) {
-        std.debug.print("DEBUG MODE ENABLED\n\n", .{});
+        stdout.print("DEBUG MODE ENABLED\n\n", .{}) catch unreachable;
     }
 
     // [DEBUG OUTPUT] print flag informations
     if (flags.print_flags) {
-        std.debug.print("invoked binary: {?s}\n", .{flags.binary_directory});
-        std.debug.print("input filepath: {?s}\n", .{flags.input_filename});
-        std.debug.print("output filepath: {?s}\n", .{flags.output_filename});
-        std.debug.print("debug mode flag: {}\n", .{flags.debug_mode});
-        std.debug.print("print flags: {}\n", .{flags.print_flags});
-        std.debug.print("print lexed tokens: {}\n", .{flags.print_lexed_tokens});
-        std.debug.print("print stripped tokens: {}\n", .{flags.print_stripped_tokens});
-        std.debug.print("print expanded tokens: {}\n", .{flags.print_expanded_tokens});
-        std.debug.print("print symbol table: {}\n", .{flags.print_symbol_table});
-        std.debug.print("print anon labels: {}\n", .{flags.print_anon_labels});
-        std.debug.print("print rom: {}\n", .{flags.print_rom_bytes});
+        stdout.print("invoked binary: {?s}\n", .{flags.binary_directory}) catch unreachable;
+        stdout.print("input filepath: {?s}\n", .{flags.input_filename}) catch unreachable;
+        stdout.print("output filepath: {?s}\n", .{flags.output_filename}) catch unreachable;
+        stdout.print("debug mode flag: {}\n", .{flags.debug_mode}) catch unreachable;
+        stdout.print("print flags: {}\n", .{flags.print_flags}) catch unreachable;
+        stdout.print("print lexed tokens: {}\n", .{flags.print_lexed_tokens}) catch unreachable;
+        stdout.print("print stripped tokens: {}\n", .{flags.print_stripped_tokens}) catch unreachable;
+        stdout.print("print expanded tokens: {}\n", .{flags.print_expanded_tokens}) catch unreachable;
+        stdout.print("print symbol table: {}\n", .{flags.print_symbol_table}) catch unreachable;
+        stdout.print("print anon labels: {}\n", .{flags.print_anon_labels}) catch unreachable;
+        stdout.print("print rom: {}\n", .{flags.print_rom_bytes}) catch unreachable;
     }
 
     // load file into a newly allocated buffer
@@ -91,7 +93,7 @@ pub fn main() !void {
 
     // [DEBUG OUTPUT] print lexed tokens
     if (flags.print_lexed_tokens) {
-        std.debug.print("\nLexed tokens:\n", .{});
+        stdout.print("\nLexed tokens:\n", .{}) catch unreachable;
         tok.Print_Token_Array(lexed_tokens);
     }
 
@@ -105,7 +107,7 @@ pub fn main() !void {
 
     // [DEBUG OUTPUT] print macro expanded tokens
     if (flags.print_expanded_tokens) {
-        std.debug.print("\nExpanded tokens:\n", .{});
+        stdout.print("\nExpanded tokens:\n", .{}) catch unreachable;
         tok.Print_Token_Array(expanded_tokens);
     }
 
@@ -136,9 +138,9 @@ pub fn main() !void {
 
     // end and print benchmark
     const nanoseconds = timer.read();
-    std.debug.print("Compilation done in {}\n", .{std.fmt.fmtDuration(nanoseconds)});
+    stdout.print("Compilation done in {}\n", .{std.fmt.fmtDuration(nanoseconds)}) catch unreachable;
 
     // print emit information
     if (flags.output_filename) |output_filename|
-        std.debug.print("Written {} bytes to {s}\n", .{ rom.len, output_filename });
+        stdout.print("Written {} bytes to {s}\n", .{ rom.len, output_filename }) catch unreachable;
 }

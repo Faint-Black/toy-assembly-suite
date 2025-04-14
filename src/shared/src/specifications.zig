@@ -10,33 +10,29 @@
 const std = @import("std");
 
 /// current toy assembly language revision
-// versioning updates will only come into consideration when
-// the entire assembly suite is in a finished state.
 pub const current_assembly_version: u8 = 1;
 // -version 1
 //  All basic opcodes introduced.
 
-/// "NOP" -> 1 byte
-pub const opcode_bytelen: u8 = 1;
-/// "$0x1" -> 2 bytes
-pub const address_bytelen: u8 = 2;
-/// "0x42" -> 4 bytes
-pub const literal_bytelen: u8 = 4;
-/// accumulator, X index, Y index hold a 4 byte value
-pub const cpu_register_capacity: u8 = 4;
-
-/// virtual-machine specifications
-pub const rom_address_space: usize = 0xFFFF + 1;
-pub const wram_address_space: usize = 0xFFFF + 1;
-pub const stack_address_space: usize = 0x3FF + 1;
-
-/// rom specifications
-pub const rom_magic_number: u8 = 0x69;
+pub const bytelen = enum {
+    /// "NOP" -> 1 byte
+    pub const opcode = 1;
+    /// "$0x1" -> 2 bytes
+    pub const address = 2;
+    /// "0x42" -> 4 bytes
+    pub const literal = 4;
+    /// first 16 bytes of rom
+    pub const header = 16;
+    /// virtual-machine memory space
+    pub const rom = 0xFFFF + 1;
+    pub const wram = 0xFFFF + 1;
+    pub const stack = 0x3FF + 1;
+};
 
 /// standardized ROM header parsing
 pub const Header = struct {
-    pub const header_byte_size: usize = 16;
-    pub const default_entry_point: u16 = header_byte_size;
+    pub const required_magic_number: u8 = 0x69;
+    pub const default_entry_point: u16 = bytelen.header;
 
     magic_number: u8,
     language_version: u8,
@@ -172,79 +168,79 @@ pub const Opcode = enum(u8) {
 
     pub fn Instruction_Byte_Length(self: Opcode) u8 {
         return switch (self) {
-            .PANIC => opcode_bytelen,
-            .SYSTEMCALL => opcode_bytelen,
-            .STRIDE_LIT => opcode_bytelen + 1, // special case
-            .BRK => opcode_bytelen,
-            .NOP => opcode_bytelen,
-            .CLC => opcode_bytelen,
-            .SEC => opcode_bytelen,
-            .RET => opcode_bytelen,
-            .LDA_LIT => opcode_bytelen + literal_bytelen,
-            .LDX_LIT => opcode_bytelen + literal_bytelen,
-            .LDY_LIT => opcode_bytelen + literal_bytelen,
-            .LDA_ADDR => opcode_bytelen + address_bytelen,
-            .LDX_ADDR => opcode_bytelen + address_bytelen,
-            .LDY_ADDR => opcode_bytelen + address_bytelen,
-            .LDA_X => opcode_bytelen,
-            .LDA_Y => opcode_bytelen,
-            .LDX_A => opcode_bytelen,
-            .LDX_Y => opcode_bytelen,
-            .LDY_A => opcode_bytelen,
-            .LDY_X => opcode_bytelen,
-            .LDA_ADDR_X => opcode_bytelen + address_bytelen,
-            .LDA_ADDR_Y => opcode_bytelen + address_bytelen,
-            .LEA_ADDR => opcode_bytelen + address_bytelen,
-            .LEX_ADDR => opcode_bytelen + address_bytelen,
-            .LEY_ADDR => opcode_bytelen + address_bytelen,
-            .STA_ADDR => opcode_bytelen + address_bytelen,
-            .STX_ADDR => opcode_bytelen + address_bytelen,
-            .STY_ADDR => opcode_bytelen + address_bytelen,
-            .JMP_ADDR => opcode_bytelen + address_bytelen,
-            .JSR_ADDR => opcode_bytelen + address_bytelen,
-            .CMP_A_X => opcode_bytelen,
-            .CMP_A_Y => opcode_bytelen,
-            .CMP_A_LIT => opcode_bytelen + literal_bytelen,
-            .CMP_A_ADDR => opcode_bytelen + address_bytelen,
-            .CMP_X_A => opcode_bytelen,
-            .CMP_X_Y => opcode_bytelen,
-            .CMP_X_LIT => opcode_bytelen + literal_bytelen,
-            .CMP_X_ADDR => opcode_bytelen + address_bytelen,
-            .CMP_Y_X => opcode_bytelen,
-            .CMP_Y_A => opcode_bytelen,
-            .CMP_Y_LIT => opcode_bytelen + literal_bytelen,
-            .CMP_Y_ADDR => opcode_bytelen + address_bytelen,
-            .BCS_ADDR => opcode_bytelen + address_bytelen,
-            .BCC_ADDR => opcode_bytelen + address_bytelen,
-            .BEQ_ADDR => opcode_bytelen + address_bytelen,
-            .BNE_ADDR => opcode_bytelen + address_bytelen,
-            .BMI_ADDR => opcode_bytelen + address_bytelen,
-            .BPL_ADDR => opcode_bytelen + address_bytelen,
-            .BVS_ADDR => opcode_bytelen + address_bytelen,
-            .BVC_ADDR => opcode_bytelen + address_bytelen,
-            .ADD_LIT => opcode_bytelen + literal_bytelen,
-            .ADD_ADDR => opcode_bytelen + address_bytelen,
-            .ADD_X => opcode_bytelen,
-            .ADD_Y => opcode_bytelen,
-            .SUB_LIT => opcode_bytelen + literal_bytelen,
-            .SUB_ADDR => opcode_bytelen + address_bytelen,
-            .SUB_X => opcode_bytelen,
-            .SUB_Y => opcode_bytelen,
-            .INC_A => opcode_bytelen,
-            .INC_X => opcode_bytelen,
-            .INC_Y => opcode_bytelen,
-            .INC_ADDR => opcode_bytelen + address_bytelen,
-            .DEC_A => opcode_bytelen,
-            .DEC_X => opcode_bytelen,
-            .DEC_Y => opcode_bytelen,
-            .DEC_ADDR => opcode_bytelen + address_bytelen,
-            .PUSH_A => opcode_bytelen,
-            .PUSH_X => opcode_bytelen,
-            .PUSH_Y => opcode_bytelen,
-            .POP_A => opcode_bytelen,
-            .POP_X => opcode_bytelen,
-            .POP_Y => opcode_bytelen,
-            .DEBUG_METADATA_SIGNAL => opcode_bytelen,
+            .PANIC => bytelen.opcode,
+            .SYSTEMCALL => bytelen.opcode,
+            .STRIDE_LIT => bytelen.opcode + 1, // special case
+            .BRK => bytelen.opcode,
+            .NOP => bytelen.opcode,
+            .CLC => bytelen.opcode,
+            .SEC => bytelen.opcode,
+            .RET => bytelen.opcode,
+            .LDA_LIT => bytelen.opcode + bytelen.literal,
+            .LDX_LIT => bytelen.opcode + bytelen.literal,
+            .LDY_LIT => bytelen.opcode + bytelen.literal,
+            .LDA_ADDR => bytelen.opcode + bytelen.address,
+            .LDX_ADDR => bytelen.opcode + bytelen.address,
+            .LDY_ADDR => bytelen.opcode + bytelen.address,
+            .LDA_X => bytelen.opcode,
+            .LDA_Y => bytelen.opcode,
+            .LDX_A => bytelen.opcode,
+            .LDX_Y => bytelen.opcode,
+            .LDY_A => bytelen.opcode,
+            .LDY_X => bytelen.opcode,
+            .LDA_ADDR_X => bytelen.opcode + bytelen.address,
+            .LDA_ADDR_Y => bytelen.opcode + bytelen.address,
+            .LEA_ADDR => bytelen.opcode + bytelen.address,
+            .LEX_ADDR => bytelen.opcode + bytelen.address,
+            .LEY_ADDR => bytelen.opcode + bytelen.address,
+            .STA_ADDR => bytelen.opcode + bytelen.address,
+            .STX_ADDR => bytelen.opcode + bytelen.address,
+            .STY_ADDR => bytelen.opcode + bytelen.address,
+            .JMP_ADDR => bytelen.opcode + bytelen.address,
+            .JSR_ADDR => bytelen.opcode + bytelen.address,
+            .CMP_A_X => bytelen.opcode,
+            .CMP_A_Y => bytelen.opcode,
+            .CMP_A_LIT => bytelen.opcode + bytelen.literal,
+            .CMP_A_ADDR => bytelen.opcode + bytelen.address,
+            .CMP_X_A => bytelen.opcode,
+            .CMP_X_Y => bytelen.opcode,
+            .CMP_X_LIT => bytelen.opcode + bytelen.literal,
+            .CMP_X_ADDR => bytelen.opcode + bytelen.address,
+            .CMP_Y_X => bytelen.opcode,
+            .CMP_Y_A => bytelen.opcode,
+            .CMP_Y_LIT => bytelen.opcode + bytelen.literal,
+            .CMP_Y_ADDR => bytelen.opcode + bytelen.address,
+            .BCS_ADDR => bytelen.opcode + bytelen.address,
+            .BCC_ADDR => bytelen.opcode + bytelen.address,
+            .BEQ_ADDR => bytelen.opcode + bytelen.address,
+            .BNE_ADDR => bytelen.opcode + bytelen.address,
+            .BMI_ADDR => bytelen.opcode + bytelen.address,
+            .BPL_ADDR => bytelen.opcode + bytelen.address,
+            .BVS_ADDR => bytelen.opcode + bytelen.address,
+            .BVC_ADDR => bytelen.opcode + bytelen.address,
+            .ADD_LIT => bytelen.opcode + bytelen.literal,
+            .ADD_ADDR => bytelen.opcode + bytelen.address,
+            .ADD_X => bytelen.opcode,
+            .ADD_Y => bytelen.opcode,
+            .SUB_LIT => bytelen.opcode + bytelen.literal,
+            .SUB_ADDR => bytelen.opcode + bytelen.address,
+            .SUB_X => bytelen.opcode,
+            .SUB_Y => bytelen.opcode,
+            .INC_A => bytelen.opcode,
+            .INC_X => bytelen.opcode,
+            .INC_Y => bytelen.opcode,
+            .INC_ADDR => bytelen.opcode + bytelen.address,
+            .DEC_A => bytelen.opcode,
+            .DEC_X => bytelen.opcode,
+            .DEC_Y => bytelen.opcode,
+            .DEC_ADDR => bytelen.opcode + bytelen.address,
+            .PUSH_A => bytelen.opcode,
+            .PUSH_X => bytelen.opcode,
+            .PUSH_Y => bytelen.opcode,
+            .POP_A => bytelen.opcode,
+            .POP_X => bytelen.opcode,
+            .POP_Y => bytelen.opcode,
+            .DEBUG_METADATA_SIGNAL => bytelen.opcode,
         };
     }
 

@@ -18,6 +18,8 @@ const warn = @import("shared").warn;
 const Opcode = specs.Opcode;
 const DebugMetadataType = specs.DebugMetadataType;
 
+const stdout = std.io.getStdOut().writer();
+
 // global variables
 var global_is_stride_defined: bool = false;
 var global_is_indexed_defined: bool = false;
@@ -68,7 +70,7 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
 
     // begin the rom with its respective 16 bytes of header bytes
     const rom_header = specs.Header{
-        .magic_number = specs.rom_magic_number,
+        .magic_number = specs.Header.required_magic_number,
         .language_version = specs.current_assembly_version,
         .entry_point = rom_header_entry_point,
         .debug_mode = flags.debug_mode,
@@ -196,11 +198,11 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
             // [DEBUG OUTPUT] output anonymous label reference substitution details
             if (flags.print_anon_labels) {
                 const sign: u8 = if (token.tokType == .BACKWARD_LABEL_REF) '-' else '+';
-                std.debug.print("\nresulting relative label fetch:\n", .{});
-                std.debug.print("relative index: {c}{}\n", .{ sign, token.value });
-                std.debug.print("name: \"{?s}\"\n", .{label_token.identKey});
-                std.debug.print("current rom address: 0x{X:0>8}\n", .{rom_vector.items.len});
-                std.debug.print("fetched rom address: 0x{X:0>8}\n", .{address_token.value});
+                stdout.print("\nresulting relative label fetch:\n", .{}) catch unreachable;
+                stdout.print("relative index: {c}{}\n", .{ sign, token.value }) catch unreachable;
+                stdout.print("name: \"{?s}\"\n", .{label_token.identKey}) catch unreachable;
+                stdout.print("current rom address: 0x{X:0>8}\n", .{rom_vector.items.len}) catch unreachable;
+                stdout.print("fetched rom address: 0x{X:0>8}\n", .{address_token.value}) catch unreachable;
             }
 
             continue;
@@ -671,19 +673,19 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8), is_first
 
 fn Debug_Print_Rom(rom: []u8) void {
     var i: u16 = 0;
-    std.debug.print("\nGENERATED ROM BYTES:", .{});
+    stdout.print("\nGENERATED ROM BYTES:", .{}) catch unreachable;
     while (true) : (i += 1) {
         if (i % 16 == 0) {
             if (i >= rom.len) break;
-            std.debug.print("\n${X:0>4}:", .{i});
+            stdout.print("\n${X:0>4}:", .{i}) catch unreachable;
         }
         if (i < rom.len) {
-            std.debug.print(" {x:0>2}", .{rom[i]});
+            stdout.print(" {x:0>2}", .{rom[i]}) catch unreachable;
         } else {
-            std.debug.print(" ..", .{});
+            stdout.print(" ..", .{}) catch unreachable;
         }
     }
-    std.debug.print("\n", .{});
+    stdout.print("\n", .{}) catch unreachable;
 }
 
 /// Using low-endian, sequentially append the bytes of a value to an u8 arraylist
@@ -737,7 +739,7 @@ test "assert rom header data" {
     defer vector.deinit();
 
     const rom_header = specs.Header{
-        .magic_number = specs.rom_magic_number,
+        .magic_number = specs.Header.required_magic_number,
         .language_version = 9,
         .entry_point = specs.Header.default_entry_point,
         .debug_mode = true,
@@ -746,12 +748,12 @@ test "assert rom header data" {
     try vector.appendSlice(&rom_vector_bytes);
 
     const magic_number: u8 = vector.items[0];
-    try std.testing.expectEqual(specs.rom_magic_number, magic_number);
+    try std.testing.expectEqual(specs.Header.required_magic_number, magic_number);
     const version: u8 = vector.items[1];
     try std.testing.expectEqual(@as(u8, 0x09), version);
     const entry_point: u16 = std.mem.readInt(u16, vector.items[2..4], .little);
     try std.testing.expectEqual(@as(u16, 0x0010), entry_point);
 
     // must be 16 bytes long, where $0xF is the last available header byte
-    try std.testing.expectEqual(specs.Header.header_byte_size, vector.items.len);
+    try std.testing.expectEqual(specs.bytelen.header, vector.items.len);
 }

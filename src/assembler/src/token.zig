@@ -9,6 +9,8 @@
 const std = @import("std");
 const utils = @import("shared").utils;
 
+const stdout = std.io.getStdOut().writer();
+
 pub const Token = struct {
     /// enum type of the token, undefined by default
     tokType: TokenType = TokenType.UNDEFINED,
@@ -53,17 +55,17 @@ pub const Token = struct {
         const enum_name = std.enums.tagName(TokenType, self.tokType).?;
 
         if (self.identKey) |identifier| {
-            std.debug.print("{s}=\"{s}\"", .{ enum_name, identifier });
+            stdout.print("{s}=\"{s}\"", .{ enum_name, identifier }) catch unreachable;
         } else if (self.tokType == .LITERAL) {
-            std.debug.print("LIT=0x{x}", .{self.value});
+            stdout.print("LIT=0x{x}", .{self.value}) catch unreachable;
         } else if (self.tokType == .ADDRESS) {
-            std.debug.print("ADDR=0x{x}", .{self.value});
+            stdout.print("ADDR=0x{x}", .{self.value}) catch unreachable;
         } else if (self.tokType == .BACKWARD_LABEL_REF) {
-            std.debug.print("RELATIVE_LABEL=-{}", .{self.value});
+            stdout.print("RELATIVE_LABEL=-{}", .{self.value}) catch unreachable;
         } else if (self.tokType == .FORWARD_LABEL_REF) {
-            std.debug.print("RELATIVE_LABEL=+{}", .{self.value});
+            stdout.print("RELATIVE_LABEL=+{}", .{self.value}) catch unreachable;
         } else {
-            std.debug.print("{s}", .{enum_name});
+            stdout.print("{s}", .{enum_name}) catch unreachable;
         }
     }
 };
@@ -77,16 +79,16 @@ pub fn Destroy_Tokens_Contents(allocator: std.mem.Allocator, tokArray: []const T
 
 /// for debugging only
 pub fn Print_Token_Array(tokArray: []const Token) void {
-    std.debug.print("{{\n", .{});
+    stdout.print("{{\n", .{}) catch unreachable;
     for (tokArray) |token| {
         if (token.tokType == .LINEFINISH) {
-            std.debug.print("$\n", .{});
+            stdout.print("$\n", .{}) catch unreachable;
             continue;
         }
         token.Print();
-        std.debug.print(", ", .{});
+        stdout.print(", ", .{}) catch unreachable;
     }
-    std.debug.print("}}\n", .{});
+    stdout.print("}}\n", .{}) catch unreachable;
 }
 
 pub const TokenType = enum {

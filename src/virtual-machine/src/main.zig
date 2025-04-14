@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const stdout = std.io.getStdOut().writer();
+
 pub fn main() !void {
-    std.debug.print("Under construction!\n", .{});
+    stdout.print("Under construction!\n", .{}) catch unreachable;
 }

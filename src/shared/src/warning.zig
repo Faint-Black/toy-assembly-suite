@@ -11,20 +11,22 @@
 const std = @import("std");
 const color = @import("utils.zig").textColor;
 
+const stderr = std.io.getStdErr().writer();
+
 pub fn Warn_Message(comptime msg: []const u8, fmt: anytype) void {
     var buf: [4096]u8 = undefined;
     const formatted_msg = std.fmt.bufPrint(&buf, msg, fmt) catch unreachable;
-    std.debug.print(color.yellow_bold ++ "WARNING:" ++ color.reset ++ " {s}\n", .{formatted_msg});
+    _ = stderr.print(color.yellow_bold ++ "WARNING:" ++ color.reset ++ " {s}\n", .{formatted_msg}) catch unreachable;
 }
 
 pub fn Error_Message(comptime msg: []const u8, fmt: anytype) void {
     var buf: [4096]u8 = undefined;
     const formatted_msg = std.fmt.bufPrint(&buf, msg, fmt) catch unreachable;
-    std.debug.print(color.red_bold ++ "ERROR:" ++ color.reset ++ " {s}\n", .{formatted_msg});
+    _ = stderr.print(color.red_bold ++ "ERROR:" ++ color.reset ++ " {s}\n", .{formatted_msg}) catch unreachable;
 }
 
 pub fn Fatal_Error_Message(comptime msg: []const u8, fmt: anytype) void {
     var buf: [4096]u8 = undefined;
     const formatted_msg = std.fmt.bufPrint(&buf, msg, fmt) catch unreachable;
-    std.debug.print(color.red_bold ++ "FATAL ERROR:" ++ color.reset ++ " {s}\n", .{formatted_msg});
+    _ = stderr.print(color.red_bold ++ "FATAL ERROR:" ++ color.reset ++ " {s}\n", .{formatted_msg}) catch unreachable;
 }

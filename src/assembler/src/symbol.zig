@@ -10,6 +10,8 @@
 const std = @import("std");
 const tok = @import("token.zig");
 
+const stdout = std.io.getStdOut().writer();
+
 pub const Symbol = struct {
     /// string key that represents such symbol
     name: ?[]u8 = null,
@@ -179,23 +181,23 @@ pub const SymbolTable = struct {
             const key = iterator.keys[i];
             const sym = self.table.get(key).?;
 
-            std.debug.print("\nsymbol #{}:\n", .{i});
-            std.debug.print("name: \"{?s}\"\n", .{sym.name});
+            stdout.print("\nsymbol #{}:\n", .{i}) catch unreachable;
+            stdout.print("name: \"{?s}\"\n", .{sym.name}) catch unreachable;
             switch (sym.value) {
                 .label => {
-                    std.debug.print("type: LABEL\n", .{});
-                    std.debug.print("address value: 0x{X}\n", .{sym.value.label.value});
+                    stdout.print("type: LABEL\n", .{}) catch unreachable;
+                    stdout.print("address value: 0x{X}\n", .{sym.value.label.value}) catch unreachable;
                 },
                 .macro => {
-                    std.debug.print("type: MACRO\n", .{});
-                    std.debug.print("expands to:\n", .{});
+                    stdout.print("type: MACRO\n", .{}) catch unreachable;
+                    stdout.print("expands to:\n", .{}) catch unreachable;
                     tok.Print_Token_Array(sym.value.macro);
                 },
                 .define => {
-                    std.debug.print("type: DEFINE\n", .{});
-                    std.debug.print("expands to: {{ ", .{});
+                    stdout.print("type: DEFINE\n", .{}) catch unreachable;
+                    stdout.print("expands to: {{ ", .{}) catch unreachable;
                     sym.value.define.Print();
-                    std.debug.print(" }}\n", .{});
+                    stdout.print(" }}\n", .{}) catch unreachable;
                 },
             }
         }

@@ -13,6 +13,10 @@ const specs = @import("specifications.zig");
 const utils = @import("utils.zig");
 const warn = @import("warning.zig");
 
+const stdout = std.io.getStdOut().writer();
+const stderr = std.io.getStdErr().writer();
+const stdin = std.io.getStdIn().reader();
+
 pub const VirtualMachine = struct {
     /// Only meant to be used for debugging and disassembly purposes,
     /// the actual machine is not meant to know its own size!
@@ -22,11 +26,11 @@ pub const VirtualMachine = struct {
     index_byte_stride: u8,
 
     /// Read Only Memory, where the instruction data is stored.
-    rom: [specs.rom_address_space]u8,
+    rom: [specs.bytelen.rom]u8,
     /// Work Random Access Memory, writable memory freely available for manipulation.
-    wram: [specs.wram_address_space]u8,
+    wram: [specs.bytelen.wram]u8,
     /// Stack, starts at the top and grows downwards.
-    stack: [specs.stack_address_space]u8,
+    stack: [specs.bytelen.stack]u8,
 
     /// cpu registers
     accumulator: u32,
@@ -47,7 +51,7 @@ pub const VirtualMachine = struct {
     pub fn Init(rom_filepath: ?[]const u8, fill: ?u8) VirtualMachine {
         var machine: VirtualMachine = undefined;
         // only variable harcoded to start at a given value
-        machine.stack_pointer = specs.stack_address_space - 1;
+        machine.stack_pointer = specs.bytelen.stack - 1;
         // if a fill byte was provided
         if (fill) |fill_byte| {
             @memset(&machine.rom, fill_byte);
@@ -64,7 +68,7 @@ pub const VirtualMachine = struct {
                 @panic("failed to open file!");
             const rom_file_size = filestream.getEndPos() catch
                 @panic("fileseek error!");
-            if (rom_file_size >= (specs.rom_address_space - 1))
+            if (rom_file_size >= (specs.bytelen.rom - 1))
                 @panic("ROM file larger than 0xFFFF bytes!");
             _ = filestream.readAll(&machine.rom) catch
                 @panic("failed to read ROM file!");
@@ -109,7 +113,7 @@ pub const VirtualMachine = struct {
 
     /// pops generic value from the stack
     pub fn Pop_From_Stack(this: *VirtualMachine, comptime T: type) !T {
-        if ((this.stack_pointer + @sizeOf(T)) >= specs.stack_address_space)
+        if ((this.stack_pointer + @sizeOf(T)) >= specs.bytelen.stack)
             return error.StackUnderflow;
 
         const popped_value: T = std.mem.readVarInt(T, this.stack[this.stack_pointer .. this.stack_pointer + @sizeOf(T)], .little);
@@ -126,7 +130,7 @@ pub const VirtualMachine = struct {
     pub fn Jump_To_Subroutine(this: *VirtualMachine, address: u16) !void {
         // only save the rom address of *the next* instruction
         // harcoded to the "JSR $ADDR" opcode syntax
-        const skip_amount = specs.opcode_bytelen + specs.address_bytelen;
+        const skip_amount = specs.bytelen.opcode + specs.bytelen.address;
         try Push_To_Stack(this, u16, this.program_counter + skip_amount);
         Jump_To_Address(this, address);
     }
@@ -186,7 +190,7 @@ pub const VirtualMachine = struct {
                 }
                 const end: u16 = start + (@as(u16, @truncate(maybe_end.?)));
                 const string: []const u8 = this.rom[start..end];
-                std.debug.print("{s}", .{string});
+                _ = stdout.print("{s}", .{string}) catch unreachable;
             },
             .PRINT_WRAM_STR => {
                 const start: u16 = @truncate(this.x_index);
@@ -197,29 +201,29 @@ pub const VirtualMachine = struct {
                 }
                 const end: u16 = start + (@as(u16, @truncate(maybe_end.?)));
                 const string: []const u8 = this.wram[start..end];
-                std.debug.print("{s}", .{string});
+                _ = stdout.print("{s}", .{string}) catch unreachable;
             },
             .PRINT_NEWLINES => {
                 const n: u8 = @truncate(this.x_index);
                 for (0..n) |_| {
-                    std.debug.print("\n", .{});
+                    _ = stdout.print("\n", .{}) catch unreachable;
                 }
             },
             .PRINT_CHAR => {
                 const character: u8 = @truncate(this.x_index);
                 if (std.ascii.isASCII(character) == false) {
-                    std.debug.print("?", .{});
+                    _ = stdout.print("?", .{}) catch unreachable;
                 } else {
-                    std.debug.print("{c}", .{character});
+                    _ = stdout.print("{c}", .{character}) catch unreachable;
                 }
             },
             .PRINT_DEC_INT => {
                 const integer: u32 = this.x_index;
-                std.debug.print("{}", .{integer});
+                _ = stdout.print("{}", .{integer}) catch unreachable;
             },
             .PRINT_HEX_INT => {
                 const integer: u32 = this.x_index;
-                std.debug.print("0x{X:0>8}", .{integer});
+                _ = stdout.print("0x{X:0>8}", .{integer}) catch unreachable;
             },
             _ => return error.UnknownSyscallCode,
         }
@@ -230,7 +234,7 @@ pub const VirtualMachine = struct {
 // ONLY TESTS BELOW THIS POINT                                 //
 //-------------------------------------------------------------//
 test "Reading from ROM or WRAM" {
-    var mem: [specs.rom_address_space]u8 = undefined;
+    var mem: [specs.bytelen.rom]u8 = undefined;
     mem[0x0000] = 0x00;
     mem[0x0001] = 0x01;
     mem[0x0002] = 0x02;
@@ -252,7 +256,7 @@ test "Reading from ROM or WRAM" {
 }
 
 test "Writing to ROM or WRAM" {
-    var mem: [specs.rom_address_space]u8 = undefined;
+    var mem: [specs.bytelen.rom]u8 = undefined;
 
     VirtualMachine.Write_Contents_Into_Memory_As(&mem, 0xFFFB, u32, 0xFEFDFCFB);
     try std.testing.expectEqual(0xFEFDFCFB, VirtualMachine.Read_Address_Contents_As(&mem, 0xFFFB, u32));

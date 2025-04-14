@@ -14,6 +14,8 @@ const sym = @import("symbol.zig");
 const clap = @import("clap.zig");
 const warn = @import("shared").warn;
 
+const stdout = std.io.getStdOut().writer();
+
 /// Removes, replaces and expands preprocessor instructions,
 /// like macros.
 pub fn Preprocessor_Expansion(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, lexedTokens: []const tok.Token) ![]tok.Token {
@@ -26,7 +28,7 @@ pub fn Preprocessor_Expansion(allocator: std.mem.Allocator, flags: clap.Flags, s
 
     // [DEBUG OUTPUT] print the resulting stripped tokens
     if (flags.print_stripped_tokens) {
-        std.debug.print("\nStripped tokens:\n", .{});
+        stdout.print("\nStripped tokens:\n", .{}) catch unreachable;
         tok.Print_Token_Array(stripped_tokens);
     }
 
