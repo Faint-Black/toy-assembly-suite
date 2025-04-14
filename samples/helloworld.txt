@@ -1,0 +1,10 @@
+;; minimal hello world program
+
+STR:
+  .db "Hello world!\n"
+
+_START:   ;; program's execution entry point
+  LDA 0x0 ;; syscall code for printing string from ROM
+  LEX STR ;; load address location of such string
+  SYSCALL ;; print
+  BRK     ;; exit

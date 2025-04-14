@@ -1,6 +1,9 @@
 ;; This code will continuously print the fibonacci sequence.
-;; it's just a demo meant to display most assembler functionalities
+;; it's just a demo meant to display the assembly functionalities
 ;; in a practical application.
+
+;; TODO: under construction, will only get completed when the suite
+;;       reaches version 1.0!
 
 .macro PUSH_REGISTERS
   PUSH A
