@@ -1,5 +1,5 @@
 # Assembler
-This turns your input source file of choice into a ROM file that can be executed in the virtual machine or debugger.
+This turns your input source file of choice into a ROM file that can be executed in the debugger or runner.
 
 To get accustomed to the syntax, refer to the samples/ directory where there are plenty of source examples, specially "alltokens.txt".
 
