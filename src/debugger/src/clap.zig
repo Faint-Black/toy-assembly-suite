@@ -165,7 +165,7 @@ pub const Flags = struct {
         return 
         \\The toy debugger program
         \\Assembly suite version 1
-        \\Debugger version 0.0
+        \\Debugger version 0.0 (BETA BRANCH)
         \\
         ;
     }

@@ -2,7 +2,7 @@
 //                                                             //
 //                           MAIN                              //
 //                                                             //
-//   Patch notes and license details at the bottom.            //
+//   Licensed under GNU General Public License version 3.      //
 //                                                             //
 //=============================================================//
 
@@ -142,48 +142,3 @@ pub fn main() !void {
     if (flags.output_filename) |output_filename|
         std.debug.print("Written {} bytes to {s}\n", .{ rom.len, output_filename });
 }
-
-// LICENSE:
-// The entire Toy Assembly Suite Codebase is under the GNU General Public License Version 3.0
-//
-// PATCH NOTES:
-// Assembler 0.1
-//  -first stable functional release
-// Assembler 0.2
-//  -introduction of macros
-// Assembler 0.3
-//  -addresses are now 16-bit since a 32-bit address space
-//   would be completely unrealistic, no one will use this language
-//   long enough to question himself if he should use a jump near or
-//   jump far...
-// Assembler 0.4
-//  -relative label referencing and anonymous labels introduced
-// Assembler 0.4.1
-//  -redesigned debug output flags
-// Assembler 0.5
-//  -debug mode metadata insertion introduced
-// Assembler 0.5.1
-//  -added "--noprint=[ARG]" flags
-// Assembler 0.6
-//  -repeat unwrapper instroduced
-// Assembler 1.0
-//  -(probably) stable release for practical use
-// Assembler 1.1
-//  -changed CLAP arguments style
-// Assembler 1.2
-//  -added the STRIDE instruction
-// Assembler 1.3
-//  -changed the ROM dump debug print output format
-// Assembler 1.4
-//  -release error handling
-// Assembler 1.4.1
-//  -warn for undefined STRIDEs and changed the codegen function
-// Assembler 1.4.2
-//  -even better error handling
-// Assembler 1.4.3
-//  -warn for undefined BRKs
-// Assembler 1.5
-//  -added the load effective address instructions
-// Assembler 1.6
-//  -no longer adds metadata in the rom data section, "_START"
-//  definition no longer optional

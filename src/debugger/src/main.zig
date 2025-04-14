@@ -2,7 +2,7 @@
 //                                                             //
 //                           MAIN                              //
 //                                                             //
-//   Patch notes and license details at the bottom.            //
+//   Licensed under GNU General Public License version 3.      //
 //                                                             //
 //=============================================================//
 
@@ -67,8 +67,3 @@ pub fn main() !void {
         return;
     }
 }
-
-// LICENSE:
-// The entire Toy Assembly Suite Codebase is under the GNU General Public License Version 3.0
-//
-// PATCH NOTES:
