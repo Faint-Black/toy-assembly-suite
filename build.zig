@@ -19,7 +19,7 @@ pub fn build(b: *std.Build) void {
     const performStep_shared_test = b.addRunArtifact(shared_module_tests);
     b.default_step.dependOn(&performStep_shared_test.step);
 
-    const executable_name_list = [_][]const u8{ "assembler", "debugger", "runner" };
+    const executable_name_list = [_][]const u8{ "assembler", "debugger", "disassembler", "runner" };
     inline for (executable_name_list) |project|
         Add_Executable_Module(b, project, target, optimize, shared_module);
 

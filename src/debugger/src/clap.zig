@@ -19,8 +19,6 @@ pub const Flags = struct {
     input_rom_filename: ?[]u8 = null,
     instruction_delay: u64 = 200,
     nop_delay: u64 = 1000,
-    disassemble_mode: bool = false,
-    run_mode: bool = false,
 
     /// debug output flags
     log_header_info: bool = false,
@@ -65,10 +63,6 @@ pub const Flags = struct {
                 result.instruction_delay = try std.fmt.parseInt(u64, arg.?[8..], 10);
             } else if (std.mem.startsWith(u8, arg.?, "--nop=")) {
                 result.nop_delay = try std.fmt.parseInt(u64, arg.?[6..], 10);
-            } else if (std.mem.startsWith(u8, arg.?, "-d") or std.mem.eql(u8, arg.?, "--disassemble")) {
-                result.disassemble_mode = true;
-            } else if (std.mem.startsWith(u8, arg.?, "-r") or std.mem.eql(u8, arg.?, "--run")) {
-                result.run_mode = true;
             } else if (std.mem.eql(u8, arg.?, "--log=all")) {
                 result.log_header_info = true;
                 result.log_instruction_opcode = true;
@@ -101,7 +95,6 @@ pub const Flags = struct {
         }
 
         if (result.input_rom_filename == null) {
-            warn.Warn_Message("No input file specified, using stdin instead.", .{});
             result.input_rom_filename = try allocator.dupe(u8, "stdin");
         }
 

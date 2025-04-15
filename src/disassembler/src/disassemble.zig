@@ -15,7 +15,7 @@ const machine = @import("shared").machine;
 
 const stdout = std.io.getStdOut().writer();
 
-pub fn Disassemble_Rom(allocator: std.mem.Allocator, rom: []const u8, original_rom_size: usize, header: specs.Header) !void {
+pub fn Disassemble_Rom(allocator: std.mem.Allocator, rom: [specs.bytelen.rom]u8, original_rom_size: usize, header: specs.Header) !void {
     // for storing all the bufprint function results that need to exist at the same time
     var buffers: [4][utils.buffsize.medium]u8 = undefined;
 
@@ -24,7 +24,7 @@ pub fn Disassemble_Rom(allocator: std.mem.Allocator, rom: []const u8, original_r
     // val = label string name
     var label_hashmap: ?std.AutoArrayHashMap(u16, []const u8) = null;
     if (header.debug_mode) {
-        label_hashmap = Resolve_Metadata_Labels(allocator, rom, original_rom_size, header);
+        label_hashmap = Resolve_Metadata_Labels(allocator, &rom, original_rom_size, header);
     }
     defer {
         if (label_hashmap) |hashmap| {

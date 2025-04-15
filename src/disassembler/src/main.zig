@@ -10,9 +10,9 @@ const std = @import("std");
 const builtin = @import("builtin");
 const machine = @import("shared").machine;
 const specs = @import("shared").specifications;
-const emulator = @import("execution.zig");
-const clap = @import("clap.zig");
 const warn = @import("shared").warn;
+const disassembler = @import("disassemble.zig");
+const clap = @import("clap.zig");
 
 const stdout = std.io.getStdOut().writer();
 
@@ -38,24 +38,25 @@ pub fn main() !void {
         warn.Warn_Message("input through stdin input not implemented yet.", .{});
     }
 
-    // load and init virtual machine
-    var vm = machine.VirtualMachine.Init(flags.input_rom_filename, null);
-    const rom_header = specs.Header.Parse_From_Byte_Array(vm.rom[0..16].*);
-    if (rom_header.magic_number != specs.Header.required_magic_number) {
-        stdout.print("Wrong ROM magic number! expected 0x{X:0>2}, got 0x{X:0>2}\n", .{ specs.Header.required_magic_number, rom_header.magic_number }) catch unreachable;
-        return error.BadMagicNumber;
-    }
-    if (rom_header.language_version != specs.current_assembly_version) {
-        stdout.print("Outdated ROM! current version is {}, input rom is in version {}\n", .{ specs.current_assembly_version, rom_header.language_version }) catch unreachable;
-        return error.OutdatedROM;
-    }
-    if (flags.log_header_info) {
-        stdout.print("HEADER INFO:\n", .{}) catch unreachable;
-        stdout.print("magic number: {}\n", .{rom_header.magic_number}) catch unreachable;
-        stdout.print("assembly version: {}\n", .{rom_header.language_version}) catch unreachable;
-        stdout.print("entry point address: 0x{X:0>4}\n", .{rom_header.entry_point}) catch unreachable;
-        stdout.print("rom debug enable: {}\n\n", .{rom_header.debug_mode}) catch unreachable;
-    }
+    var rom: [specs.bytelen.rom]u8 = undefined;
+    const rom_filestream = std.fs.cwd().openFile(flags.input_rom_filename.?, .{}) catch |err| {
+        warn.Fatal_Error_Message("could not open file \"{?s}\"!", .{flags.input_rom_filename});
+        if (builtin.mode == .Debug) return err else return;
+    };
+    const rom_filesize: usize = rom_filestream.readAll(&rom) catch |err| {
+        warn.Fatal_Error_Message("could not read file contents!", .{});
+        if (builtin.mode == .Debug) return err else return;
+    };
+    const rom_header: specs.Header = specs.Header.Parse_From_Byte_Array(rom[0..16].*);
 
-    try emulator.Run_Virtual_Machine(&vm, flags, rom_header);
+    stdout.print("HEADER INFO:\n", .{}) catch unreachable;
+    stdout.print("magic number: {}\n", .{rom_header.magic_number}) catch unreachable;
+    stdout.print("assembly version: {}\n", .{rom_header.language_version}) catch unreachable;
+    stdout.print("entry point address: 0x{X:0>4}\n", .{rom_header.entry_point}) catch unreachable;
+    stdout.print("rom debug enable: {}\n\n", .{rom_header.debug_mode}) catch unreachable;
+
+    disassembler.Disassemble_Rom(global_allocator, rom, rom_filesize, rom_header) catch |err| {
+        warn.Fatal_Error_Message("disassembly failed!", .{});
+        if (builtin.mode == .Debug) return err else return;
+    };
 }
