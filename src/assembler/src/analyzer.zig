@@ -17,6 +17,7 @@ const clap = @import("clap.zig");
 const warn = @import("shared").warn;
 
 const AnalysisResults = struct {
+    is_entrypoint_defined: bool = false,
     is_stride_defined: bool = false,
     is_indexed_defined: bool = false,
     is_break_defined: bool = false,
@@ -26,6 +27,10 @@ const AnalysisResults = struct {
 pub fn Analyze_Rom(rom: []u8) !void {
     const status = Step_Through(rom);
 
+    if (status.is_entrypoint_defined == false) {
+        warn.Error_Message("ROM entry point has not been defined!", .{});
+        return error.CompilationError;
+    }
     if (rom.len >= specs.bytelen.rom) {
         warn.Error_Message("created a rom file larger than the allowed 0x{} memory space!", .{specs.bytelen.rom});
         return error.CompilationError;
@@ -49,6 +54,14 @@ pub fn Analyze_Rom(rom: []u8) !void {
 fn Step_Through(rom: []u8) AnalysisResults {
     var results = AnalysisResults{};
     const rom_header = specs.Header.Parse_From_Byte_Array(rom[0..16].*);
+
+    // "_START:" somehow failed and did not change the entry point address on the header
+    if (rom_header.entry_point == specs.Header.default_entry_point) {
+        results.is_entrypoint_defined = false;
+        return results;
+    } else {
+        results.is_entrypoint_defined = true;
+    }
 
     // skip header and data segment, only analyze instructions.
     var PC: u16 = rom_header.entry_point;

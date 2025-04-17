@@ -71,12 +71,12 @@ pub fn Lexer(allocator: std.mem.Allocator, input: []const u8) ![]tok.Token {
         if (stringLiteralMode == true) {
             if (escapeChar == true) {
                 switch (c) {
-                    '0' => try token_vector.append(tok.Token{ .tokType = .LITERAL, .value = 0 }),
-                    'n' => try token_vector.append(tok.Token{ .tokType = .LITERAL, .value = '\n' }),
-                    't' => try token_vector.append(tok.Token{ .tokType = .LITERAL, .value = '\t' }),
-                    '\\' => try token_vector.append(tok.Token{ .tokType = .LITERAL, .value = '\\' }),
-                    '\"' => try token_vector.append(tok.Token{ .tokType = .LITERAL, .value = '\"' }),
-                    '\'' => try token_vector.append(tok.Token{ .tokType = .LITERAL, .value = '\'' }),
+                    '0' => try token_vector.append(tok.Token{ .tokType = .LITERAL, .value = 0x00 }),
+                    'n' => try token_vector.append(tok.Token{ .tokType = .LITERAL, .value = 0x0A }),
+                    't' => try token_vector.append(tok.Token{ .tokType = .LITERAL, .value = 0x09 }),
+                    '\\' => try token_vector.append(tok.Token{ .tokType = .LITERAL, .value = 0x5C }),
+                    '\"' => try token_vector.append(tok.Token{ .tokType = .LITERAL, .value = 0x22 }),
+                    '\'' => try token_vector.append(tok.Token{ .tokType = .LITERAL, .value = 0x27 }),
                     else => {},
                 }
                 continue;

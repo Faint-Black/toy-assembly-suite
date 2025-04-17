@@ -31,8 +31,10 @@ pub const bytelen = enum {
 
 /// standardized ROM header parsing
 pub const Header = struct {
+    /// any other value indicates a file corruption
     pub const required_magic_number: u8 = 0x69;
-    pub const default_entry_point: u16 = bytelen.header;
+    /// must be defined with the "_START:" label
+    pub const default_entry_point: u16 = 0x0000;
 
     magic_number: u8,
     language_version: u8,

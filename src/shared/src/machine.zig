@@ -274,13 +274,13 @@ test "Writing to ROM or WRAM" {
     try std.testing.expectEqual(0x04030201, VirtualMachine.Read_Address_Contents_As(&mem, 0x0001, u32));
 }
 
-test "Live VM tests" {
+test "Live VM testing" {
     var vm = VirtualMachine.Init(null, 0x00);
     var result: u32 = undefined;
 
     // straight jumping
-    vm.Jump_To_Address(0x0100);
-    try std.testing.expectEqual(0x0100, vm.program_counter);
+    vm.Jump_To_Address(0x1337);
+    try std.testing.expectEqual(0x1337, vm.program_counter);
 
     // stack pushing and popping
     try vm.Push_To_Stack(u16, 0xF001);

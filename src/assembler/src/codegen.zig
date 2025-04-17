@@ -21,13 +21,21 @@ const DebugMetadataType = specs.DebugMetadataType;
 const stdout = std.io.getStdOut().writer();
 
 pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
+    // {..., ACTUAL_LAST_TOKEN, $, EOF, $}
+    const last_token = expandedTokens[expandedTokens.len - 4];
+    if (last_token.tokType == .LABEL or last_token.tokType == .ANON_LABEL) {
+        warn.Error_Message("label pointing to EOF causes undefined behavior!", .{});
+        return error.LastTokenIsLabel;
+    }
+
     const first_pass = try Codegen(true, allocator, flags, symTable, expandedTokens);
     allocator.free(first_pass);
     const second_pass = try Codegen(false, allocator, flags, symTable, expandedTokens);
 
     // [DEBUG OUTPUT] print rom bytes
-    if (flags.print_rom_bytes)
+    if (flags.print_rom_bytes) {
         Debug_Print_Rom(second_pass);
+    }
 
     return second_pass;
 }
@@ -744,7 +752,7 @@ test "assert rom header data" {
     const version: u8 = vector.items[1];
     try std.testing.expectEqual(@as(u8, 0x09), version);
     const entry_point: u16 = std.mem.readInt(u16, vector.items[2..4], .little);
-    try std.testing.expectEqual(@as(u16, 0x0010), entry_point);
+    try std.testing.expectEqual(@as(u16, 0x0000), entry_point);
 
     // must be 16 bytes long, where $0xF is the last available header byte
     try std.testing.expectEqual(specs.bytelen.header, vector.items.len);
