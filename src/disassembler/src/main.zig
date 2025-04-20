@@ -55,7 +55,7 @@ pub fn main() !void {
     stdout.print("entry point address: 0x{X:0>4}\n", .{rom_header.entry_point}) catch unreachable;
     stdout.print("rom debug enable: {}\n\n", .{rom_header.debug_mode}) catch unreachable;
 
-    disassembler.Disassemble_Rom(global_allocator, rom, rom_filesize, rom_header) catch |err| {
+    disassembler.Disassemble_Rom(global_allocator, flags, rom, rom_filesize, rom_header) catch |err| {
         warn.Fatal_Error_Message("disassembly failed!", .{});
         if (builtin.mode == .Debug) return err else return;
     };

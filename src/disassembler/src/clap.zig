@@ -18,6 +18,11 @@ pub const Flags = struct {
     binary_directory: ?[]u8 = null,
     input_rom_filename: ?[]u8 = null,
 
+    /// disassembly output flags
+    output_addresses: bool = true,
+    output_rombytes: bool = true,
+    output_instructions: bool = true,
+
     /// info flags
     help: bool = false,
     version: bool = false,
@@ -52,6 +57,12 @@ pub const Flags = struct {
                 result.input_rom_filename = try allocator.dupe(u8, arg.?[3..]);
             } else if (std.mem.startsWith(u8, arg.?, "--input=")) {
                 result.input_rom_filename = try allocator.dupe(u8, arg.?[8..]);
+            } else if (std.mem.startsWith(u8, arg.?, "--noaddress")) {
+                result.output_addresses = false;
+            } else if (std.mem.startsWith(u8, arg.?, "--nobytes")) {
+                result.output_rombytes = false;
+            } else if (std.mem.startsWith(u8, arg.?, "--noinstructions")) {
+                result.output_instructions = false;
             } else {
                 warn.Error_Message("Unknown argument: \"{s}\"", .{arg.?});
                 return error.BadArgument;
@@ -87,6 +98,14 @@ pub const Flags = struct {
         \\CORE USAGE FLAGS:
         \\-i="path/to/rom.bin", --input="path/to/rom.bin"
         \\    Specify the input ROM file.
+        \\
+        \\OUTPUT STYLE FLAGS:
+        \\--noaddress
+        \\    Disable the printing of the ROM memory addresses to the disassembly output.
+        \\--nobytes
+        \\    Disable the printing of the ROM byte contents to the disassembly output.
+        \\--noinstructions
+        \\    Disable the printing of the disassembled instructions to the disassembly output.
         \\
         ;
     }

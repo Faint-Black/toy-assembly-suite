@@ -15,7 +15,7 @@ const machine = @import("shared").machine;
 
 const stdout = std.io.getStdOut().writer();
 
-pub fn Disassemble_Rom(allocator: std.mem.Allocator, rom: [specs.bytelen.rom]u8, original_rom_size: usize, header: specs.Header) !void {
+pub fn Disassemble_Rom(allocator: std.mem.Allocator, flags: clap.Flags, rom: [specs.bytelen.rom]u8, original_rom_size: usize, header: specs.Header) !void {
     // for storing all the bufprint function results that need to exist at the same time
     var buffers: [4][utils.buffsize.medium]u8 = undefined;
 
@@ -41,21 +41,19 @@ pub fn Disassemble_Rom(allocator: std.mem.Allocator, rom: [specs.bytelen.rom]u8,
         if (PC == 0) {
             const addr_str = Address_String(&buffers[0], 0);
             const instr_bytes_str = Instruction_Bytes_String(&buffers[1], rom[0..specs.bytelen.header]);
-            stdout.print("{s}: {s} header bytes\n", .{ addr_str, instr_bytes_str }) catch unreachable;
+            stdout.print("{s}{s}header bytes\n\n", .{ addr_str, instr_bytes_str }) catch unreachable;
             PC = specs.bytelen.header;
             continue;
         }
         if (PC < header.entry_point) {
             const addr_str = Address_String(&buffers[0], PC);
             const instr_bytes_str = Instruction_Bytes_String(&buffers[1], rom[PC..header.entry_point]);
-            stdout.print("{s}: {s} data bytes\n", .{ addr_str, instr_bytes_str }) catch unreachable;
+            stdout.print("{s}{s}data bytes\n\n", .{ addr_str, instr_bytes_str }) catch unreachable;
             PC = header.entry_point;
             continue;
         }
         if (PC >= original_rom_size) {
-            const start = Address_String(&buffers[0], PC);
-            const end = Address_String(&buffers[1], specs.bytelen.rom - 1);
-            stdout.print("{s} to {s} = trash bytes\n", .{ start, end }) catch unreachable;
+            stdout.print("${X:0>4} to ${X:0>4} = undefined (trash) bytes\n", .{ PC, specs.bytelen.rom - 1 }) catch unreachable;
             break;
         }
 
@@ -70,15 +68,15 @@ pub fn Disassemble_Rom(allocator: std.mem.Allocator, rom: [specs.bytelen.rom]u8,
             continue;
         }
 
-        const addr_str = Address_String(&buffers[0], PC);
-        const instr_bytes_str = Instruction_Bytes_String(&buffers[1], rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]);
-        const instr_str = try opcode_enum.Instruction_String(&buffers[2], rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]);
+        const addr_str: []const u8 = if (flags.output_addresses) Address_String(&buffers[0], PC) else "";
+        const instr_bytes_str: []const u8 = if (flags.output_rombytes) Instruction_Bytes_String(&buffers[1], rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]) else "";
+        const instr_str: []const u8 = if (flags.output_instructions) try opcode_enum.Instruction_String(&buffers[2], rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]) else "";
         if (opcode_enum.What_Address_Space() == .rom) {
             const instruction_address_value = std.mem.bytesToValue(u16, rom[PC + 1 .. PC + 2]);
             const addr_name_str = Address_Name_String(&buffers[3], label_hashmap, instruction_address_value);
-            stdout.print("{s}: {s} {s} <{s}>\n", .{ addr_str, instr_bytes_str, instr_str, addr_name_str }) catch unreachable;
+            stdout.print("{s}{s}{s}; <{s}>\n", .{ addr_str, instr_bytes_str, instr_str, addr_name_str }) catch unreachable;
         } else {
-            stdout.print("{s}: {s} {s}\n", .{ addr_str, instr_bytes_str, instr_str }) catch unreachable;
+            stdout.print("{s}{s}{s}\n", .{ addr_str, instr_bytes_str, instr_str }) catch unreachable;
         }
 
         PC += opcode_enum.Instruction_Byte_Length();
@@ -90,7 +88,7 @@ pub fn Disassemble_Rom(allocator: std.mem.Allocator, rom: [specs.bytelen.rom]u8,
 //-------------------------------------------------------------//
 
 fn Address_String(buffer: []u8, addr: u16) []const u8 {
-    return std.fmt.bufPrint(buffer, "${x:0>4}", .{addr}) catch {
+    return std.fmt.bufPrint(buffer, "${x:0>4}: ", .{addr}) catch {
         @panic("format print failed!");
     };
 }
@@ -138,9 +136,9 @@ fn Instruction_Bytes_String(buffer: []u8, bytes: []const u8) []const u8 {
         }
         str_index += chars_per_entry;
     }
-    _ = std.fmt.bufPrint(buffer[str_index..], "=", .{}) catch
+    _ = std.fmt.bufPrint(buffer[str_index..], "= ", .{}) catch
         @panic("format print failed!");
-    str_index += 1;
+    str_index += 2;
 
     return buffer[0..str_index];
 }
