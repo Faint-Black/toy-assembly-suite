@@ -152,26 +152,38 @@ pub const VirtualMachine = struct {
         reg1.* = reg2.*;
     }
 
-    /// adds two 32-bit values and modifies the processor flags accordingly
+    /// signed add with carry two 32-bit values and modifies the processor flags accordingly
     /// cannot fail, wrap behavior is well defined
     /// further documentation in assembly standards (src/shared/README.md)
-    pub fn Add(this: *VirtualMachine, a: u32, b: u32) u32 {
-        const result, const overflow = @addWithOverflow(a, b);
-        // TODO: accurate flag modifications to be decided
-        this.carry_flag = utils.Int_To_Bool(overflow);
-        this.zero_flag = (result == 0);
-        return result;
+    pub fn Add_With_Carry(this: *VirtualMachine, a: u32, b: u32, carry: u1) u32 {
+        // TF do i put here?
     }
 
-    /// subtracts two 32-bit values and modifies the processor flags accordingly
+    /// signed subtract with carry two 32-bit values and modifies the processor flags accordingly
     /// cannot fail, wrap behavior is well defined
     /// further documentation in assembly standards (src/shared/README.md)
-    pub fn Subtract(this: *VirtualMachine, a: u32, b: u32) u32 {
-        const result, const underflow = @subWithOverflow(a, b);
-        // TODO: accurate flag modifications to be decided
-        this.overflow_flag = utils.Int_To_Bool(underflow);
-        this.zero_flag = (result == 0);
-        return result;
+    pub fn Sub_With_Carry(this: *VirtualMachine, a: u32, b: u32, carry: u1) u32 {
+        // or here?
+    }
+
+    /// set carry flag to 1
+    pub fn Set_Carry_Flag(this: *VirtualMachine) void {
+        this.carry_flag = true;
+    }
+
+    /// set carry flag to 0
+    pub fn Clear_Carry_Flag(this: *VirtualMachine) void {
+        this.carry_flag = false;
+    }
+
+    /// set overflow flag to 1
+    pub fn Set_Overflow_Flag(this: *VirtualMachine) void {
+        this.overflow_flag = true;
+    }
+
+    /// set overflow flag to 0
+    pub fn Clear_Overflow_Flag(this: *VirtualMachine) void {
+        this.overflow_flag = false;
     }
 
     /// Accumulator = syscall code
@@ -296,31 +308,32 @@ test "Live VM testing" {
     try std.testing.expectEqual(0xF002, try vm.Pop_From_Stack(u16));
     try std.testing.expectEqual(0xF001, try vm.Pop_From_Stack(u16));
 
-    // addition
-    result = vm.Add(0xFFFFFFFF, 1);
-    try std.testing.expectEqual(0x00000000, result);
-    try std.testing.expectEqual(true, vm.carry_flag);
-    try std.testing.expectEqual(true, vm.zero_flag);
-    result = vm.Add(0x69, 0x42);
-    try std.testing.expectEqual(0x000000AB, result);
-    try std.testing.expectEqual(false, vm.carry_flag);
-    try std.testing.expectEqual(false, vm.zero_flag);
-    result = vm.Add(0, 0);
-    try std.testing.expectEqual(0x00000000, result);
-    try std.testing.expectEqual(false, vm.carry_flag);
-    try std.testing.expectEqual(true, vm.zero_flag);
-
-    // subtraction
-    result = vm.Subtract(0x00000000, 1);
+    // signed two's complement 32-bit addition
+    // (0) + (0) = 0
+    result = vm.Add_With_Carry(0x00000000, 0x00000000, 0);
+    try std.testing.expectEqual(0, result);
+    // (1) + (0) = 1
+    result = vm.Add_With_Carry(0x00000001, 0x00000000, 0);
+    try std.testing.expectEqual(1, result);
+    // (0) + (1) = 1
+    result = vm.Add_With_Carry(0x00000000, 0x00000001, 0);
+    try std.testing.expectEqual(1, result);
+    // (1) + (1) = 2
+    result = vm.Add_With_Carry(0x00000001, 0x00000001, 0);
+    try std.testing.expectEqual(2, result);
+    // (-1) + (0) = -1
+    result = vm.Add_With_Carry(0xFFFFFFFF, 0x00000000, 0);
     try std.testing.expectEqual(0xFFFFFFFF, result);
-    try std.testing.expectEqual(true, vm.overflow_flag);
-    try std.testing.expectEqual(false, vm.zero_flag);
-    result = vm.Subtract(0x69, 0x42);
-    try std.testing.expectEqual(0x00000027, result);
-    try std.testing.expectEqual(false, vm.overflow_flag);
-    try std.testing.expectEqual(false, vm.zero_flag);
-    result = vm.Subtract(0, 0);
+    // (0) + (-1) = -1
+    result = vm.Add_With_Carry(0x00000000, 0xFFFFFFFF, 0);
+    try std.testing.expectEqual(0xFFFFFFFF, result);
+    // (-1) + (1) = 0
+    result = vm.Add_With_Carry(0xFFFFFFFF, 0x00000001, 0);
     try std.testing.expectEqual(0x00000000, result);
-    try std.testing.expectEqual(false, vm.overflow_flag);
-    try std.testing.expectEqual(true, vm.zero_flag);
+    // (2147483647) + (1) = -2147483648 <signed integer overflow>
+    result = vm.Add_With_Carry(0x7FFFFFFF, 0x00000001, 0);
+    try std.testing.expectEqual(0x80000000, result);
+
+    // signed two's complement 32-bit subtraction
+    result = vm.Subtract(0x00000000, 1);
 }
