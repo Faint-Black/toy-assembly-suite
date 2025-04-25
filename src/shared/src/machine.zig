@@ -142,14 +142,14 @@ pub const VirtualMachine = struct {
 
     /// sets reg to the input value
     pub fn Load_Value_Into_Reg(this: *VirtualMachine, value: u32, reg: *u32) void {
-        _ = this; // processor flags modifications to be implemented later
         reg.* = value;
+        this.zero_flag = (value == 0);
     }
 
     /// "Transfer" is a misnomer, all this does is sets reg1 to the value of reg2
     pub fn Transfer_Registers(this: *VirtualMachine, reg1: *u32, reg2: *const u32) void {
-        _ = this; // processor flags modifications to be implemented later
         reg1.* = reg2.*;
+        this.zero_flag = (reg2.* == 0);
     }
 
     /// signed add with carry two 32-bit values
@@ -170,7 +170,7 @@ pub const VirtualMachine = struct {
     /// cannot fail, wrap behavior is well defined
     /// further documentation in assembly standards (src/shared/README.md)
     pub fn Sub_With_Carry(this: *VirtualMachine, a: u32, b: u32, carry: u1) u32 {
-        // result = a - b + 1 - carry
+        // result = a - b + (1 - carry)
         const result, const overflow = @subWithOverflow(a, b +% (1 - carry));
         const neg_b: u32 = @bitCast(std.math.negate(@as(i32, @bitCast(b))) catch unreachable);
         this.carry_flag = utils.Int_To_Bool(overflow);
@@ -221,6 +221,45 @@ pub const VirtualMachine = struct {
     /// set overflow flag to 0
     pub fn Clear_Overflow_Flag(this: *VirtualMachine) void {
         this.overflow_flag = false;
+    }
+
+    /// just a subtraction operation under the hood, result is discarded
+    /// only flags are modified
+    pub fn Compare(this: *VirtualMachine, a: u32, b: u32) void {
+        _ = this.Sub_With_Carry(a, b, 1);
+    }
+
+    /// BCS instruction
+    pub fn Branch_If_Carry_Set(this: *VirtualMachine, addr: u16) void {
+        if (this.carry_flag == true) this.Jump_To_Address(addr);
+    }
+    /// BCC instruction
+    pub fn Branch_If_Carry_Clear(this: *VirtualMachine, addr: u16) void {
+        if (this.carry_flag == false) this.Jump_To_Address(addr);
+    }
+    /// BEQ instruction
+    pub fn Branch_If_Zero_Set(this: *VirtualMachine, addr: u16) void {
+        if (this.zero_flag == true) this.Jump_To_Address(addr);
+    }
+    /// BNE instruction
+    pub fn Branch_If_Zero_Clear(this: *VirtualMachine, addr: u16) void {
+        if (this.zero_flag == false) this.Jump_To_Address(addr);
+    }
+    /// BMI instruction
+    pub fn Branch_If_Negative_Set(this: *VirtualMachine, addr: u16) void {
+        if (this.negative_flag == true) this.Jump_To_Address(addr);
+    }
+    /// BPL instruction
+    pub fn Branch_If_Negative_Clear(this: *VirtualMachine, addr: u16) void {
+        if (this.negative_flag == false) this.Jump_To_Address(addr);
+    }
+    /// BVS instruction
+    pub fn Branch_If_Overflow_Set(this: *VirtualMachine, addr: u16) void {
+        if (this.overflow_flag == true) this.Jump_To_Address(addr);
+    }
+    /// BVC instruction
+    pub fn Branch_If_Overflow_Clear(this: *VirtualMachine, addr: u16) void {
+        if (this.overflow_flag == false) this.Jump_To_Address(addr);
     }
 
     /// Accumulator = syscall code
@@ -345,7 +384,19 @@ test "Live VM testing" {
     try std.testing.expectEqual(0xF001, try vm.Pop_From_Stack(u16));
 }
 
-test "arithmetic and flag modifications" {
+test "Comparing and branching" {
+    var vm = VirtualMachine.Init(null, 0x00);
+
+    vm.Compare(42, 42);
+    // (A - B == 0) for BEQ and BNE
+    try std.testing.expectEqual(true, vm.zero_flag);
+    // (A - B < 0) for BMI and BPL
+    try std.testing.expectEqual(false, vm.negative_flag);
+    // (A - B -> overflow) for BVS and BVC
+    try std.testing.expectEqual(false, vm.overflow_flag);
+}
+
+test "Arithmetic and flag modifications" {
     var vm = VirtualMachine.Init(null, 0x00);
     var result: u32 = undefined;
 

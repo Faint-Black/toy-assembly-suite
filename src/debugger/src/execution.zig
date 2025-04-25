@@ -79,7 +79,7 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
                 if (flags.log_instruction_sideeffects) {
                     stdout.print("Before clearing flag:\nC = {}\n", .{@intFromBool(vm.carry_flag)}) catch unreachable;
                 }
-                vm.carry_flag = false;
+                vm.Clear_Carry_Flag();
                 if (flags.log_instruction_sideeffects) {
                     stdout.print("After clearing flag:\nC = {}\n", .{@intFromBool(vm.carry_flag)}) catch unreachable;
                 }
@@ -89,7 +89,7 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
                 if (flags.log_instruction_sideeffects) {
                     stdout.print("Before setting flag:\nC = {}\n", .{@intFromBool(vm.carry_flag)}) catch unreachable;
                 }
-                vm.carry_flag = true;
+                vm.Set_Carry_Flag();
                 if (flags.log_instruction_sideeffects) {
                     stdout.print("After setting flag:\nC = {}\n", .{@intFromBool(vm.carry_flag)}) catch unreachable;
                 }
@@ -313,108 +313,100 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
             },
             // modify flags by subtracting the accumulator with the X index
             .CMP_A_X => {
-                _ = vm.Sub_With_Carry(vm.accumulator, vm.x_index, 1);
+                vm.Compare(vm.accumulator, vm.x_index);
             },
             // modify flags by subtracting the accumulator with the Y index
             .CMP_A_Y => {
-                _ = vm.Sub_With_Carry(vm.accumulator, vm.y_index, 1);
+                vm.Compare(vm.accumulator, vm.y_index);
             },
             // modify flags by subtracting the accumulator with a literal
             .CMP_A_LIT => {
                 const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u32);
-                _ = vm.Sub_With_Carry(vm.accumulator, literal, 1);
+                vm.Compare(vm.accumulator, literal);
             },
             // modify flags by subtracting the accumulator with the contents of an address
             .CMP_A_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
                 const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
-                _ = vm.Sub_With_Carry(vm.accumulator, address_contents, 1);
+                vm.Compare(vm.accumulator, address_contents);
             },
             // modify flags by subtracting the X index with the accumulator
             .CMP_X_A => {
-                _ = vm.Sub_With_Carry(vm.x_index, vm.accumulator, 1);
+                vm.Compare(vm.x_index, vm.accumulator);
             },
             // modify flags by subtracting the X index with the Y index
             .CMP_X_Y => {
-                _ = vm.Sub_With_Carry(vm.x_index, vm.y_index, 1);
+                vm.Compare(vm.x_index, vm.y_index);
             },
             // modify flags by subtracting the X index with a literal
             .CMP_X_LIT => {
                 const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u32);
-                _ = vm.Sub_With_Carry(vm.x_index, literal, 1);
+                vm.Compare(vm.x_index, literal);
             },
             // modify flags by subtracting the X index with the contents of an address
             .CMP_X_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
                 const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
-                _ = vm.Sub_With_Carry(vm.x_index, address_contents, 1);
+                vm.Compare(vm.x_index, address_contents);
             },
             // modify flags by subtracting the Y index with the X index
             .CMP_Y_X => {
-                _ = vm.Sub_With_Carry(vm.y_index, vm.x_index, 1);
+                vm.Compare(vm.y_index, vm.x_index);
             },
             // modify flags by subtracting the Y index with the accumulator
             .CMP_Y_A => {
-                _ = vm.Sub_With_Carry(vm.y_index, vm.accumulator, 1);
+                vm.Compare(vm.y_index, vm.accumulator);
             },
             // modify flags by subtracting the Y index with a literal
             .CMP_Y_LIT => {
                 const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u32);
-                _ = vm.Sub_With_Carry(vm.y_index, literal, 1);
+                vm.Compare(vm.y_index, literal);
             },
             // modify flags by subtracting the Y index with the contents of an address
             .CMP_Y_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
                 const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
-                _ = vm.Sub_With_Carry(vm.y_index, address_contents, 1);
+                vm.Compare(vm.y_index, address_contents);
             },
             // branch if carry set
             .BCS_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
-                if (vm.carry_flag == true)
-                    vm.Jump_To_Address(address);
+                vm.Branch_If_Carry_Set(address);
             },
             // branch if carry clear
             .BCC_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
-                if (vm.carry_flag == false)
-                    vm.Jump_To_Address(address);
+                vm.Branch_If_Carry_Clear(address);
             },
             // branch if equal (zero flag is set)
             .BEQ_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
-                if (vm.zero_flag == true)
-                    vm.Jump_To_Address(address);
+                vm.Branch_If_Zero_Set(address);
             },
             // branch if not equal (zero flag is clear)
             .BNE_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
-                if (vm.zero_flag == false)
-                    vm.Jump_To_Address(address);
+                vm.Branch_If_Zero_Clear(address);
             },
             // branch if minus (negative flag is set)
             .BMI_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
-                if (vm.negative_flag == true)
-                    vm.Jump_To_Address(address);
+                vm.Branch_If_Negative_Set(address);
             },
             // branch if plus (negative flag is clear)
             .BPL_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
-                if (vm.negative_flag == false)
-                    vm.Jump_To_Address(address);
+                vm.Branch_If_Negative_Clear(address);
             },
             // branch if overflow is set
             .BVS_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
-                if (vm.overflow_flag == true)
-                    vm.Jump_To_Address(address);
+                vm.Branch_If_Overflow_Set(address);
             },
             // branch if overflow is clear
             .BVC_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
-                if (vm.overflow_flag == false)
-                    vm.Jump_To_Address(address);
+                vm.Branch_If_Overflow_Clear(address);
             },
             // accumulator += (literal + carry)
             .ADD_LIT => {
@@ -456,47 +448,39 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
             },
             // accumulator += 1
             .INC_A => {
-                vm.carry_flag = false;
                 vm.accumulator = vm.Add_With_Carry(vm.accumulator, 1, 0);
             },
             // X index += 1
             .INC_X => {
-                vm.carry_flag = false;
                 vm.x_index = vm.Add_With_Carry(vm.x_index, 1, 0);
             },
             // Y index += 1
             .INC_Y => {
-                vm.carry_flag = false;
                 vm.y_index = vm.Add_With_Carry(vm.y_index, 1, 0);
             },
             // contents of address += 1
             .INC_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
                 var address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
-                vm.carry_flag = false;
                 address_contents = vm.Add_With_Carry(address_contents, 1, 0);
                 machine.VirtualMachine.Write_Contents_Into_Memory_As(&vm.wram, address, @TypeOf(address_contents), address_contents);
             },
             // accumulator -= 1
             .DEC_A => {
-                vm.carry_flag = true;
                 vm.accumulator = vm.Sub_With_Carry(vm.accumulator, 1, 1);
             },
             // X index -= 1
             .DEC_X => {
-                vm.carry_flag = true;
                 vm.x_index = vm.Sub_With_Carry(vm.x_index, 1, 1);
             },
             // Y index -= 1
             .DEC_Y => {
-                vm.carry_flag = true;
                 vm.y_index = vm.Sub_With_Carry(vm.y_index, 1, 1);
             },
             // contents of address -= 1
             .DEC_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
                 var address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
-                vm.carry_flag = true;
                 address_contents = vm.Sub_With_Carry(address_contents, 1, 1);
                 machine.VirtualMachine.Write_Contents_Into_Memory_As(&vm.wram, address, @TypeOf(address_contents), address_contents);
             },
