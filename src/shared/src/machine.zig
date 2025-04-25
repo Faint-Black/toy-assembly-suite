@@ -156,14 +156,22 @@ pub const VirtualMachine = struct {
     /// cannot fail, wrap behavior is well defined
     /// further documentation in assembly standards (src/shared/README.md)
     pub fn Add_With_Carry(this: *VirtualMachine, a: u32, b: u32, carry: u1) u32 {
-        // TF do i put here?
+        const result, const overflow = @addWithOverflow(a, b);
+        _ = overflow;
+        _ = this;
+        _ = carry;
+        return result;
     }
 
     /// signed subtract with carry two 32-bit values and modifies the processor flags accordingly
     /// cannot fail, wrap behavior is well defined
     /// further documentation in assembly standards (src/shared/README.md)
     pub fn Sub_With_Carry(this: *VirtualMachine, a: u32, b: u32, carry: u1) u32 {
-        // or here?
+        const result, const overflow = @subWithOverflow(a, b);
+        _ = overflow;
+        _ = this;
+        _ = carry;
+        return result;
     }
 
     /// set carry flag to 1
@@ -335,5 +343,28 @@ test "Live VM testing" {
     try std.testing.expectEqual(0x80000000, result);
 
     // signed two's complement 32-bit subtraction
-    result = vm.Subtract(0x00000000, 1);
+    // (0) - (0) = 0
+    result = vm.Sub_With_Carry(0x00000000, 0x00000000, 1);
+    try std.testing.expectEqual(0x00000000, result);
+    // (1) - (0) = 1
+    result = vm.Sub_With_Carry(0x00000001, 0x00000000, 1);
+    try std.testing.expectEqual(0x00000001, result);
+    // (0) - (1) = -1
+    result = vm.Sub_With_Carry(0x00000000, 0x00000001, 1);
+    try std.testing.expectEqual(0xFFFFFFFF, result);
+    // (1) - (1) = 0
+    result = vm.Sub_With_Carry(0x00000001, 0x00000001, 1);
+    try std.testing.expectEqual(0x00000000, result);
+    // (-1) - (0) = -1
+    result = vm.Sub_With_Carry(0xFFFFFFFF, 0x00000000, 1);
+    try std.testing.expectEqual(0xFFFFFFFF, result);
+    // (0) - (-1) = 1
+    result = vm.Sub_With_Carry(0x00000000, 0xFFFFFFFF, 1);
+    try std.testing.expectEqual(0x00000001, result);
+    // (-1) - (1) = -2
+    result = vm.Sub_With_Carry(0xFFFFFFFF, 0x00000001, 1);
+    try std.testing.expectEqual(0xFFFFFFFE, result);
+    // (-2147483648) - (1) = 2147483647 <signed integer overflow>
+    result = vm.Sub_With_Carry(0x80000000, 0x00000001, 1);
+    try std.testing.expectEqual(0x7FFFFFFF, result);
 }

@@ -313,60 +313,60 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
             },
             // modify flags by subtracting the accumulator with the X index
             .CMP_A_X => {
-                _ = vm.Subtract(vm.accumulator, vm.x_index);
+                _ = vm.Sub_With_Carry(vm.accumulator, vm.x_index, 1);
             },
             // modify flags by subtracting the accumulator with the Y index
             .CMP_A_Y => {
-                _ = vm.Subtract(vm.accumulator, vm.y_index);
+                _ = vm.Sub_With_Carry(vm.accumulator, vm.y_index, 1);
             },
             // modify flags by subtracting the accumulator with a literal
             .CMP_A_LIT => {
                 const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u32);
-                _ = vm.Subtract(vm.accumulator, literal);
+                _ = vm.Sub_With_Carry(vm.accumulator, literal, 1);
             },
             // modify flags by subtracting the accumulator with the contents of an address
             .CMP_A_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
                 const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
-                _ = vm.Subtract(vm.accumulator, address_contents);
+                _ = vm.Sub_With_Carry(vm.accumulator, address_contents, 1);
             },
             // modify flags by subtracting the X index with the accumulator
             .CMP_X_A => {
-                _ = vm.Subtract(vm.x_index, vm.accumulator);
+                _ = vm.Sub_With_Carry(vm.x_index, vm.accumulator, 1);
             },
             // modify flags by subtracting the X index with the Y index
             .CMP_X_Y => {
-                _ = vm.Subtract(vm.x_index, vm.y_index);
+                _ = vm.Sub_With_Carry(vm.x_index, vm.y_index, 1);
             },
             // modify flags by subtracting the X index with a literal
             .CMP_X_LIT => {
                 const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u32);
-                _ = vm.Subtract(vm.x_index, literal);
+                _ = vm.Sub_With_Carry(vm.x_index, literal, 1);
             },
             // modify flags by subtracting the X index with the contents of an address
             .CMP_X_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
                 const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
-                _ = vm.Subtract(vm.x_index, address_contents);
+                _ = vm.Sub_With_Carry(vm.x_index, address_contents, 1);
             },
             // modify flags by subtracting the Y index with the X index
             .CMP_Y_X => {
-                _ = vm.Subtract(vm.y_index, vm.x_index);
+                _ = vm.Sub_With_Carry(vm.y_index, vm.x_index, 1);
             },
             // modify flags by subtracting the Y index with the accumulator
             .CMP_Y_A => {
-                _ = vm.Subtract(vm.y_index, vm.accumulator);
+                _ = vm.Sub_With_Carry(vm.y_index, vm.accumulator, 1);
             },
             // modify flags by subtracting the Y index with a literal
             .CMP_Y_LIT => {
                 const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u32);
-                _ = vm.Subtract(vm.y_index, literal);
+                _ = vm.Sub_With_Carry(vm.y_index, literal, 1);
             },
             // modify flags by subtracting the Y index with the contents of an address
             .CMP_Y_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
                 const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
-                _ = vm.Subtract(vm.y_index, address_contents);
+                _ = vm.Sub_With_Carry(vm.y_index, address_contents, 1);
             },
             // branch if carry set
             .BCS_ADDR => {
@@ -419,85 +419,85 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
             // accumulator += (literal + carry)
             .ADD_LIT => {
                 const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u32);
-                vm.accumulator = vm.Add(vm.accumulator, literal);
+                vm.accumulator = vm.Add_With_Carry(vm.accumulator, literal, @intFromBool(vm.carry_flag));
             },
             // accumulator += (address contents + carry)
             .ADD_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
                 const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
-                vm.accumulator = vm.Add(vm.accumulator, address_contents);
+                vm.accumulator = vm.Add_With_Carry(vm.accumulator, address_contents, @intFromBool(vm.carry_flag));
             },
             // accumulator += (X index value + carry)
             .ADD_X => {
-                vm.accumulator = vm.Add(vm.accumulator, vm.x_index);
+                vm.accumulator = vm.Add_With_Carry(vm.accumulator, vm.x_index, @intFromBool(vm.carry_flag));
             },
             // accumulator += (Y index value + carry)
             .ADD_Y => {
-                vm.accumulator = vm.Add(vm.accumulator, vm.y_index);
+                vm.accumulator = vm.Add_With_Carry(vm.accumulator, vm.y_index, @intFromBool(vm.carry_flag));
             },
             // accumulator -= (literal + carry - 1)
             .SUB_LIT => {
                 const literal: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u32);
-                vm.accumulator = vm.Subtract(vm.accumulator, literal);
+                vm.accumulator = vm.Sub_With_Carry(vm.accumulator, literal, @intFromBool(vm.carry_flag));
             },
             // accumulator -= (address contents + carry - 1)
             .SUB_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
                 const address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
-                vm.accumulator = vm.Subtract(vm.accumulator, address_contents);
+                vm.accumulator = vm.Sub_With_Carry(vm.accumulator, address_contents, @intFromBool(vm.carry_flag));
             },
             // accumulator -= (X index value + carry - 1)
             .SUB_X => {
-                vm.accumulator = vm.Add(vm.accumulator, vm.x_index);
+                vm.accumulator = vm.Add_With_Carry(vm.accumulator, vm.x_index, @intFromBool(vm.carry_flag));
             },
             // accumulator -= (Y index value + carry - 1)
             .SUB_Y => {
-                vm.accumulator = vm.Add(vm.accumulator, vm.x_index);
+                vm.accumulator = vm.Add_With_Carry(vm.accumulator, vm.x_index, @intFromBool(vm.carry_flag));
             },
             // accumulator += 1
             .INC_A => {
                 vm.carry_flag = false;
-                vm.accumulator = vm.Add(vm.accumulator, 1);
+                vm.accumulator = vm.Add_With_Carry(vm.accumulator, 1, 0);
             },
             // X index += 1
             .INC_X => {
                 vm.carry_flag = false;
-                vm.x_index = vm.Add(vm.x_index, 1);
+                vm.x_index = vm.Add_With_Carry(vm.x_index, 1, 0);
             },
             // Y index += 1
             .INC_Y => {
                 vm.carry_flag = false;
-                vm.y_index = vm.Add(vm.y_index, 1);
+                vm.y_index = vm.Add_With_Carry(vm.y_index, 1, 0);
             },
             // contents of address += 1
             .INC_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
                 var address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
                 vm.carry_flag = false;
-                address_contents = vm.Add(address_contents, 1);
+                address_contents = vm.Add_With_Carry(address_contents, 1, 0);
                 machine.VirtualMachine.Write_Contents_Into_Memory_As(&vm.wram, address, @TypeOf(address_contents), address_contents);
             },
             // accumulator -= 1
             .DEC_A => {
                 vm.carry_flag = true;
-                vm.accumulator = vm.Subtract(vm.accumulator, 1);
+                vm.accumulator = vm.Sub_With_Carry(vm.accumulator, 1, 1);
             },
             // X index -= 1
             .DEC_X => {
                 vm.carry_flag = true;
-                vm.x_index = vm.Subtract(vm.x_index, 1);
+                vm.x_index = vm.Sub_With_Carry(vm.x_index, 1, 1);
             },
             // Y index -= 1
             .DEC_Y => {
                 vm.carry_flag = true;
-                vm.y_index = vm.Subtract(vm.y_index, 1);
+                vm.y_index = vm.Sub_With_Carry(vm.y_index, 1, 1);
             },
             // contents of address -= 1
             .DEC_ADDR => {
                 const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
                 var address_contents: u32 = machine.VirtualMachine.Read_Address_Contents_As(&vm.wram, address, u32);
                 vm.carry_flag = true;
-                address_contents = vm.Subtract(address_contents, 1);
+                address_contents = vm.Sub_With_Carry(address_contents, 1, 1);
                 machine.VirtualMachine.Write_Contents_Into_Memory_As(&vm.wram, address, @TypeOf(address_contents), address_contents);
             },
             // push value of accumulator to stack

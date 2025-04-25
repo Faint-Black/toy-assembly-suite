@@ -207,13 +207,13 @@ test "address strings" {
     var str: []const u8 = undefined;
 
     str = Address_String(&buffer, 0xFFFF);
-    try std.testing.expectEqualStrings("$ffff", str);
+    try std.testing.expectEqualStrings("$ffff: ", str);
     str = Address_String(&buffer, 0);
-    try std.testing.expectEqualStrings("$0000", str);
+    try std.testing.expectEqualStrings("$0000: ", str);
     str = Address_String(&buffer, 16);
-    try std.testing.expectEqualStrings("$0010", str);
+    try std.testing.expectEqualStrings("$0010: ", str);
     str = Address_String(&buffer, 0xABCD);
-    try std.testing.expectEqualStrings("$abcd", str);
+    try std.testing.expectEqualStrings("$abcd: ", str);
 }
 
 test "instruction bytes strings" {
@@ -222,13 +222,13 @@ test "instruction bytes strings" {
     const nl = " \n       ";
 
     str = Instruction_Bytes_String(&buffer, &.{});
-    try std.testing.expectEqualStrings(".. .. .. .. .. .. .. .. =", str);
+    try std.testing.expectEqualStrings(".. .. .. .. .. .. .. .. = ", str);
     str = Instruction_Bytes_String(&buffer, &.{ 16, 17, 18, 19 });
-    try std.testing.expectEqualStrings("10 11 12 13 .. .. .. .. =", str);
+    try std.testing.expectEqualStrings("10 11 12 13 .. .. .. .. = ", str);
     str = Instruction_Bytes_String(&buffer, &.{ 0, 1, 2, 3, 4, 5, 6, 7 });
-    try std.testing.expectEqualStrings("00 01 02 03 04 05 06 07 =", str);
+    try std.testing.expectEqualStrings("00 01 02 03 04 05 06 07 = ", str);
     str = Instruction_Bytes_String(&buffer, &.{ 0, 1, 2, 3, 4, 5, 6, 7, 8 });
-    try std.testing.expectEqualStrings("00 01 02 03 04 05 06 07" ++ nl ++ "08 .. .. .. .. .. .. .. =", str);
+    try std.testing.expectEqualStrings("00 01 02 03 04 05 06 07" ++ nl ++ "08 .. .. .. .. .. .. .. = ", str);
     str = Instruction_Bytes_String(&buffer, &.{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 });
-    try std.testing.expectEqualStrings("00 01 02 03 04 05 06 07" ++ nl ++ "08 09 0a 0b 0c 0d 0e 0f" ++ nl ++ "10 .. .. .. .. .. .. .. =", str);
+    try std.testing.expectEqualStrings("00 01 02 03 04 05 06 07" ++ nl ++ "08 09 0a 0b 0c 0d 0e 0f" ++ nl ++ "10 .. .. .. .. .. .. .. = ", str);
 }
