@@ -152,25 +152,31 @@ pub const VirtualMachine = struct {
         reg1.* = reg2.*;
     }
 
-    /// signed add with carry two 32-bit values and modifies the processor flags accordingly
+    /// signed add with carry two 32-bit values
     /// cannot fail, wrap behavior is well defined
     /// further documentation in assembly standards (src/shared/README.md)
     pub fn Add_With_Carry(this: *VirtualMachine, a: u32, b: u32, carry: u1) u32 {
-        const result, const overflow = @addWithOverflow(a, b);
-        _ = overflow;
-        _ = this;
-        _ = carry;
+        // result = a + b + carry
+        var result, const overflow_1 = @addWithOverflow(a, b);
+        result, const overflow_2 = @addWithOverflow(result, carry);
+        this.carry_flag = utils.Int_To_Bool(overflow_1) or utils.Int_To_Bool(overflow_2);
+        this.overflow_flag = Check_Overflow(a, b, result);
+        this.negative_flag = Check_Sign(result);
+        this.zero_flag = (result == 0);
         return result;
     }
 
-    /// signed subtract with carry two 32-bit values and modifies the processor flags accordingly
+    /// signed subtract with carry two 32-bit values
     /// cannot fail, wrap behavior is well defined
     /// further documentation in assembly standards (src/shared/README.md)
     pub fn Sub_With_Carry(this: *VirtualMachine, a: u32, b: u32, carry: u1) u32 {
-        const result, const overflow = @subWithOverflow(a, b);
-        _ = overflow;
-        _ = this;
-        _ = carry;
+        // result = a - b + 1 - carry
+        const result, const overflow = @subWithOverflow(a, b +% (1 - carry));
+        const neg_b: u32 = @bitCast(std.math.negate(@as(i32, @bitCast(b))) catch unreachable);
+        this.carry_flag = utils.Int_To_Bool(overflow);
+        this.overflow_flag = Check_Overflow(a, neg_b, result);
+        this.negative_flag = Check_Sign(result);
+        this.zero_flag = (result == 0);
         return result;
     }
 
@@ -182,6 +188,29 @@ pub const VirtualMachine = struct {
     /// set carry flag to 0
     pub fn Clear_Carry_Flag(this: *VirtualMachine) void {
         this.carry_flag = false;
+    }
+
+    /// returns true if negative
+    /// returns false if positive
+    pub fn Check_Sign(n: u32) bool {
+        return (n & 0x80000000 != 0);
+    }
+
+    /// if A and B are of the same sign and results in a different sign after an
+    /// arithmetic operation, an overflow has occured
+    pub fn Check_Overflow(a: u32, b: u32, result: u32) bool {
+        const a_sign = Check_Sign(a);
+        const b_sign = Check_Sign(b);
+        const c_sign = Check_Sign(result);
+
+        if (a_sign != b_sign) {
+            return false;
+        }
+        if (a_sign == c_sign and b_sign == c_sign) {
+            return false;
+        }
+
+        return true;
     }
 
     /// set overflow flag to 1
@@ -238,7 +267,7 @@ pub const VirtualMachine = struct {
                 }
             },
             .PRINT_DEC_INT => {
-                const integer: u32 = this.x_index;
+                const integer: i32 = @bitCast(this.x_index);
                 _ = stdout.print("{}", .{integer}) catch unreachable;
             },
             .PRINT_HEX_INT => {
@@ -296,7 +325,6 @@ test "Writing to ROM or WRAM" {
 
 test "Live VM testing" {
     var vm = VirtualMachine.Init(null, 0x00);
-    var result: u32 = undefined;
 
     // straight jumping
     vm.Jump_To_Address(0x1337);
@@ -315,56 +343,125 @@ test "Live VM testing" {
     try std.testing.expectEqual(0xF003, try vm.Pop_From_Stack(u16));
     try std.testing.expectEqual(0xF002, try vm.Pop_From_Stack(u16));
     try std.testing.expectEqual(0xF001, try vm.Pop_From_Stack(u16));
+}
+
+test "arithmetic and flag modifications" {
+    var vm = VirtualMachine.Init(null, 0x00);
+    var result: u32 = undefined;
 
     // signed two's complement 32-bit addition
     // (0) + (0) = 0
     result = vm.Add_With_Carry(0x00000000, 0x00000000, 0);
     try std.testing.expectEqual(0, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(true, vm.zero_flag);
+    try std.testing.expectEqual(false, vm.negative_flag);
     // (1) + (0) = 1
     result = vm.Add_With_Carry(0x00000001, 0x00000000, 0);
     try std.testing.expectEqual(1, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    try std.testing.expectEqual(false, vm.negative_flag);
     // (0) + (1) = 1
     result = vm.Add_With_Carry(0x00000000, 0x00000001, 0);
     try std.testing.expectEqual(1, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    try std.testing.expectEqual(false, vm.negative_flag);
     // (1) + (1) = 2
     result = vm.Add_With_Carry(0x00000001, 0x00000001, 0);
     try std.testing.expectEqual(2, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    try std.testing.expectEqual(false, vm.negative_flag);
     // (-1) + (0) = -1
     result = vm.Add_With_Carry(0xFFFFFFFF, 0x00000000, 0);
     try std.testing.expectEqual(0xFFFFFFFF, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    try std.testing.expectEqual(true, vm.negative_flag);
     // (0) + (-1) = -1
     result = vm.Add_With_Carry(0x00000000, 0xFFFFFFFF, 0);
     try std.testing.expectEqual(0xFFFFFFFF, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    try std.testing.expectEqual(true, vm.negative_flag);
     // (-1) + (1) = 0
     result = vm.Add_With_Carry(0xFFFFFFFF, 0x00000001, 0);
     try std.testing.expectEqual(0x00000000, result);
+    try std.testing.expectEqual(true, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(true, vm.zero_flag);
+    try std.testing.expectEqual(false, vm.negative_flag);
     // (2147483647) + (1) = -2147483648 <signed integer overflow>
     result = vm.Add_With_Carry(0x7FFFFFFF, 0x00000001, 0);
     try std.testing.expectEqual(0x80000000, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(true, vm.overflow_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    try std.testing.expectEqual(true, vm.negative_flag);
 
     // signed two's complement 32-bit subtraction
     // (0) - (0) = 0
     result = vm.Sub_With_Carry(0x00000000, 0x00000000, 1);
     try std.testing.expectEqual(0x00000000, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(true, vm.zero_flag);
+    try std.testing.expectEqual(false, vm.negative_flag);
     // (1) - (0) = 1
     result = vm.Sub_With_Carry(0x00000001, 0x00000000, 1);
     try std.testing.expectEqual(0x00000001, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    try std.testing.expectEqual(false, vm.negative_flag);
     // (0) - (1) = -1
     result = vm.Sub_With_Carry(0x00000000, 0x00000001, 1);
     try std.testing.expectEqual(0xFFFFFFFF, result);
+    try std.testing.expectEqual(true, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    try std.testing.expectEqual(true, vm.negative_flag);
     // (1) - (1) = 0
     result = vm.Sub_With_Carry(0x00000001, 0x00000001, 1);
     try std.testing.expectEqual(0x00000000, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(true, vm.zero_flag);
+    try std.testing.expectEqual(false, vm.negative_flag);
     // (-1) - (0) = -1
     result = vm.Sub_With_Carry(0xFFFFFFFF, 0x00000000, 1);
     try std.testing.expectEqual(0xFFFFFFFF, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    try std.testing.expectEqual(true, vm.negative_flag);
     // (0) - (-1) = 1
     result = vm.Sub_With_Carry(0x00000000, 0xFFFFFFFF, 1);
     try std.testing.expectEqual(0x00000001, result);
+    try std.testing.expectEqual(true, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    try std.testing.expectEqual(false, vm.negative_flag);
     // (-1) - (1) = -2
     result = vm.Sub_With_Carry(0xFFFFFFFF, 0x00000001, 1);
     try std.testing.expectEqual(0xFFFFFFFE, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(false, vm.overflow_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    try std.testing.expectEqual(true, vm.negative_flag);
     // (-2147483648) - (1) = 2147483647 <signed integer overflow>
     result = vm.Sub_With_Carry(0x80000000, 0x00000001, 1);
     try std.testing.expectEqual(0x7FFFFFFF, result);
+    try std.testing.expectEqual(false, vm.carry_flag);
+    try std.testing.expectEqual(true, vm.overflow_flag);
+    try std.testing.expectEqual(false, vm.zero_flag);
+    try std.testing.expectEqual(false, vm.negative_flag);
 }
