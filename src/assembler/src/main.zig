@@ -78,7 +78,9 @@ pub fn main() !void {
         warn.Fatal_Error_Message("could not open file \"{?s}\"!", .{flags.input_filename});
         if (builtin.mode == .Debug) return err else return;
     };
-    const filecontents = filestream.readToEndAlloc(global_allocator, 4096) catch |err| {
+    // 1 MiB filesize limit
+    const max_filesize: usize = (1 << 20);
+    const filecontents = filestream.readToEndAlloc(global_allocator, max_filesize) catch |err| {
         warn.Fatal_Error_Message("could not read or allocate file contents!", .{});
         if (builtin.mode == .Debug) return err else return;
     };

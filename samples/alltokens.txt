@@ -65,77 +65,77 @@ JMP @++    ; refers to label "ForwardReference:"
 ;; use of the special "_START" label determines the entry point for the program,
 ;; its use in a source file is obligatory.
 _START:
-SYSCALL
-STRIDE 0x4
-BRK
-NOP
-CLC
-SEC
-RET
-LDA 0x42
-LDX 0x42
-LDY 0x42
-LDA $0x1337
-LDX $0x1337
-LDY $0x1337
-LDA X
-LDA Y
-LDX A
-LDX Y
-LDY A
-LDY X
-LDA $0x1337 X
-LDA $0x1337 Y
-LEA ForwardReference
-LEX ForwardReference
-LEY ForwardReference
-STA $0x1337
-STX $0x1337
-STY $0x1337
-JMP ForwardReference
-JSR ForwardReference
-CMP A X
-CMP A Y
-CMP A 0x42
-CMP A $0x1337
-CMP X A
-CMP X Y
-CMP X 0x42
-CMP X $0x1337
-CMP Y X
-CMP Y A
-CMP Y 0x42
-CMP Y $0x1337
-BCS ForwardReference
-BCC ForwardReference
-BEQ ForwardReference
-BNE ForwardReference
-BMI ForwardReference
-BPL ForwardReference
-BVS ForwardReference
-BVC ForwardReference
-ADD 0x42
-ADD $0x1337
-ADD X
-ADD Y
-SUB 0x42
-SUB $0x1337
-SUB X
-SUB Y
-INC A
-INC X
-INC Y
-INC $0x1337
-DEC A
-DEC X
-DEC Y
-DEC $0x1337
-PUSH A
-PUSH X
-PUSH Y
-POP A
-POP X
-POP Y
+SYSCALL              ; Initiate a (virtual) machine system call
+STRIDE 0x4           ; Sets the index instructions' byte stride
+BRK                  ; Break, exits execution
+NOP                  ; No operation, do nothing, preferably with some noticeable delay
+CLC                  ; Clear carry, set the carry flag to 0
+SEC                  ; Set carry, set the carry flag to 1
+RET                  ; Return from subroutine
+LDA 0x42             ; Load literal into accumulator
+LDX 0x42             ; Load literal into X index
+LDY 0x42             ; Load literal into Y index
+LDA $0x1337          ; Load value from address into accumulator
+LDX $0x1337          ; Load value from address into X index
+LDY $0x1337          ; Load value from address into Y index
+LDA X                ; Transfer the contents of the X index into the accumulator
+LDA Y                ; Transfer the contents of the Y index into the accumulator
+LDX A                ; Transfer the contents of the accumulator into the X index
+LDX Y                ; Transfer the contents of the Y index into the X index
+LDY A                ; Transfer the contents of the accumulator into the Y index
+LDY X                ; Transfer the contents of the X index into the Y index
+LDA $0x1337 X        ; Load value from address indexed by X into the accumulator
+LDA $0x1337 Y        ; Load value from address indexed by X into the accumulator
+LEA ForwardReference ; Load effective address into the accumulator
+LEX ForwardReference ; Load effective address into the X index
+LEY ForwardReference ; Load effective address into the Y index
+STA $0x1337          ; Store accumulator value into address
+STX $0x1337          ; Store X index value into address
+STY $0x1337          ; Store Y index value into address
+JMP ForwardReference ; Jump to rom address
+JSR ForwardReference ; Save current PC and jump to rom address
+CMP A X              ; Compares the accumulator to the X index
+CMP A Y              ; Compares the accumulator to the Y index
+CMP A 0x42           ; Compares the accumulator to a literal
+CMP A $0x1337        ; Compares the accumulator to the value inside an address
+CMP X A              ; Compares the X index to the accumulator
+CMP X Y              ; Compares the X index to the Y index
+CMP X 0x42           ; Compares the X index to a literal
+CMP X $0x1337        ; Compares the X index to the value inside an address
+CMP Y X              ; Compares the Y index to the X index
+CMP Y A              ; Compares the Y index to the accumulator
+CMP Y 0x42           ; Compares the Y index to a literal
+CMP Y $0x1337        ; Compares the Y index to the value inside an address
+BCS ForwardReference ; Branch if carry set
+BCC ForwardReference ; Branch if carry clear
+BEQ ForwardReference ; Branch if equal
+BNE ForwardReference ; Branch if not equal
+BMI ForwardReference ; Branch if minus
+BPL ForwardReference ; Branch if plus
+BVS ForwardReference ; Branch if overflow set
+BVC ForwardReference ; Branch if overflow clear
+ADD 0x42             ; accumulator += (literal + carry)
+ADD $0x1337          ; accumulator += (value in address + carry)
+ADD X                ; accumulator += (X index + carry)
+ADD Y                ; accumulator += (Y index + carry)
+SUB 0x42             ; accumulator -= (literal + carry - 1)
+SUB $0x1337          ; accumulator -= (value in address + carry - 1)
+SUB X                ; accumulator -= (X index + carry - 1)
+SUB Y                ; accumulator -= (Y index + carry - 1)
+INC A                ; Increment the accumulator by one
+INC X                ; Increment the X index by one
+INC Y                ; Increment the Y index by one
+INC $0x1337          ; Increment the value inside the address by one
+DEC A                ; Decrement the accumulator by one
+DEC X                ; Decrement the X index by one
+DEC Y                ; Decrement the Y index by one
+DEC $0x1337          ; Decrement the value inside the address by one
+PUSH A               ; Pushes the value of the accumulator to the stack
+PUSH X               ; Pushes the value of the X index to the stack
+PUSH Y               ; Pushes the value of the Y index to the stack
+POP A                ; Pops a value from the stack into the accumulator
+POP X                ; Pops a value from the stack into the X index
+POP Y                ; Pops a value from the stack into the Y index
 
 ForwardReference:
 BRK
