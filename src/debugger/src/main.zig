@@ -37,6 +37,11 @@ pub fn main() !void {
     if (std.mem.eql(u8, flags.input_rom_filename.?, "stdin")) {
         warn.Warn_Message("input through stdin input not implemented yet.", .{});
     }
+    if (flags.step_by_step) {
+        stdout.print("Step by step debugging mode enabled!\n", .{}) catch unreachable;
+        stdout.print("-press enter to go forward one instruction.\n", .{}) catch unreachable;
+        stdout.print("-press 'q' then enter to exit execution.\n\n", .{}) catch unreachable;
+    }
 
     // load and init virtual machine
     var vm = machine.VirtualMachine.Init(flags.input_rom_filename, null);

@@ -19,6 +19,7 @@ pub const Flags = struct {
     input_rom_filename: ?[]u8 = null,
     instruction_delay: u64 = 200,
     nop_delay: u64 = 1000,
+    step_by_step: bool = false,
 
     /// debug output flags
     log_header_info: bool = false,
@@ -63,6 +64,8 @@ pub const Flags = struct {
                 result.instruction_delay = try std.fmt.parseInt(u64, arg.?[8..], 10);
             } else if (std.mem.startsWith(u8, arg.?, "--nop=")) {
                 result.nop_delay = try std.fmt.parseInt(u64, arg.?[6..], 10);
+            } else if (std.mem.startsWith(u8, arg.?, "--step-by-step")) {
+                result.step_by_step = true;
             } else if (std.mem.eql(u8, arg.?, "--log=all")) {
                 result.log_header_info = true;
                 result.log_instruction_opcode = true;
@@ -128,6 +131,8 @@ pub const Flags = struct {
         \\    Specify the instruction execution delay, in milliseconds. Default is 200.
         \\--nop=[unsigned int]
         \\    Specify the execution delay of the NOP instruction, in milliseconds. Default is 1000.
+        \\--step-by-step
+        \\    Enables step by step debugging, where execution halts after every instruction.
         \\
         \\INDIVIDUAL DEBUG OUTPUT FLAGS:
         \\--log=header
