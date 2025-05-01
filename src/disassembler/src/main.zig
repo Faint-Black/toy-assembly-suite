@@ -18,10 +18,12 @@ const stdout = std.io.getStdOut().writer();
 
 pub fn main() !void {
     // use DebugAllocator on debug mode
-    // use SmpAllocator on release mode
+    // use ArenaAllocator with page_allocator on release mode
     var debug_struct_allocator = std.heap.DebugAllocator(.{}).init;
     defer _ = debug_struct_allocator.deinit();
-    const global_allocator: std.mem.Allocator = if (builtin.mode == .Debug) debug_struct_allocator.allocator() else std.heap.smp_allocator;
+    var arena_struct_allocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer _ = arena_struct_allocator.deinit();
+    const global_allocator: std.mem.Allocator = if (builtin.mode == .Debug) debug_struct_allocator.allocator() else arena_struct_allocator.allocator();
 
     // command-line flags, filenames and filepath specifications
     const flags = try clap.Flags.Parse(global_allocator);
