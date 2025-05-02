@@ -1,0 +1,51 @@
+;; this code is meant to test the jumping and branching instructions.
+;; if any of these fail the PANIC opcode will not be skipped, thus
+;; triggering a runtime exception.
+
+SuccessString:
+  .db "All tests passed!\n"
+
+_START:
+  ;; jump to subroutine
+  JSR MySubroutine
+  ;; branch always
+  JMP @+
+    ERROR
+  @:
+  ;; branch if 0x42 = 0x42
+  CMP A 0x42
+  BEQ @+
+    ERROR
+  @:
+  ;; branch if 0x42 != 0x43
+  CMP A 0x43
+  BNE @+
+    ERROR
+  @:
+  ;; branch if 0x42 >= 0x41 (unsigned)
+  CMP A 0x41
+  BCC @+
+    ERROR
+  @:
+  ;; branch if 0x42 >= 0x42 (unsigned)
+  CMP A 0x42
+  BCC @+
+    ERROR
+  @:
+  ;; branch if 0x42 < 0x43 (unsigned)
+  CMP A 0x43
+  BCS @+
+    ERROR
+  @:
+  ;; all tests passed
+  LDA 0x0
+  LEX SuccessString
+  SYSCALL
+  BRK
+
+MySubroutine:
+  ;; sets first operand to 0x42 for all CMPs
+  LDA 0x42
+  LDX 0xDEADBEEF
+  LDY 0xB00B1E5
+  RET

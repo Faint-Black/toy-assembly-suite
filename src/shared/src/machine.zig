@@ -229,38 +229,58 @@ pub const VirtualMachine = struct {
         _ = this.Sub_With_Carry(a, b, 1);
     }
 
-    /// BCS instruction
-    pub fn Branch_If_Carry_Set(this: *VirtualMachine, addr: u16) void {
-        if (this.carry_flag == true) this.Jump_To_Address(addr);
-    }
-    /// BCC instruction
-    pub fn Branch_If_Carry_Clear(this: *VirtualMachine, addr: u16) void {
-        if (this.carry_flag == false) this.Jump_To_Address(addr);
-    }
-    /// BEQ instruction
-    pub fn Branch_If_Zero_Set(this: *VirtualMachine, addr: u16) void {
-        if (this.zero_flag == true) this.Jump_To_Address(addr);
-    }
-    /// BNE instruction
-    pub fn Branch_If_Zero_Clear(this: *VirtualMachine, addr: u16) void {
-        if (this.zero_flag == false) this.Jump_To_Address(addr);
-    }
-    /// BMI instruction
-    pub fn Branch_If_Negative_Set(this: *VirtualMachine, addr: u16) void {
-        if (this.negative_flag == true) this.Jump_To_Address(addr);
-    }
-    /// BPL instruction
-    pub fn Branch_If_Negative_Clear(this: *VirtualMachine, addr: u16) void {
-        if (this.negative_flag == false) this.Jump_To_Address(addr);
-    }
-    /// BVS instruction
-    pub fn Branch_If_Overflow_Set(this: *VirtualMachine, addr: u16) void {
-        if (this.overflow_flag == true) this.Jump_To_Address(addr);
-    }
-    /// BVC instruction
-    pub fn Branch_If_Overflow_Clear(this: *VirtualMachine, addr: u16) void {
-        if (this.overflow_flag == false) this.Jump_To_Address(addr);
-    }
+    /// branching functions namespace
+    /// returns true if jump occured, false if not
+    pub const BranchIf = enum {
+        /// BCS instruction
+        pub fn Carry_Set(this: *VirtualMachine, addr: u16) bool {
+            const cond = (this.carry_flag == true);
+            if (cond) this.Jump_To_Address(addr);
+            return cond;
+        }
+        /// BCC instruction
+        pub fn Carry_Clear(this: *VirtualMachine, addr: u16) bool {
+            const cond = (this.carry_flag == false);
+            if (cond) this.Jump_To_Address(addr);
+            return cond;
+        }
+        /// BEQ instruction
+        pub fn Zero_Set(this: *VirtualMachine, addr: u16) bool {
+            const cond = (this.zero_flag == true);
+            if (cond) this.Jump_To_Address(addr);
+            return cond;
+        }
+        /// BNE instruction
+        pub fn Zero_Clear(this: *VirtualMachine, addr: u16) bool {
+            const cond = (this.zero_flag == false);
+            if (cond) this.Jump_To_Address(addr);
+            return cond;
+        }
+        /// BMI instruction
+        pub fn Negative_Set(this: *VirtualMachine, addr: u16) bool {
+            const cond = (this.negative_flag == true);
+            if (cond) this.Jump_To_Address(addr);
+            return cond;
+        }
+        /// BPL instruction
+        pub fn Negative_Clear(this: *VirtualMachine, addr: u16) bool {
+            const cond = (this.negative_flag == false);
+            if (cond) this.Jump_To_Address(addr);
+            return cond;
+        }
+        /// BVS instruction
+        pub fn Overflow_Set(this: *VirtualMachine, addr: u16) bool {
+            const cond = (this.overflow_flag == true);
+            if (cond) this.Jump_To_Address(addr);
+            return cond;
+        }
+        /// BVC instruction
+        pub fn Overflow_Clear(this: *VirtualMachine, addr: u16) bool {
+            const cond = (this.overflow_flag == false);
+            if (cond) this.Jump_To_Address(addr);
+            return cond;
+        }
+    };
 
     /// Accumulator = syscall code
     /// X index = first argument

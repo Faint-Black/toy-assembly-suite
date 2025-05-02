@@ -15,13 +15,16 @@ const warn = @import("shared").warn;
 
 const stdout = std.io.getStdOut().writer();
 
-/// return value -> should_quit?
+/// return value -> bool should_quit
 pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: clap.Flags) !bool {
+    // "macros"
     const QUIT = true;
     const CONTINUE = false;
     // for storing the bufprints
     var bufs: [4][utils.buffsize.large]u8 = undefined;
 
+    // do not increment PC after a jump instruction
+    var pc_increment: u8 = op.Instruction_Byte_Length();
     switch (op) {
         // useful for debugging when fill_byte is set to zero
         .PANIC => {
@@ -89,6 +92,7 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: cla
             if (flags.log_instruction_sideeffects) {
                 stdout.print("After returning from subroutine:\n{s}\n", .{Bp_PC(vm, &bufs[0])}) catch unreachable;
             }
+            pc_increment = 0;
         },
         // load literal into accumulator
         .LDA_LIT => {
@@ -312,6 +316,7 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: cla
             if (flags.log_instruction_sideeffects) {
                 stdout.print("After jumping to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
+            pc_increment = 0;
         },
         // go to ROM address and save its position on the stack
         .JSR_ADDR => {
@@ -323,6 +328,7 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: cla
             if (flags.log_instruction_sideeffects) {
                 stdout.print("After jumping to subroutine at address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
+            pc_increment = 0;
         },
         // modify flags by subtracting the accumulator with the X index
         .CMP_A_X => {
@@ -459,7 +465,9 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: cla
             if (flags.log_instruction_sideeffects) {
                 stdout.print("Before branching if Carry=1 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
-            vm.Branch_If_Carry_Set(address);
+            if (machine.VirtualMachine.BranchIf.Carry_Set(vm, address)) {
+                pc_increment = 0;
+            }
             if (flags.log_instruction_sideeffects) {
                 stdout.print("After branching if Carry=1 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
@@ -470,7 +478,9 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: cla
             if (flags.log_instruction_sideeffects) {
                 stdout.print("Before branching if Carry=0 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
-            vm.Branch_If_Carry_Clear(address);
+            if (machine.VirtualMachine.BranchIf.Carry_Clear(vm, address)) {
+                pc_increment = 0;
+            }
             if (flags.log_instruction_sideeffects) {
                 stdout.print("After branching if Carry=0 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
@@ -481,7 +491,9 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: cla
             if (flags.log_instruction_sideeffects) {
                 stdout.print("Before branching if Zero=1 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
-            vm.Branch_If_Zero_Set(address);
+            if (machine.VirtualMachine.BranchIf.Zero_Set(vm, address)) {
+                pc_increment = 0;
+            }
             if (flags.log_instruction_sideeffects) {
                 stdout.print("After branching if Zero=1 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
@@ -492,7 +504,9 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: cla
             if (flags.log_instruction_sideeffects) {
                 stdout.print("Before branching if Zero=0 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
-            vm.Branch_If_Zero_Clear(address);
+            if (machine.VirtualMachine.BranchIf.Zero_Clear(vm, address)) {
+                pc_increment = 0;
+            }
             if (flags.log_instruction_sideeffects) {
                 stdout.print("After branching if Zero=0 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
@@ -503,7 +517,9 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: cla
             if (flags.log_instruction_sideeffects) {
                 stdout.print("Before branching if Negative=1 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
-            vm.Branch_If_Negative_Set(address);
+            if (machine.VirtualMachine.BranchIf.Negative_Set(vm, address)) {
+                pc_increment = 0;
+            }
             if (flags.log_instruction_sideeffects) {
                 stdout.print("After branching if Negative=1 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
@@ -514,7 +530,9 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: cla
             if (flags.log_instruction_sideeffects) {
                 stdout.print("Before branching if Negative=0 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
-            vm.Branch_If_Negative_Clear(address);
+            if (machine.VirtualMachine.BranchIf.Negative_Clear(vm, address)) {
+                pc_increment = 0;
+            }
             if (flags.log_instruction_sideeffects) {
                 stdout.print("After branching if Negative=0 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
@@ -525,7 +543,9 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: cla
             if (flags.log_instruction_sideeffects) {
                 stdout.print("Before branching if Overflow=1 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
-            vm.Branch_If_Overflow_Set(address);
+            if (machine.VirtualMachine.BranchIf.Overflow_Set(vm, address)) {
+                pc_increment = 0;
+            }
             if (flags.log_instruction_sideeffects) {
                 stdout.print("After branching if Overflow=1 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
@@ -536,7 +556,9 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: cla
             if (flags.log_instruction_sideeffects) {
                 stdout.print("Before branching if Overflow=0 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
-            vm.Branch_If_Overflow_Clear(address);
+            if (machine.VirtualMachine.BranchIf.Overflow_Clear(vm, address)) {
+                pc_increment = 0;
+            }
             if (flags.log_instruction_sideeffects) {
                 stdout.print("After branching if Overflow=0 to address {s}:\n{s}\n", .{ Bp_Addr(&bufs[0], address), Bp_PC(vm, &bufs[1]) }) catch unreachable;
             }
@@ -784,6 +806,7 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: cla
         },
     }
 
+    vm.program_counter += pc_increment;
     return CONTINUE;
 }
 

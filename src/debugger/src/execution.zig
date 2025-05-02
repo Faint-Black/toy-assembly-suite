@@ -52,8 +52,7 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
             stdout.print("Instruction: {s}\n", .{instruction_str}) catch unreachable;
         }
 
-        // run instruction
+        // run instruction, automatically increments VM program counter
         quit = try coderun.Run_Instruction(opcode_enum, vm, flags);
-        vm.program_counter += opcode_enum.Instruction_Byte_Length();
     }
 }
