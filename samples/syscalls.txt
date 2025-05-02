@@ -24,64 +24,64 @@ STR4:
   .db "Hexadecimal format of X: "
 
 _START:
-;; syscall code 0x00 = print string from ROM from address X.
-LDA 0x0
-LEX STR1
-SYSCALL
+  ;; syscall code 0x00 = print string from ROM from address X.
+  LDA 0x0
+  LEX STR1
+  SYSCALL
 
-LDA 0x6173614D
-STA $0x1337
-LDA 0x68736F79
-STA $0x133B
-LDA 0x61542069
-STA $0x133F
-LDA 0x616E616B
-STA $0x1343
-LDA 0x000a616B
-STA $0x1347
-;; syscall code 0x01 = print string from WRAM from address X.
-LDA 0x1
-LEX $0x1337
-SYSCALL
+  LDA 0x6173614D
+  STA $0x1337
+  LDA 0x68736F79
+  STA $0x133B
+  LDA 0x61542069
+  STA $0x133F
+  LDA 0x616E616B
+  STA $0x1343
+  LDA 0x000a616B
+  STA $0x1347
+  ;; syscall code 0x01 = print string from WRAM from address X.
+  LDA 0x1
+  LEX $0x1337
+  SYSCALL
 
-LDA 0x0
-LEX STR2
-SYSCALL
-;; syscall code 0x02 = print newline character X times.
-LDA 0x2
-LDX 0x3
-SYSCALL
+  LDA 0x0
+  LEX STR2
+  SYSCALL
+  ;; syscall code 0x02 = print newline character X times.
+  LDA 0x2
+  LDX 0x3
+  SYSCALL
 
-;; syscall code 0x03 = print X as an ASCII character, print '?' if char is invalid.
-LDA 0x3
-LDX 'F'
-SYSCALL
-LDA 0x3
-LDX 'o'
-SYSCALL
-LDA 0x3
-LDX 'o'
-SYSCALL
-LDA 0x3
-LDX '\n'
-SYSCALL
+  ;; syscall code 0x03 = print X as an ASCII character, print '?' if char is invalid.
+  LDA 0x3
+  LDX 'F'
+  SYSCALL
+  LDA 0x3
+  LDX 'o'
+  SYSCALL
+  LDA 0x3
+  LDX 'o'
+  SYSCALL
+  LDA 0x3
+  LDX '\n'
+  SYSCALL
 
-LDA 0x0
-LEX STR3
-SYSCALL
-;; syscall code 0x04 = print X as an integer in decimal format.
-LDA 0x4
-LDX 0xFFFFFFFF
-SYSCALL
-PRINT_ONE_NEWLINE
+  LDA 0x0
+  LEX STR3
+  SYSCALL
+  ;; syscall code 0x04 = print X as an integer in decimal format.
+  LDA 0x4
+  LDX 0xFFFFFFFF
+  SYSCALL
+  PRINT_ONE_NEWLINE
 
-LDA 0x0
-LEX STR4
-SYSCALL
-;; syscall code 0x05 = print X as an integer in hexadecimal format.
-LDA 0x5
-LDX 0xFFFFFFFF
-SYSCALL
-PRINT_ONE_NEWLINE
+  LDA 0x0
+  LEX STR4
+  SYSCALL
+  ;; syscall code 0x05 = print X as an integer in hexadecimal format.
+  LDA 0x5
+  LDX 0xFFFFFFFF
+  SYSCALL
+  PRINT_ONE_NEWLINE
 
-BRK
+  BRK

@@ -1,9 +1,6 @@
 ;; This code will continuously print the fibonacci sequence.
 ;; it's just a demo meant to display the assembly functionalities
-;; in a practical application.
-
-;; TODO: under construction, will only get completed when the suite
-;;       reaches version 1.0!
+;; in a real-world practical application.
 
 .macro PUSH_REGISTERS
   PUSH A
@@ -17,28 +14,50 @@
   POP A
 .endmacro
 
+.macro PRINT_ACCUMULATOR
+  LDX A
+  LDA 0x4
+  SYSCALL
+  LDA 0x2
+  LDX 0x1
+  SYSCALL
+.endmacro
+
+.define SYSCALLCODE_PrintRomStr 0x0
+
+STR1:
+  .db "Printing 47 elements of the fibonacci sequence:\n"
+
+;; [main]
 _START:
+  ;; print(STR1)
+  LDA SYSCALLCODE_PrintRomStr
+  LEX STR1
+  SYSCALL
+  ;; for (A = 0; A < 47; A++) print(fib(A))
+  ;; 48 or above causes a signed integer overflow
   LDA 0x00
-  ;; while (++A) { print fib(A) }
-  @InfiniteLoop:
+  @Loop:
     PUSH_REGISTERS
     JSR Fibonacci
-    ;; TODO: put syscall for printing A here
+    PRINT_ACCUMULATOR
     POP_REGISTERS
     INC A
-  JMP @-
+    CMP A 0d47
+    BCS @-
+  BRK
 
 ;; [subroutine]
 ;; description: Calculate the nth fibonacci sequence number
 ;; arguments: n = Accumulator
 ;; return: result = Accumulator
-;; memory use: addresses $0x0-0x3, $0x4-0x7, $0x8-0xB and $0xC-0xF
+;; memory use: addresses $0x0-$0xF (four DWORDs)
 Fibonacci:
   ;; local memory map:
-  ;; $0x00-0x03 = int n
-  ;; $0x04-0x07 = int temp1
-  ;; $0x08-0x0B = int temp2
-  ;; $0x0C-0x0F = int temp3
+  ;; DWORD $0x00 = int n
+  ;; DWORD $0x04 = int temp1
+  ;; DWORD $0x08 = int temp2
+  ;; DWORD $0x0C = int temp3
 
   ;; int n = input argument
   STA $0x0
@@ -61,7 +80,7 @@ Fibonacci:
   ;; int temp2 = 1
   LDA 0x01
   STA $0x8
-  ;; --n to avoid off by one error
+  ;; n--, to avoid an off-by-one error
   DEC $0x0
   @Loop:
     ;; temp3 = temp1 + temp2

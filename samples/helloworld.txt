@@ -1,5 +1,6 @@
 ;; minimal hello world program
 
+;; bytes loaded into ROM data section
 STR:
   .db "Hello world!\n"
 

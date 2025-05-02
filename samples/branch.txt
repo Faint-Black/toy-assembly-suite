@@ -2,12 +2,12 @@
 ;; if any of these fail the PANIC opcode will not be skipped, thus
 ;; triggering a runtime exception.
 
-SuccessString:
+Success_Str:
   .db "All tests passed!\n"
 
 _START:
   ;; jump to subroutine
-  JSR MySubroutine
+  JSR Set_Registers_Subroutine
   ;; branch always
   JMP @+
     ERROR
@@ -37,15 +37,27 @@ _START:
   BCS @+
     ERROR
   @:
-  ;; all tests passed
+  ;; print("All tests passed!\n")
   LDA 0x0
-  LEX SuccessString
+  LEX Success_Str
   SYSCALL
   BRK
 
-MySubroutine:
-  ;; sets first operand to 0x42 for all CMPs
+;; consecutive function calls to check SP integrity
+Set_Registers_Subroutine:
+  JSR Set_A_Subroutine
+  RET
+
+Set_A_Subroutine:
   LDA 0x42
+  JSR Set_X_Subroutine
+  RET
+
+Set_X_Subroutine:
   LDX 0xDEADBEEF
+  JSR Set_Y_Subroutine
+  RET
+
+Set_Y_Subroutine:
   LDY 0xB00B1E5
   RET
