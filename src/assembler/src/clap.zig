@@ -21,13 +21,13 @@ pub const Flags = struct {
     debug_mode: bool = false,
 
     /// debug output flags
-    print_flags: bool = false,
-    print_lexed_tokens: bool = false,
-    print_stripped_tokens: bool = false,
-    print_expanded_tokens: bool = false,
-    print_symbol_table: bool = false,
-    print_anon_labels: bool = false,
-    print_rom_bytes: bool = false,
+    log_flags: bool = false,
+    log_lexed_tokens: bool = false,
+    log_stripped_tokens: bool = false,
+    log_expanded_tokens: bool = false,
+    log_symbol_table: bool = false,
+    log_anon_labels: bool = false,
+    log_rom_bytes: bool = false,
 
     /// info flags
     help: bool = false,
@@ -71,58 +71,58 @@ pub const Flags = struct {
                 result.output_filename = try allocator.dupe(u8, arg.?[9..]);
             } else if (std.mem.eql(u8, arg.?, "-g") or std.mem.eql(u8, arg.?, "--debug")) {
                 result.debug_mode = true;
-            } else if (std.mem.eql(u8, arg.?, "--print=flags")) {
-                result.print_flags = true;
-            } else if (std.mem.eql(u8, arg.?, "--print=lexed")) {
-                result.print_lexed_tokens = true;
-            } else if (std.mem.eql(u8, arg.?, "--print=stripped")) {
-                result.print_stripped_tokens = true;
-            } else if (std.mem.eql(u8, arg.?, "--print=expanded")) {
-                result.print_expanded_tokens = true;
-            } else if (std.mem.eql(u8, arg.?, "--print=symbols")) {
-                result.print_symbol_table = true;
-            } else if (std.mem.eql(u8, arg.?, "--print=anonlabels")) {
-                result.print_anon_labels = true;
-            } else if (std.mem.eql(u8, arg.?, "--print=rom")) {
-                result.print_rom_bytes = true;
-            } else if (std.mem.eql(u8, arg.?, "--noprint=flags")) {
-                result.print_flags = false;
-            } else if (std.mem.eql(u8, arg.?, "--noprint=lexed")) {
-                result.print_lexed_tokens = false;
-            } else if (std.mem.eql(u8, arg.?, "--noprint=stripped")) {
-                result.print_stripped_tokens = false;
-            } else if (std.mem.eql(u8, arg.?, "--noprint=expanded")) {
-                result.print_expanded_tokens = false;
-            } else if (std.mem.eql(u8, arg.?, "--noprint=symbols")) {
-                result.print_symbol_table = false;
-            } else if (std.mem.eql(u8, arg.?, "--noprint=anonlabels")) {
-                result.print_anon_labels = false;
-            } else if (std.mem.eql(u8, arg.?, "--noprint=rom")) {
-                result.print_rom_bytes = false;
-            } else if (std.mem.eql(u8, arg.?, "--print=all")) {
-                result.print_flags = true;
-                result.print_lexed_tokens = true;
-                result.print_stripped_tokens = true;
-                result.print_expanded_tokens = true;
-                result.print_symbol_table = true;
-                result.print_anon_labels = true;
-                result.print_rom_bytes = true;
-            } else if (std.mem.eql(u8, arg.?, "--print=tokens")) {
-                result.print_lexed_tokens = true;
-                result.print_stripped_tokens = true;
-                result.print_expanded_tokens = true;
-            } else if (std.mem.eql(u8, arg.?, "--noprint=all")) {
-                result.print_flags = false;
-                result.print_lexed_tokens = false;
-                result.print_stripped_tokens = false;
-                result.print_expanded_tokens = false;
-                result.print_symbol_table = false;
-                result.print_anon_labels = false;
-                result.print_rom_bytes = false;
-            } else if (std.mem.eql(u8, arg.?, "--noprint=tokens")) {
-                result.print_lexed_tokens = false;
-                result.print_stripped_tokens = false;
-                result.print_expanded_tokens = false;
+            } else if (std.mem.eql(u8, arg.?, "--log=flags")) {
+                result.log_flags = true;
+            } else if (std.mem.eql(u8, arg.?, "--log=lexed")) {
+                result.log_lexed_tokens = true;
+            } else if (std.mem.eql(u8, arg.?, "--log=stripped")) {
+                result.log_stripped_tokens = true;
+            } else if (std.mem.eql(u8, arg.?, "--log=expanded")) {
+                result.log_expanded_tokens = true;
+            } else if (std.mem.eql(u8, arg.?, "--log=symbols")) {
+                result.log_symbol_table = true;
+            } else if (std.mem.eql(u8, arg.?, "--log=anonlabels")) {
+                result.log_anon_labels = true;
+            } else if (std.mem.eql(u8, arg.?, "--log=rom")) {
+                result.log_rom_bytes = true;
+            } else if (std.mem.eql(u8, arg.?, "--nolog=flags")) {
+                result.log_flags = false;
+            } else if (std.mem.eql(u8, arg.?, "--nolog=lexed")) {
+                result.log_lexed_tokens = false;
+            } else if (std.mem.eql(u8, arg.?, "--nolog=stripped")) {
+                result.log_stripped_tokens = false;
+            } else if (std.mem.eql(u8, arg.?, "--nolog=expanded")) {
+                result.log_expanded_tokens = false;
+            } else if (std.mem.eql(u8, arg.?, "--nolog=symbols")) {
+                result.log_symbol_table = false;
+            } else if (std.mem.eql(u8, arg.?, "--nolog=anonlabels")) {
+                result.log_anon_labels = false;
+            } else if (std.mem.eql(u8, arg.?, "--nolog=rom")) {
+                result.log_rom_bytes = false;
+            } else if (std.mem.eql(u8, arg.?, "--log=all")) {
+                result.log_flags = true;
+                result.log_lexed_tokens = true;
+                result.log_stripped_tokens = true;
+                result.log_expanded_tokens = true;
+                result.log_symbol_table = true;
+                result.log_anon_labels = true;
+                result.log_rom_bytes = true;
+            } else if (std.mem.eql(u8, arg.?, "--log=tokens")) {
+                result.log_lexed_tokens = true;
+                result.log_stripped_tokens = true;
+                result.log_expanded_tokens = true;
+            } else if (std.mem.eql(u8, arg.?, "--nolog=all")) {
+                result.log_flags = false;
+                result.log_lexed_tokens = false;
+                result.log_stripped_tokens = false;
+                result.log_expanded_tokens = false;
+                result.log_symbol_table = false;
+                result.log_anon_labels = false;
+                result.log_rom_bytes = false;
+            } else if (std.mem.eql(u8, arg.?, "--nolog=tokens")) {
+                result.log_lexed_tokens = false;
+                result.log_stripped_tokens = false;
+                result.log_expanded_tokens = false;
             } else {
                 warn.Error_Message("Unknown argument: \"{s}\"", .{arg.?});
                 return error.BadArgument;
@@ -147,7 +147,7 @@ pub const Flags = struct {
         \\
         \\USAGE:
         \\$ ./assembler -i="samples/fibonacci.txt" -o="fib.bin"
-        \\$ ./assembler --input="samples/alltokens.txt" --print=all -g --noprint=tokens
+        \\$ ./assembler --input="samples/alltokens.txt" --log=all -g --nolog=tokens
         \\
         \\INFO FLAGS:
         \\-h, --help
@@ -166,45 +166,45 @@ pub const Flags = struct {
         \\    You may leave this empty for no file output.
         \\
         \\INDIVIDUAL DEBUG OUTPUT FLAGS:
-        \\--print=flags
+        \\--log=flags
         \\    Enable print command line flags information
-        \\--print=lexed
+        \\--log=lexed
         \\    Enable print lexed tokens
-        \\--print=stripped
+        \\--log=stripped
         \\    Enable print stripped tokens
-        \\--print=expanded
+        \\--log=expanded
         \\    Enable print expanded tokens
-        \\--print=symbols
+        \\--log=symbols
         \\    Enable print symbol table
-        \\--print=anonlabels
+        \\--log=anonlabels
         \\    Enable print anonymous labels information
-        \\--print=rom
+        \\--log=rom
         \\    Enable print rom dump
         \\
-        \\--noprint=flags
+        \\--nolog=flags
         \\    Disable print command line flags information
-        \\--noprint=lexed
+        \\--nolog=lexed
         \\    Disable print lexed tokens
-        \\--noprint=stripped
+        \\--nolog=stripped
         \\    Disable print stripped tokens
-        \\--noprint=expanded
+        \\--nolog=expanded
         \\    Disable print expanded tokens
-        \\--noprint=symbols
+        \\--nolog=symbols
         \\    Disable print symbol table
-        \\--noprint=anonlabels
+        \\--nolog=anonlabels
         \\    Disable print anonymous labels information
-        \\--noprint=rom
+        \\--nolog=rom
         \\    Disable print rom dump
         \\
         \\GROUP DEBUG OUTPUT FLAGS:
-        \\--print=all
+        \\--log=all
         \\    Enable all debug output flags
-        \\--print=tokens
+        \\--log=tokens
         \\    Enable lexed, stripped and expanded output flags
         \\
-        \\--noprint=all
+        \\--nolog=all
         \\    Disable all debug output flags
-        \\--noprint=tokens
+        \\--nolog=tokens
         \\    Disable lexed, stripped and expanded output flags
         \\
         ;

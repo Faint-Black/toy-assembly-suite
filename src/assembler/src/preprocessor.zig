@@ -27,7 +27,7 @@ pub fn Preprocessor_Expansion(allocator: std.mem.Allocator, flags: clap.Flags, s
     defer tok.Destroy_Tokens_Contents(allocator, stripped_tokens);
 
     // [DEBUG OUTPUT] print the resulting stripped tokens
-    if (flags.print_stripped_tokens) {
+    if (flags.log_stripped_tokens) {
         stdout.print("\nStripped tokens:\n", .{}) catch unreachable;
         tok.Print_Token_Array(stripped_tokens);
     }

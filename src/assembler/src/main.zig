@@ -61,18 +61,18 @@ pub fn main() !void {
     }
 
     // [DEBUG OUTPUT] print flag informations
-    if (flags.print_flags) {
+    if (flags.log_flags) {
         stdout.print("invoked binary: {?s}\n", .{flags.binary_directory}) catch unreachable;
         stdout.print("input filepath: {?s}\n", .{flags.input_filename}) catch unreachable;
         stdout.print("output filepath: {?s}\n", .{flags.output_filename}) catch unreachable;
         stdout.print("debug mode flag: {}\n", .{flags.debug_mode}) catch unreachable;
-        stdout.print("print flags: {}\n", .{flags.print_flags}) catch unreachable;
-        stdout.print("print lexed tokens: {}\n", .{flags.print_lexed_tokens}) catch unreachable;
-        stdout.print("print stripped tokens: {}\n", .{flags.print_stripped_tokens}) catch unreachable;
-        stdout.print("print expanded tokens: {}\n", .{flags.print_expanded_tokens}) catch unreachable;
-        stdout.print("print symbol table: {}\n", .{flags.print_symbol_table}) catch unreachable;
-        stdout.print("print anon labels: {}\n", .{flags.print_anon_labels}) catch unreachable;
-        stdout.print("print rom: {}\n", .{flags.print_rom_bytes}) catch unreachable;
+        stdout.print("print flags: {}\n", .{flags.log_flags}) catch unreachable;
+        stdout.print("print lexed tokens: {}\n", .{flags.log_lexed_tokens}) catch unreachable;
+        stdout.print("print stripped tokens: {}\n", .{flags.log_stripped_tokens}) catch unreachable;
+        stdout.print("print expanded tokens: {}\n", .{flags.log_expanded_tokens}) catch unreachable;
+        stdout.print("print symbol table: {}\n", .{flags.log_symbol_table}) catch unreachable;
+        stdout.print("print anon labels: {}\n", .{flags.log_anon_labels}) catch unreachable;
+        stdout.print("print rom: {}\n", .{flags.log_rom_bytes}) catch unreachable;
     }
 
     // load file into a newly allocated buffer
@@ -97,7 +97,7 @@ pub fn main() !void {
     defer tok.Destroy_Tokens_Contents(global_allocator, lexed_tokens);
 
     // [DEBUG OUTPUT] print lexed tokens
-    if (flags.print_lexed_tokens) {
+    if (flags.log_lexed_tokens) {
         stdout.print("\nLexed tokens:\n", .{}) catch unreachable;
         tok.Print_Token_Array(lexed_tokens);
     }
@@ -111,7 +111,7 @@ pub fn main() !void {
     defer tok.Destroy_Tokens_Contents(global_allocator, expanded_tokens);
 
     // [DEBUG OUTPUT] print macro expanded tokens
-    if (flags.print_expanded_tokens) {
+    if (flags.log_expanded_tokens) {
         stdout.print("\nExpanded tokens:\n", .{}) catch unreachable;
         tok.Print_Token_Array(expanded_tokens);
     }
@@ -144,7 +144,7 @@ pub fn main() !void {
     }
 
     // [DEBUG OUTPUT] print symbol hashtable
-    if (flags.print_symbol_table)
+    if (flags.log_symbol_table)
         global_symbol_table.Print();
 
     // end and print benchmark

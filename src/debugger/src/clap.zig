@@ -22,9 +22,9 @@ pub const Flags = struct {
     step_by_step: bool = false,
 
     /// debug output flags
-    log_header_info: bool = false,
-    log_instruction_opcode: bool = false,
-    log_instruction_sideeffects: bool = false,
+    log_header_info: bool = true,
+    log_instruction_opcode: bool = true,
+    log_instruction_sideeffects: bool = true,
 
     /// info flags
     help: bool = false,
@@ -112,12 +112,6 @@ pub const Flags = struct {
         \\$ ./debugger -i="../foobar.bin"
         \\$ ./debugger --input="../barbaz.rom" --log=all --nolog=sideeffects --delay=100
         \\
-        \\DEBUGGER MODE FLAGS:
-        \\-r, --run
-        \\    Set debugger to run mode. Executes the ROM file in a virtual machine.
-        \\-d, --disassemble
-        \\    Set debugger to disassemble mode. Disassembles the ROM file back into humanly readable instructions.
-        \\
         \\INFO FLAGS:
         \\-h, --help
         \\    Output this text.
@@ -126,35 +120,35 @@ pub const Flags = struct {
         \\
         \\CORE USAGE FLAGS:
         \\-i="path/to/rom.bin", --input="path/to/rom.bin"
-        \\    Specify the input ROM file.
+        \\    Specify the input ROM file. Default is stdin.
         \\--delay=[unsigned int]
         \\    Specify the instruction execution delay, in milliseconds. Default is 200.
         \\--nop=[unsigned int]
         \\    Specify the execution delay of the NOP instruction, in milliseconds. Default is 1000.
         \\--step-by-step
-        \\    Enables step by step debugging, where execution halts after every instruction.
+        \\    Enables step by step debugging, where execution halts after every instruction. Default is false.
         \\
         \\INDIVIDUAL DEBUG OUTPUT FLAGS:
         \\--log=header
-        \\    Enable logging of the ROM's header information
+        \\    Enable logging of the ROM's header information.
         \\--log=opcodes
-        \\    Enable logging of each instruction being executed
+        \\    Enable logging of each instruction being executed.
         \\--log=sideeffects
-        \\    Enable logging of the effect of the instruction on the machine
+        \\    Enable logging of the effect of the instruction on the machine.
         \\
         \\--nolog=header
-        \\    Disable logging of the ROM's header information
+        \\    Disable logging of the ROM's header information.
         \\--nolog=opcodes
-        \\    Disable logging of each instruction being executed
+        \\    Disable logging of each instruction being executed.
         \\--nolog=sideeffects
-        \\    Disable logging of the effect of the instruction on the machine
+        \\    Disable logging of the effect of the instruction on the machine.
         \\
         \\GROUP DEBUG OUTPUT FLAGS:
         \\--log=all
-        \\    Enable all logging flags
+        \\    Enable all logging flags. Default is true.
         \\
         \\--nolog=all
-        \\    Disable all logging flags
+        \\    Disable all logging flags.
         \\
         ;
     }

@@ -97,7 +97,7 @@ pub const Flags = struct {
         \\
         \\CORE USAGE FLAGS:
         \\-i="path/to/rom.bin", --input="path/to/rom.bin"
-        \\    Specify the input ROM file.
+        \\    Specify the input ROM file. Default is stdin.
         \\
         \\OUTPUT STYLE FLAGS:
         \\--noaddress

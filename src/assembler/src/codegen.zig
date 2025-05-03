@@ -33,7 +33,7 @@ pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *
     const second_pass = try Codegen(false, allocator, flags, symTable, expandedTokens);
 
     // [DEBUG OUTPUT] print rom bytes
-    if (flags.print_rom_bytes) {
+    if (flags.log_rom_bytes) {
         Debug_Print_Rom(second_pass);
     }
 
@@ -200,7 +200,7 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
             try utils.Append_Element_To_Buffer(tok.Token, &tokenBuffer, &tokenBuffsize, address_token);
 
             // [DEBUG OUTPUT] output anonymous label reference substitution details
-            if (flags.print_anon_labels) {
+            if (flags.log_anon_labels) {
                 const sign: u8 = if (token.tokType == .BACKWARD_LABEL_REF) '-' else '+';
                 stdout.print("\nresulting relative label fetch:\n", .{}) catch unreachable;
                 stdout.print("relative index: {c}{}\n", .{ sign, token.value }) catch unreachable;
