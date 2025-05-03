@@ -17,6 +17,12 @@ const stdout = std.io.getStdOut().writer();
 const stderr = std.io.getStdErr().writer();
 const stdin = std.io.getStdIn().reader();
 
+pub const VMerror = error{
+    BadSyscall,
+    StackUnderflow,
+    StackOverflow,
+};
+
 pub const VirtualMachine = struct {
     /// Only meant to be used for debugging and disassembly purposes,
     /// the actual machine is not meant to know its own size!
@@ -103,7 +109,7 @@ pub const VirtualMachine = struct {
     }
 
     /// pushes generic value to the stack
-    pub fn Push_To_Stack(this: *VirtualMachine, comptime T: type, value: T) !void {
+    pub fn Push_To_Stack(this: *VirtualMachine, comptime T: type, value: T) VMerror!void {
         if (this.stack_pointer < @sizeOf(T))
             return error.StackOverflow;
         this.stack_pointer -= @sizeOf(T);
@@ -112,7 +118,7 @@ pub const VirtualMachine = struct {
     }
 
     /// pops generic value from the stack
-    pub fn Pop_From_Stack(this: *VirtualMachine, comptime T: type) !T {
+    pub fn Pop_From_Stack(this: *VirtualMachine, comptime T: type) VMerror!T {
         if ((this.stack_pointer + @sizeOf(T)) >= specs.bytelen.stack)
             return error.StackUnderflow;
 
@@ -127,7 +133,7 @@ pub const VirtualMachine = struct {
     }
 
     /// save current position to the stack, then go to rom address
-    pub fn Jump_To_Subroutine(this: *VirtualMachine, address: u16) !void {
+    pub fn Jump_To_Subroutine(this: *VirtualMachine, address: u16) VMerror!void {
         // only save the rom address of *the next* instruction
         // harcoded to the "JSR $ADDR" opcode syntax
         const skip_amount = specs.bytelen.opcode + specs.bytelen.address;
@@ -285,7 +291,7 @@ pub const VirtualMachine = struct {
     /// Accumulator = syscall code
     /// X index = first argument
     /// Y index = second argument
-    pub fn Syscall(this: *VirtualMachine) !void {
+    pub fn Syscall(this: *VirtualMachine) VMerror!void {
         const syscall_code: u8 = @truncate(this.accumulator);
         const syscall_enum: specs.SyscallCode = @enumFromInt(syscall_code);
         switch (syscall_enum) {
@@ -333,7 +339,7 @@ pub const VirtualMachine = struct {
                 const integer: u32 = this.x_index;
                 _ = stdout.print("0x{X:0>8}", .{integer}) catch unreachable;
             },
-            _ => return error.UnknownSyscallCode,
+            _ => return error.BadSyscall,
         }
     }
 };
