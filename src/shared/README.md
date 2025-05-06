@@ -9,15 +9,15 @@ ROM and WRAM do *not* share address spaces. Example: "LDA $0x1337" and "JMP $0x1
 
 As a rule of thumb, every jumping/branching instruction uses the input address to point to an address inside ROM space, while every other instruction points to WRAM.
 
-* The ROM
+* **The ROM**
 
 Since the maximum address space is only a 16-bits integer, the ROM can be up to 0xFFFF + 1 bytes long. Writing to ROM during the machine's execution should be completely impossible since the ROM and WRAM address spaces are completely isolated.
 
-* The WRAM
+* **The WRAM**
 
 Following the same length logic from the ROM, work RAM can be up to 0xFFFF + 1 bytes long. The user may modify it's contents as they wish.
 
-* The Stack
+* **The Stack**
 
 The stack only has 0x0400 bytes of usable space, this choice value was chosen arbitrarily. Although it has a dedicated address space, it cannot be directly accessed by the user, the only instructions that alter the stack memory and stack pointer are the pushing instructions, popping instructions and subroutine instructions.
 
@@ -56,26 +56,27 @@ Incorrectly loading a ROM address is impossible. Run-time checks are not necessa
 
 Popping from an empty stack or pushing to a full stack should result in a crash or otherwise fatal error.
 
-## Arithmetic Edge Cases
-Every single arithmetic operation is interpreted as an unsigned integers operation. Compliment of 2 was not implemented.
+## Arithmetics and flag modifications
+Every arithmetic operation is interpreted as a **signed** integer operation using two's complement. Integer bit overflow/underflow is expected behavior and part of the runtime functionality, thus the effect it has on the carry flag.
 
-* Addition
+* **Carry flag:**
 
-```
-1 + 1 = 2
-carry is clear
+This is a multi-purpose flag. It's effects depends solely on the individual operation.
 
-MAX + 1 = 0
-carry is set
-```
+* **Overflow flag:**
 
-* Subtraction
+This flag is modified after any addition/subtraction operation.
 
-```
-2 - 1 = 1
-0 - 1 = MAX
-[FLAG TO BE DECIDED] is clear
+It is set if the result of an addition (reminder that, internally, subtraction is just a sum of the first argument and neg of the second argument) does not make "mathematical sense". This is done by checking if the result's value has the same sign as the 2 arguments.
 
-0 - 1 = MAX
-[FLAG TO BE DECIDED] is set
-```
+* **Negative flag:**
+
+This flag is modified after any operation that wields some sort of result, this includes arithmetic, loading, storing, etc.
+
+It is set if such result has its i32 sign bit active, and cleared if not.
+
+* **Zero flag:**
+
+This flag is modified after any operation that wields some sort of result, this includes arithmetic, loading, storing, etc.
+
+It is set if such result is zero, and cleared if not.
