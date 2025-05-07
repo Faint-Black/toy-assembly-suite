@@ -51,11 +51,13 @@ pub fn main() !void {
     };
     const rom_header: specs.Header = specs.Header.Parse_From_Byte_Array(rom[0..16].*);
 
-    stdout.print("HEADER INFO:\n", .{}) catch unreachable;
-    stdout.print("magic number: {}\n", .{rom_header.magic_number}) catch unreachable;
-    stdout.print("assembly version: {}\n", .{rom_header.language_version}) catch unreachable;
-    stdout.print("entry point address: 0x{X:0>4}\n", .{rom_header.entry_point}) catch unreachable;
-    stdout.print("rom debug enable: {}\n\n", .{rom_header.debug_mode}) catch unreachable;
+    if (flags.log_header) {
+        stdout.print("HEADER INFO:\n", .{}) catch unreachable;
+        stdout.print("magic number: {}\n", .{rom_header.magic_number}) catch unreachable;
+        stdout.print("assembly version: {}\n", .{rom_header.language_version}) catch unreachable;
+        stdout.print("entry point address: 0x{X:0>4}\n", .{rom_header.entry_point}) catch unreachable;
+        stdout.print("rom debug enable: {}\n\n", .{rom_header.debug_mode}) catch unreachable;
+    }
 
     disassembler.Disassemble_Rom(global_allocator, flags, rom, rom_filesize, rom_header) catch |err| {
         warn.Fatal_Error_Message("disassembly failed!", .{});

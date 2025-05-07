@@ -41,14 +41,14 @@ pub fn Disassemble_Rom(allocator: std.mem.Allocator, flags: clap.Flags, rom: [sp
         if (PC == 0) {
             const addr_str = Address_String(&buffers[0], 0);
             const instr_bytes_str = Instruction_Bytes_String(&buffers[1], rom[0..specs.bytelen.header]);
-            stdout.print("{s}{s}header bytes\n\n", .{ addr_str, instr_bytes_str }) catch unreachable;
+            stdout.print("{s}{s}header bytes\n", .{ addr_str, instr_bytes_str }) catch unreachable;
             PC = specs.bytelen.header;
             continue;
         }
         if (PC < header.entry_point) {
             const addr_str = Address_String(&buffers[0], PC);
             const instr_bytes_str = Instruction_Bytes_String(&buffers[1], rom[PC..header.entry_point]);
-            stdout.print("{s}{s}data bytes\n\n", .{ addr_str, instr_bytes_str }) catch unreachable;
+            stdout.print("{s}{s}data bytes\n", .{ addr_str, instr_bytes_str }) catch unreachable;
             PC = header.entry_point;
             continue;
         }
@@ -68,9 +68,9 @@ pub fn Disassemble_Rom(allocator: std.mem.Allocator, flags: clap.Flags, rom: [sp
             continue;
         }
 
-        const addr_str: []const u8 = if (flags.output_addresses) Address_String(&buffers[0], PC) else "";
-        const instr_bytes_str: []const u8 = if (flags.output_rombytes) Instruction_Bytes_String(&buffers[1], rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]) else "";
-        const instr_str: []const u8 = if (flags.output_instructions) try opcode_enum.Instruction_String(&buffers[2], rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]) else "";
+        const addr_str: []const u8 = if (flags.log_addresses) Address_String(&buffers[0], PC) else "";
+        const instr_bytes_str: []const u8 = if (flags.log_rombytes) Instruction_Bytes_String(&buffers[1], rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]) else "";
+        const instr_str: []const u8 = if (flags.log_instructions) try opcode_enum.Instruction_String(&buffers[2], rom[PC .. PC + opcode_enum.Instruction_Byte_Length()]) else "";
         if (opcode_enum.What_Address_Space() == .rom) {
             const instruction_address_value = std.mem.bytesToValue(u16, rom[PC + 1 .. PC + 2]);
             const addr_name_str = Address_Name_String(&buffers[3], label_hashmap, instruction_address_value);
