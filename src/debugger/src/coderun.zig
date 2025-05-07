@@ -800,9 +800,12 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: cla
             const metadata_type: specs.DebugMetadataType = @enumFromInt(vm.rom[vm.program_counter + 1]);
             const skip_count: usize = try metadata_type.Metadata_Length(vm.rom[vm.program_counter..]);
             if (flags.log_instruction_sideeffects) {
-                stdout.print("Skipping {} bytes of ROM metadata\n", .{skip_count}) catch unreachable;
+                stdout.print("Before skipping {} metadata bytes:\n{s}\n", .{ skip_count, Bp_PC(vm, &bufs[0]) }) catch unreachable;
             }
             vm.program_counter += @truncate(skip_count);
+            if (flags.log_instruction_sideeffects) {
+                stdout.print("After skipping {} metadata bytes:\n{s}\n", .{ skip_count, Bp_PC(vm, &bufs[0]) }) catch unreachable;
+            }
         },
     }
 

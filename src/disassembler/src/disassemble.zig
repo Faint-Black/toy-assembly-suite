@@ -63,7 +63,7 @@ pub fn Disassemble_Rom(allocator: std.mem.Allocator, flags: clap.Flags, rom: [sp
             const metadata_bytelen: u16 = @truncate(metadata_type.Metadata_Length(rom[PC..]) catch 0);
             const addr_str = Address_String(&buffers[0], PC);
             const instr_bytes_str = Instruction_Bytes_String(&buffers[1], rom[PC .. PC + metadata_bytelen]);
-            stdout.print("{s}: {s} debug metadata (LABEL NAME \"{?s}\")\n", .{ addr_str, instr_bytes_str, label_hashmap.?.get(PC + metadata_bytelen) }) catch unreachable;
+            stdout.print("{s}{s} debug metadata (LABEL NAME \"{?s}\")\n", .{ addr_str, instr_bytes_str, label_hashmap.?.get(PC + metadata_bytelen) }) catch unreachable;
             PC += metadata_bytelen;
             continue;
         }

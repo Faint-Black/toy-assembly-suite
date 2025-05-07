@@ -242,7 +242,8 @@ pub const Opcode = enum(u8) {
             .POP_A => bytelen.opcode,
             .POP_X => bytelen.opcode,
             .POP_Y => bytelen.opcode,
-            .DEBUG_METADATA_SIGNAL => bytelen.opcode,
+            // skip count determined by metadata type and contents (at runtime).
+            .DEBUG_METADATA_SIGNAL => 0,
         };
     }
 
