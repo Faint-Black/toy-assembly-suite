@@ -37,7 +37,10 @@ pub fn main() void {
     }
 
     // init virtual machine and header
-    var vm = machine.VirtualMachine.Init(flags.input_rom_filename, null);
+    var vm = machine.VirtualMachine.Init(flags.input_rom_filename, null) catch |err| {
+        machine.Output_Error_Message(err);
+        return;
+    };
     const rom_header = specs.Header.Parse_From_Byte_Array(vm.rom[0..16].*);
     vm.program_counter = rom_header.entry_point;
     if (rom_header.magic_number != specs.Header.required_magic_number) {

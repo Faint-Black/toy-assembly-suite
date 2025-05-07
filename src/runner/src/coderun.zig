@@ -32,7 +32,7 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine) bool {
         .SYSTEMCALL => {
             // no logging to not pollute the console output
             vm.Syscall() catch |err| {
-                Output_Error_Message(err);
+                machine.Output_Error_Message(err);
                 return QUIT;
             };
         },
@@ -60,7 +60,7 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine) bool {
         // only instruction capable of returning from subroutines
         .RET => {
             vm.Return_From_Subroutine() catch |err| {
-                Output_Error_Message(err);
+                machine.Output_Error_Message(err);
                 return QUIT;
             };
             pc_increment = 0;
@@ -176,7 +176,7 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine) bool {
         .JSR_ADDR => {
             const address: u16 = machine.VirtualMachine.Read_Address_Contents_As(&vm.rom, vm.program_counter + specs.bytelen.opcode, u16);
             vm.Jump_To_Subroutine(address) catch |err| {
-                Output_Error_Message(err);
+                machine.Output_Error_Message(err);
                 return QUIT;
             };
             pc_increment = 0;
@@ -373,42 +373,42 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine) bool {
         // push value of accumulator to stack
         .PUSH_A => {
             vm.Push_To_Stack(@TypeOf(vm.accumulator), vm.accumulator) catch |err| {
-                Output_Error_Message(err);
+                machine.Output_Error_Message(err);
                 return QUIT;
             };
         },
         // push value of X index to stack
         .PUSH_X => {
             vm.Push_To_Stack(@TypeOf(vm.x_index), vm.x_index) catch |err| {
-                Output_Error_Message(err);
+                machine.Output_Error_Message(err);
                 return QUIT;
             };
         },
         // push value of Y index to stack
         .PUSH_Y => {
             vm.Push_To_Stack(@TypeOf(vm.y_index), vm.y_index) catch |err| {
-                Output_Error_Message(err);
+                machine.Output_Error_Message(err);
                 return QUIT;
             };
         },
         // pops 4 bytes from the stack and store them in the accumulator
         .POP_A => {
             vm.accumulator = vm.Pop_From_Stack(@TypeOf(vm.accumulator)) catch |err| {
-                Output_Error_Message(err);
+                machine.Output_Error_Message(err);
                 return QUIT;
             };
         },
         // pops 4 bytes from the stack and store them in the X index
         .POP_X => {
             vm.x_index = vm.Pop_From_Stack(@TypeOf(vm.x_index)) catch |err| {
-                Output_Error_Message(err);
+                machine.Output_Error_Message(err);
                 return QUIT;
             };
         },
         // pops 4 bytes from the stack and store them in the Y index
         .POP_Y => {
             vm.y_index = vm.Pop_From_Stack(@TypeOf(vm.y_index)) catch |err| {
-                Output_Error_Message(err);
+                machine.Output_Error_Message(err);
                 return QUIT;
             };
         },
@@ -425,16 +425,4 @@ pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine) bool {
 
     vm.program_counter += pc_increment;
     return CONTINUE;
-}
-
-//-------------------------------------------------------------//
-// STATIC PRIVATE FUNCTIONS                                    //
-//-------------------------------------------------------------//
-
-fn Output_Error_Message(err: machine.VMerror) void {
-    switch (err) {
-        machine.VMerror.BadSyscall => warn.Fatal_Error_Message("Executed a bad syscall!", .{}),
-        machine.VMerror.StackOverflow => warn.Fatal_Error_Message("Stack overflowed!", .{}),
-        machine.VMerror.StackUnderflow => warn.Fatal_Error_Message("Stack underflowed!", .{}),
-    }
 }

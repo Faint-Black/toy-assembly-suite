@@ -21,7 +21,21 @@ pub const VMerror = error{
     BadSyscall,
     StackUnderflow,
     StackOverflow,
+    RomFileNotFound,
+    RomFileTooBig,
+    BadFile,
 };
+
+pub fn Output_Error_Message(err: VMerror) void {
+    switch (err) {
+        VMerror.BadSyscall => warn.Fatal_Error_Message("Executed a bad syscall!", .{}),
+        VMerror.StackOverflow => warn.Fatal_Error_Message("Stack overflowed!", .{}),
+        VMerror.StackUnderflow => warn.Fatal_Error_Message("Stack underflowed!", .{}),
+        VMerror.RomFileNotFound => warn.Fatal_Error_Message("Rom file not found!", .{}),
+        VMerror.RomFileTooBig => warn.Fatal_Error_Message("Rom file too big!", .{}),
+        VMerror.BadFile => warn.Fatal_Error_Message("Bad rom file!", .{}),
+    }
+}
 
 pub const VirtualMachine = struct {
     /// Only meant to be used for debugging and disassembly purposes,
@@ -54,7 +68,7 @@ pub const VirtualMachine = struct {
     /// fill determines the byte that will fill the vacant empty space,
     /// put null for it so stay undefined.
     /// only use null rom_file parameter for testing purposes
-    pub fn Init(rom_filepath: ?[]const u8, fill: ?u8) VirtualMachine {
+    pub fn Init(rom_filepath: ?[]const u8, fill: ?u8) VMerror!VirtualMachine {
         var machine: VirtualMachine = undefined;
         // only variable harcoded to start at a given value
         machine.stack_pointer = specs.bytelen.stack - 1;
@@ -70,14 +84,18 @@ pub const VirtualMachine = struct {
         }
         // load rom into memory
         if (rom_filepath) |filepath| {
-            var filestream = std.fs.cwd().openFile(filepath, .{ .mode = .read_only }) catch
-                @panic("failed to open file!");
+            var filestream = std.fs.cwd().openFile(filepath, .{ .mode = .read_only }) catch |err| {
+                return switch (err) {
+                    std.fs.File.OpenError.FileNotFound => VMerror.RomFileNotFound,
+                    else => VMerror.BadFile,
+                };
+            };
             const rom_file_size = filestream.getEndPos() catch
-                @panic("fileseek error!");
+                return VMerror.BadFile;
             if (rom_file_size >= (specs.bytelen.rom - 1))
-                @panic("ROM file larger than 0xFFFF bytes!");
+                return VMerror.RomFileTooBig;
             _ = filestream.readAll(&machine.rom) catch
-                @panic("failed to read ROM file!");
+                return VMerror.BadFile;
             machine.original_rom_filesize = rom_file_size;
         }
         return machine;
@@ -389,7 +407,7 @@ test "Writing to ROM or WRAM" {
 }
 
 test "Live VM testing" {
-    var vm = VirtualMachine.Init(null, 0x00);
+    var vm = try VirtualMachine.Init(null, 0x00);
 
     // straight jumping
     vm.Jump_To_Address(0x1337);
@@ -411,7 +429,7 @@ test "Live VM testing" {
 }
 
 test "Comparing and branching" {
-    var vm = VirtualMachine.Init(null, 0x00);
+    var vm = try VirtualMachine.Init(null, 0x00);
 
     vm.Compare(42, 42);
     // (A - B == 0) for BEQ and BNE
@@ -423,7 +441,7 @@ test "Comparing and branching" {
 }
 
 test "Arithmetic and flag modifications" {
-    var vm = VirtualMachine.Init(null, 0x00);
+    var vm = try VirtualMachine.Init(null, 0x00);
     var result: u32 = undefined;
 
     // signed two's complement 32-bit addition
