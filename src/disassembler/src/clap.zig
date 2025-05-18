@@ -136,7 +136,7 @@ pub const Flags = struct {
         return 
         \\The toy disassembler program
         \\Assembly suite version 1
-        \\Disassembler version 0.0 (BETA BRANCH)
+        \\Disassembler version 1.0
         \\
         ;
     }

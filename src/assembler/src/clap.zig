@@ -214,7 +214,7 @@ pub const Flags = struct {
         return 
         \\The toy assembler program
         \\Assembly suite version 1
-        \\Assembler version 0.0 (BETA BRANCH)
+        \\Assembler version 1.0
         \\
         ;
     }
