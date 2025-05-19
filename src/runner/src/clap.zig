@@ -95,7 +95,7 @@ pub const Flags = struct {
         return 
         \\The toy runner program
         \\Assembly suite version 1
-        \\Runner version 2.0 (DEV BRANCH)
+        \\Runner version 1.0
         \\
         ;
     }
