@@ -303,115 +303,57 @@ fn Parse_Relative_Label(str: []const u8) !?tok.Token {
 }
 
 fn Parse_Language_Keyword(str: []const u8) ?tok.Token {
-    if (std.mem.eql(u8, str, "ERROR")) {
-        return tok.Token{ .tokType = .ERROR };
-    } else if (std.mem.eql(u8, str, ".db")) {
-        return tok.Token{ .tokType = .DB };
-    } else if (std.mem.eql(u8, str, ".dw")) {
-        return tok.Token{ .tokType = .DW };
-    } else if (std.mem.eql(u8, str, ".dd")) {
-        return tok.Token{ .tokType = .DD };
-    } else if (std.mem.eql(u8, str, ".macro")) {
-        return tok.Token{ .tokType = .MACRO };
-    } else if (std.mem.eql(u8, str, ".endmacro")) {
-        return tok.Token{ .tokType = .ENDMACRO };
-    } else if (std.mem.eql(u8, str, ".repeat")) {
-        return tok.Token{ .tokType = .REPEAT };
-    } else if (std.mem.eql(u8, str, ".endrepeat")) {
-        return tok.Token{ .tokType = .ENDREPEAT };
-    } else if (std.mem.eql(u8, str, ".define")) {
-        return tok.Token{ .tokType = .DEFINE };
-    } else if (std.mem.eql(u8, str, "SYSCALL")) {
-        return tok.Token{ .tokType = .SYSCALL };
-    } else if (std.mem.eql(u8, str, "STRIDE")) {
-        return tok.Token{ .tokType = .STRIDE };
-    } else if (std.mem.eql(u8, str, "LDA")) {
-        return tok.Token{ .tokType = .LDA };
-    } else if (std.mem.eql(u8, str, "LDX")) {
-        return tok.Token{ .tokType = .LDX };
-    } else if (std.mem.eql(u8, str, "LDY")) {
-        return tok.Token{ .tokType = .LDY };
-    } else if (std.mem.eql(u8, str, "LEA")) {
-        return tok.Token{ .tokType = .LEA };
-    } else if (std.mem.eql(u8, str, "LEX")) {
-        return tok.Token{ .tokType = .LEX };
-    } else if (std.mem.eql(u8, str, "LEY")) {
-        return tok.Token{ .tokType = .LEY };
-    } else if (std.mem.eql(u8, str, "STA")) {
-        return tok.Token{ .tokType = .STA };
-    } else if (std.mem.eql(u8, str, "STX")) {
-        return tok.Token{ .tokType = .STX };
-    } else if (std.mem.eql(u8, str, "STY")) {
-        return tok.Token{ .tokType = .STY };
-    } else if (std.mem.eql(u8, str, "A")) {
-        return tok.Token{ .tokType = .A };
-    } else if (std.mem.eql(u8, str, "X")) {
-        return tok.Token{ .tokType = .X };
-    } else if (std.mem.eql(u8, str, "Y")) {
-        return tok.Token{ .tokType = .Y };
-    } else if (std.mem.eql(u8, str, "PC")) {
-        return tok.Token{ .tokType = .PC };
-    } else if (std.mem.eql(u8, str, "SC")) {
-        return tok.Token{ .tokType = .SC };
-    } else if (std.mem.eql(u8, str, "CLC")) {
-        return tok.Token{ .tokType = .CLC };
-    } else if (std.mem.eql(u8, str, "SEC")) {
-        return tok.Token{ .tokType = .SEC };
-    } else if (std.mem.eql(u8, str, "LDA")) {
-        return tok.Token{ .tokType = .LDA };
-    } else if (std.mem.eql(u8, str, "LDX")) {
-        return tok.Token{ .tokType = .LDX };
-    } else if (std.mem.eql(u8, str, "LDY")) {
-        return tok.Token{ .tokType = .LDY };
-    } else if (std.mem.eql(u8, str, "STA")) {
-        return tok.Token{ .tokType = .STA };
-    } else if (std.mem.eql(u8, str, "STX")) {
-        return tok.Token{ .tokType = .STX };
-    } else if (std.mem.eql(u8, str, "STY")) {
-        return tok.Token{ .tokType = .STY };
-    } else if (std.mem.eql(u8, str, "JMP")) {
-        return tok.Token{ .tokType = .JMP };
-    } else if (std.mem.eql(u8, str, "JSR")) {
-        return tok.Token{ .tokType = .JSR };
-    } else if (std.mem.eql(u8, str, "RET")) {
-        return tok.Token{ .tokType = .RET };
-    } else if (std.mem.eql(u8, str, "CMP")) {
-        return tok.Token{ .tokType = .CMP };
-    } else if (std.mem.eql(u8, str, "BCS")) {
-        return tok.Token{ .tokType = .BCS };
-    } else if (std.mem.eql(u8, str, "BCC")) {
-        return tok.Token{ .tokType = .BCC };
-    } else if (std.mem.eql(u8, str, "BEQ")) {
-        return tok.Token{ .tokType = .BEQ };
-    } else if (std.mem.eql(u8, str, "BNE")) {
-        return tok.Token{ .tokType = .BNE };
-    } else if (std.mem.eql(u8, str, "BMI")) {
-        return tok.Token{ .tokType = .BMI };
-    } else if (std.mem.eql(u8, str, "BPL")) {
-        return tok.Token{ .tokType = .BPL };
-    } else if (std.mem.eql(u8, str, "BVS")) {
-        return tok.Token{ .tokType = .BVS };
-    } else if (std.mem.eql(u8, str, "BVC")) {
-        return tok.Token{ .tokType = .BVC };
-    } else if (std.mem.eql(u8, str, "ADD")) {
-        return tok.Token{ .tokType = .ADD };
-    } else if (std.mem.eql(u8, str, "SUB")) {
-        return tok.Token{ .tokType = .SUB };
-    } else if (std.mem.eql(u8, str, "INC")) {
-        return tok.Token{ .tokType = .INC };
-    } else if (std.mem.eql(u8, str, "DEC")) {
-        return tok.Token{ .tokType = .DEC };
-    } else if (std.mem.eql(u8, str, "PUSH")) {
-        return tok.Token{ .tokType = .PUSH };
-    } else if (std.mem.eql(u8, str, "POP")) {
-        return tok.Token{ .tokType = .POP };
-    } else if (std.mem.eql(u8, str, "BRK")) {
-        return tok.Token{ .tokType = .BRK };
-    } else if (std.mem.eql(u8, str, "NOP")) {
-        return tok.Token{ .tokType = .NOP };
-    } else {
-        return null;
-    }
+    const h = utils.DJB2_Hash;
+    return switch (h(str)) {
+        h("ERROR") => tok.Token{ .tokType = .ERROR },
+        h(".db") => tok.Token{ .tokType = .DB },
+        h(".dw") => tok.Token{ .tokType = .DW },
+        h(".dd") => tok.Token{ .tokType = .DD },
+        h(".macro") => tok.Token{ .tokType = .MACRO },
+        h(".endmacro") => tok.Token{ .tokType = .ENDMACRO },
+        h(".repeat") => tok.Token{ .tokType = .REPEAT },
+        h(".endrepeat") => tok.Token{ .tokType = .ENDREPEAT },
+        h(".define") => tok.Token{ .tokType = .DEFINE },
+        h("SYSCALL") => tok.Token{ .tokType = .SYSCALL },
+        h("STRIDE") => tok.Token{ .tokType = .STRIDE },
+        h("LDA") => tok.Token{ .tokType = .LDA },
+        h("LDX") => tok.Token{ .tokType = .LDX },
+        h("LDY") => tok.Token{ .tokType = .LDY },
+        h("LEA") => tok.Token{ .tokType = .LEA },
+        h("LEX") => tok.Token{ .tokType = .LEX },
+        h("LEY") => tok.Token{ .tokType = .LEY },
+        h("STA") => tok.Token{ .tokType = .STA },
+        h("STX") => tok.Token{ .tokType = .STX },
+        h("STY") => tok.Token{ .tokType = .STY },
+        h("A") => tok.Token{ .tokType = .A },
+        h("X") => tok.Token{ .tokType = .X },
+        h("Y") => tok.Token{ .tokType = .Y },
+        h("PC") => tok.Token{ .tokType = .PC },
+        h("SC") => tok.Token{ .tokType = .SC },
+        h("CLC") => tok.Token{ .tokType = .CLC },
+        h("SEC") => tok.Token{ .tokType = .SEC },
+        h("JMP") => tok.Token{ .tokType = .JMP },
+        h("JSR") => tok.Token{ .tokType = .JSR },
+        h("RET") => tok.Token{ .tokType = .RET },
+        h("CMP") => tok.Token{ .tokType = .CMP },
+        h("BCS") => tok.Token{ .tokType = .BCS },
+        h("BCC") => tok.Token{ .tokType = .BCC },
+        h("BEQ") => tok.Token{ .tokType = .BEQ },
+        h("BNE") => tok.Token{ .tokType = .BNE },
+        h("BMI") => tok.Token{ .tokType = .BMI },
+        h("BPL") => tok.Token{ .tokType = .BPL },
+        h("BVS") => tok.Token{ .tokType = .BVS },
+        h("BVC") => tok.Token{ .tokType = .BVC },
+        h("ADD") => tok.Token{ .tokType = .ADD },
+        h("SUB") => tok.Token{ .tokType = .SUB },
+        h("INC") => tok.Token{ .tokType = .INC },
+        h("DEC") => tok.Token{ .tokType = .DEC },
+        h("PUSH") => tok.Token{ .tokType = .PUSH },
+        h("POP") => tok.Token{ .tokType = .POP },
+        h("BRK") => tok.Token{ .tokType = .BRK },
+        h("NOP") => tok.Token{ .tokType = .NOP },
+        else => null,
+    };
 }
 
 //-------------------------------------------------------------//

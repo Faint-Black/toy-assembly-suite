@@ -93,6 +93,17 @@ pub fn Milliseconds_To_Nanoseconds(milliseconds: u64) u64 {
     return milliseconds * 1_000_000;
 }
 
+/// simple comptime hashing function
+pub fn DJB2_Hash(str: []const u8) u64 {
+    var result: u64 = 5381;
+    for (str) |c| {
+        result <<= 5;
+        result +%= result;
+        result +%= c;
+    }
+    return result;
+}
+
 //-------------------------------------------------------------//
 // ONLY TESTS BELOW THIS POINT                                 //
 //-------------------------------------------------------------//
@@ -190,4 +201,15 @@ test "milliseconds to nanoseconds" {
     try std.testing.expectEqual(10_000_000, Milliseconds_To_Nanoseconds(10));
     try std.testing.expectEqual(100_000_000, Milliseconds_To_Nanoseconds(100));
     try std.testing.expectEqual(1_000_000_000, Milliseconds_To_Nanoseconds(1000));
+}
+
+test "DJB2 comptime hashing" {
+    try std.testing.expectEqual(90298789496, DJB2_Hash("Maxx"));
+    try std.testing.expectEqual(5779077388965, DJB2_Hash("Julie"));
+    try std.testing.expectEqual(5779223165096, DJB2_Hash("Sarah"));
+    comptime {
+        std.debug.assert(90298789496 == DJB2_Hash("Maxx"));
+        std.debug.assert(5779077388965 == DJB2_Hash("Julie"));
+        std.debug.assert(5779223165096 == DJB2_Hash("Sarah"));
+    }
 }
