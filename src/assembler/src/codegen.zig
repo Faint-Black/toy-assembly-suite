@@ -18,7 +18,7 @@ const warn = @import("shared").warn;
 const Opcode = specs.Opcode;
 const DebugMetadataType = specs.DebugMetadataType;
 
-const stdout = std.io.getStdOut().writer();
+const streams = @import("shared").streams;
 
 pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
     // {..., ACTUAL_LAST_TOKEN, $, EOF, $}
@@ -48,6 +48,8 @@ pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *
 /// relative to its location in rom.
 /// Second pass: now that the LABEL locations have been defined, generate the actual usable rom.
 fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
+    const stdout = streams.global_streams.stdout;
+
     var rom_vector = std.ArrayList(u8).init(allocator);
     defer rom_vector.deinit();
 
@@ -462,6 +464,7 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8), is_first
 }
 
 fn Debug_Print_Rom(rom: []u8) void {
+    const stdout = streams.global_streams.stdout;
     var i: u16 = 0;
     stdout.print("\nGENERATED ROM BYTES:", .{}) catch unreachable;
     while (true) : (i += 1) {

@@ -17,10 +17,11 @@ const machine = @import("shared").machine;
 const warn = @import("shared").warn;
 const coderun = @import("coderun.zig");
 
-const stdout = std.io.getStdOut().writer();
-const stdin = std.io.getStdIn().reader();
+const streams = @import("shared").streams;
 
 pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, header: specs.Header) !void {
+    const stdout = streams.global_streams.stdout;
+    const stdin = streams.global_streams.stdin;
     // set current PC execution to the entry point
     vm.program_counter = header.entry_point;
 

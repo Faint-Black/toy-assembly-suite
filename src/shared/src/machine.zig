@@ -13,9 +13,7 @@ const specs = @import("specifications.zig");
 const utils = @import("utils.zig");
 const warn = @import("warning.zig");
 
-const stdout = std.io.getStdOut().writer();
-const stderr = std.io.getStdErr().writer();
-const stdin = std.io.getStdIn().reader();
+const streams = @import("streams.zig");
 
 pub const VMerror = error{
     BadSyscall,
@@ -310,6 +308,7 @@ pub const VirtualMachine = struct {
     /// X index = first argument
     /// Y index = second argument
     pub fn Syscall(this: *VirtualMachine) VMerror!void {
+        const stdout = streams.global_streams.stdout;
         const syscall_code: u8 = @truncate(this.accumulator);
         const syscall_enum: specs.SyscallCode = @enumFromInt(syscall_code);
         switch (syscall_enum) {

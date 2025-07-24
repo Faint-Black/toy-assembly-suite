@@ -14,11 +14,12 @@ const sym = @import("symbol.zig");
 const clap = @import("clap.zig");
 const warn = @import("shared").warn;
 
-const stdout = std.io.getStdOut().writer();
+const streams = @import("shared").streams;
 
 /// Removes, replaces and expands preprocessor instructions,
 /// like macros.
 pub fn Preprocessor_Expansion(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, lexedTokens: []const tok.Token) ![]tok.Token {
+    const stdout = streams.global_streams.stdout;
     // removes preprocessor definitions and adds them to the global symbol table.
     // this token array is a complete allocated and intermediary copy
     // and must be completely destroyed before this function exits

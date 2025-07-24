@@ -13,9 +13,10 @@ const specs = @import("shared").specifications;
 const utils = @import("shared").utils;
 const machine = @import("shared").machine;
 
-const stdout = std.io.getStdOut().writer();
+const streams = @import("shared").streams;
 
 pub fn Disassemble_Rom(allocator: std.mem.Allocator, flags: clap.Flags, rom: [specs.bytelen.rom]u8, original_rom_size: usize, header: specs.Header) !void {
+    const stdout = streams.global_streams.stdout;
     // for storing all the bufprint function results that need to exist at the same time
     var buffers: [4][utils.buffsize.medium]u8 = undefined;
 

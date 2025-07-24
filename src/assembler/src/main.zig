@@ -18,9 +18,11 @@ const codegen = @import("codegen.zig");
 const warn = @import("shared").warn;
 const analysis = @import("analyzer.zig");
 
-const stdout = std.io.getStdOut().writer();
+const streams = @import("shared").streams;
 
 pub fn main() !void {
+    // initialize input/output streams
+    streams.global_streams = .init();
     // use DebugAllocator on debug mode
     // use ArenaAllocator with page_allocator on release mode
     var debug_struct_allocator = std.heap.DebugAllocator(.{}).init;
@@ -28,6 +30,8 @@ pub fn main() !void {
     var arena_struct_allocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer _ = arena_struct_allocator.deinit();
     const global_allocator: std.mem.Allocator = if (builtin.mode == .Debug) debug_struct_allocator.allocator() else arena_struct_allocator.allocator();
+
+    const stdout = streams.global_streams.stdout;
 
     // begin benchmark
     var timer = std.time.Timer.start() catch |err| {

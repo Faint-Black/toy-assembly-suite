@@ -10,7 +10,7 @@
 const std = @import("std");
 const tok = @import("token.zig");
 
-const stdout = std.io.getStdOut().writer();
+const streams = @import("shared").streams;
 
 pub const Symbol = struct {
     /// string key that represents such symbol
@@ -175,6 +175,7 @@ pub const SymbolTable = struct {
 
     /// for debugging purposes
     pub fn Print(self: SymbolTable) void {
+        const stdout = streams.global_streams.stdout;
         const iterator = self.table.iterator();
         var i: usize = 0;
         while (i < iterator.len) : (i += 1) {

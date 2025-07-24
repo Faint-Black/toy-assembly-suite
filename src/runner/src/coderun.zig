@@ -13,8 +13,6 @@ const utils = @import("shared").utils;
 const machine = @import("shared").machine;
 const warn = @import("shared").warn;
 
-const stdout = std.io.getStdOut().writer();
-
 /// return value -> bool should_quit
 pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine) bool {
     // "macros"

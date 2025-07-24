@@ -9,7 +9,7 @@
 const std = @import("std");
 const utils = @import("shared").utils;
 
-const stdout = std.io.getStdOut().writer();
+const streams = @import("shared").streams;
 
 pub const Token = struct {
     /// enum type of the token, undefined by default
@@ -52,6 +52,7 @@ pub const Token = struct {
 
     /// print individual token, for debugging purposes
     pub fn Print(self: Token) void {
+        const stdout = streams.global_streams.stdout;
         const enum_name = std.enums.tagName(TokenType, self.tokType).?;
 
         if (self.identKey) |identifier| {
@@ -79,6 +80,7 @@ pub fn Destroy_Tokens_Contents(allocator: std.mem.Allocator, tokArray: []const T
 
 /// for debugging only
 pub fn Print_Token_Array(tokArray: []const Token) void {
+    const stdout = streams.global_streams.stdout;
     stdout.print("{{\n", .{}) catch unreachable;
     for (tokArray) |token| {
         if (token.tokType == .LINEFINISH) {

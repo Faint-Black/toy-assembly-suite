@@ -13,10 +13,11 @@ const utils = @import("shared").utils;
 const machine = @import("shared").machine;
 const warn = @import("shared").warn;
 
-const stdout = std.io.getStdOut().writer();
+const streams = @import("shared").streams;
 
 /// return value -> bool should_quit
 pub fn Run_Instruction(op: specs.Opcode, vm: *machine.VirtualMachine, flags: clap.Flags) !bool {
+    const stdout = streams.global_streams.stdout;
     // "macros"
     const QUIT = true;
     const CONTINUE = false;
