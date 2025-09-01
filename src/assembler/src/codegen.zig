@@ -15,13 +15,16 @@ const sym = @import("symbol.zig");
 const clap = @import("clap.zig");
 const warn = @import("shared").warn;
 const streams = @import("shared").streams;
-
 const Opcode = specs.Opcode;
 const DebugMetadataType = specs.DebugMetadataType;
-
 const ArrayList = std.array_list.Managed;
 
-pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
+pub fn Generate_Rom(
+    allocator: std.mem.Allocator,
+    flags: clap.Flags,
+    symTable: *sym.SymbolTable,
+    expandedTokens: []const tok.Token,
+) ![]u8 {
     // {..., ACTUAL_LAST_TOKEN, $, EOF, $}
     const last_token = expandedTokens[expandedTokens.len - 4];
     if (last_token.tokType == .LABEL or last_token.tokType == .ANON_LABEL) {
@@ -48,7 +51,13 @@ pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *
 /// First pass: result is discarded as it is only used to determine LABEL address locations
 /// relative to its location in rom.
 /// Second pass: now that the LABEL locations have been defined, generate the actual usable rom.
-fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
+fn Codegen(
+    isFirstPass: bool,
+    allocator: std.mem.Allocator,
+    flags: clap.Flags,
+    symTable: *sym.SymbolTable,
+    expandedTokens: []const tok.Token,
+) ![]u8 {
     var rom_vector = ArrayList(u8).init(allocator);
     defer rom_vector.deinit();
 

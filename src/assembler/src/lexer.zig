@@ -131,15 +131,20 @@ pub fn Lexer(allocator: std.mem.Allocator, input: []const u8) ![]tok.Token {
 
 fn Word_To_Token(allocator: std.mem.Allocator, str: []const u8) !tok.Token {
     // literal/address token parsing
-    if (try Parse_Number_Word(str)) |token| return token;
+    if (try Parse_Number_Word(str)) |token|
+        return token;
     // anonymous label parsing
-    if (Parse_Anonymous_Label(str)) |token| return token;
+    if (Parse_Anonymous_Label(str)) |token|
+        return token;
     // normal label parsing
-    if (try Parse_Named_Label(str, allocator)) |token| return token;
+    if (try Parse_Named_Label(str, allocator)) |token|
+        return token;
     // relative label parsing
-    if (try Parse_Relative_Label(str)) |token| return token;
+    if (try Parse_Relative_Label(str)) |token|
+        return token;
     // check if it is a keyword
-    if (Parse_Language_Keyword(str)) |token| return token;
+    if (Parse_Language_Keyword(str)) |token|
+        return token;
     // if no checks passed, consider token as an identifier
     return tok.Token{
         .tokType = .IDENTIFIER,
@@ -270,7 +275,7 @@ fn Parse_Relative_Label(str: []const u8) !?tok.Token {
     // @+
     // @--
     // there is no (practical) limit to the ammount of signs you can add.
-    // as long as they are all minuses or pluses, no mixing.
+    // as long as they are all minuses or pluses with no mixing.
 
     if (str.len < 2)
         return null;

@@ -20,7 +20,7 @@ Responsible for executing the compiled ROM in an optimized and minimal manner, e
 ---
 
 ## Build
-*Requires Zig 0.14.0 or higher*
+*Requires Zig 0.15.1*
 
 To build all the project executables simply use the following Zig build command on any directory inside the project.
 
@@ -29,4 +29,4 @@ zig build --release=safe
 ```
 
 ## Run
-The emitted executables should be in the zig-out/bin/ directory, run the binary with the "-h" flag for more help information regarding the program's specifications.
+The emitted executables should be in the zig-out/bin directory, run the binary with the "-h" flag for more help information regarding the program's specifications.
