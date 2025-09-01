@@ -13,13 +13,13 @@ const tok = @import("token.zig");
 const sym = @import("symbol.zig");
 const clap = @import("clap.zig");
 const warn = @import("shared").warn;
-
 const streams = @import("shared").streams;
+
+const ArrayList = std.array_list.Managed;
 
 /// Removes, replaces and expands preprocessor instructions,
 /// like macros.
 pub fn Preprocessor_Expansion(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, lexedTokens: []const tok.Token) ![]tok.Token {
-    const stdout = streams.global_streams.stdout;
     // removes preprocessor definitions and adds them to the global symbol table.
     // this token array is a complete allocated and intermediary copy
     // and must be completely destroyed before this function exits
@@ -29,7 +29,7 @@ pub fn Preprocessor_Expansion(allocator: std.mem.Allocator, flags: clap.Flags, s
 
     // [DEBUG OUTPUT] print the resulting stripped tokens
     if (flags.log_stripped_tokens) {
-        stdout.print("\nStripped tokens:\n", .{}) catch unreachable;
+        streams.bufStdoutPrint("\nStripped tokens:\n", .{}) catch unreachable;
         tok.Print_Token_Array(stripped_tokens);
     }
 
@@ -86,11 +86,11 @@ fn Add_Labels(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: 
 }
 
 fn Remove_Macros(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: []const tok.Token) ![]tok.Token {
-    var token_vector = std.ArrayList(tok.Token).init(allocator);
+    var token_vector = ArrayList(tok.Token).init(allocator);
     defer token_vector.deinit();
     try token_vector.ensureTotalCapacity(tokens.len);
 
-    var macro_vector = std.ArrayList(tok.Token).init(allocator);
+    var macro_vector = ArrayList(tok.Token).init(allocator);
     defer macro_vector.deinit();
 
     var skip_newline: bool = false;
@@ -169,7 +169,7 @@ fn Remove_Macros(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, token
 }
 
 fn Remove_Defines(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: []const tok.Token) ![]tok.Token {
-    var token_vector = std.ArrayList(tok.Token).init(allocator);
+    var token_vector = ArrayList(tok.Token).init(allocator);
     defer token_vector.deinit();
     try token_vector.ensureTotalCapacity(tokens.len);
 
@@ -221,11 +221,11 @@ fn Remove_Defines(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, toke
 }
 
 fn Unwrap_Repeats(allocator: std.mem.Allocator, tokens: []const tok.Token) ![]tok.Token {
-    var token_vector = std.ArrayList(tok.Token).init(allocator);
+    var token_vector = ArrayList(tok.Token).init(allocator);
     defer token_vector.deinit();
     try token_vector.ensureTotalCapacity(tokens.len);
 
-    var repeat_vector = std.ArrayList(tok.Token).init(allocator);
+    var repeat_vector = ArrayList(tok.Token).init(allocator);
     defer repeat_vector.deinit();
 
     var skip_newline: bool = false;
@@ -277,7 +277,7 @@ fn Unwrap_Repeats(allocator: std.mem.Allocator, tokens: []const tok.Token) ![]to
 }
 
 fn Unwrap_Macros(allocator: std.mem.Allocator, symTable: *sym.SymbolTable, tokens: []const tok.Token) ![]tok.Token {
-    var token_vector = std.ArrayList(tok.Token).init(allocator);
+    var token_vector = ArrayList(tok.Token).init(allocator);
     defer token_vector.deinit();
 
     var last_macro_tokentype: tok.TokenType = .UNDEFINED;

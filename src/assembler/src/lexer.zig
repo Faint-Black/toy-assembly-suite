@@ -15,8 +15,10 @@ const warn = @import("shared").warn;
 // global variables
 var global_is_entry_point_defined: bool = false;
 
+const ArrayList = std.array_list.Managed;
+
 pub fn Lexer(allocator: std.mem.Allocator, input: []const u8) ![]tok.Token {
-    var token_vector = std.ArrayList(tok.Token).init(allocator);
+    var token_vector = ArrayList(tok.Token).init(allocator);
     defer token_vector.deinit();
 
     var string_buffer: [utils.buffsize.medium]u8 = undefined;

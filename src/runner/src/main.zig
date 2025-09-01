@@ -13,13 +13,9 @@ const specs = @import("shared").specifications;
 const clap = @import("clap.zig");
 const warn = @import("shared").warn;
 const coderun = @import("coderun.zig");
-
 const streams = @import("shared").streams;
 
 pub fn main() void {
-    // initialize input/output streams
-    streams.global_streams = .init();
-    const stdout = streams.global_streams.stdout;
     // command-line flags, filenames and filepath specifications
     const flags = clap.Flags.Parse(std.heap.smp_allocator) catch {
         warn.Fatal_Error_Message("failed to parse flags.", .{});
@@ -27,11 +23,11 @@ pub fn main() void {
     };
     defer flags.Deinit();
     if (flags.help == true) {
-        stdout.print(clap.Flags.Help_String(), .{}) catch unreachable;
+        streams.bufStdoutPrint(clap.Flags.Help_String(), .{}) catch unreachable;
         return;
     }
     if (flags.version == true) {
-        stdout.print(clap.Flags.Version_String(), .{}) catch unreachable;
+        streams.bufStdoutPrint(clap.Flags.Version_String(), .{}) catch unreachable;
         return;
     }
     if (std.mem.eql(u8, flags.input_rom_filename.?, "stdin")) {

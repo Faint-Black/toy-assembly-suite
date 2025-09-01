@@ -16,12 +16,9 @@ const utils = @import("shared").utils;
 const machine = @import("shared").machine;
 const warn = @import("shared").warn;
 const coderun = @import("coderun.zig");
-
 const streams = @import("shared").streams;
 
 pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, header: specs.Header) !void {
-    const stdout = streams.global_streams.stdout;
-    const stdin = streams.global_streams.stdin;
     // set current PC execution to the entry point
     vm.program_counter = header.entry_point;
 
@@ -37,10 +34,10 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
 
         if (flags.step_by_step) {
             var buf: [32]u8 = undefined;
-            const slice_size = try stdin.read(&buf);
-            const str = buf[0..slice_size];
-            if (std.mem.eql(u8, str, "q\n")) {
-                stdout.print("'q' pressed, exiting execution early.\n", .{}) catch unreachable;
+            const str = try streams.bufStdinRead(&buf, 32);
+            std.debug.print("Entered string = '{s}'\n", .{str});
+            if (str.len > 0 and str[0] == 'q') {
+                streams.bufStdoutPrint("'q' pressed, exiting execution early.\n", .{}) catch unreachable;
                 return;
             }
         }
@@ -50,7 +47,7 @@ pub fn Run_Virtual_Machine(vm: *machine.VirtualMachine, flags: clap.Flags, heade
         if (flags.log_instruction_opcode) {
             var buf: [utils.buffsize.medium]u8 = undefined;
             const instruction_str = try opcode_enum.Instruction_String(&buf, vm.rom[vm.program_counter .. vm.program_counter + opcode_enum.Instruction_Byte_Length()]);
-            stdout.print("Instruction: {s}\n", .{instruction_str}) catch unreachable;
+            streams.bufStdoutPrint("Instruction: {s}\n", .{instruction_str}) catch unreachable;
         }
 
         // run instruction, automatically increments VM program counter

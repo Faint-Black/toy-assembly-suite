@@ -2,89 +2,38 @@
 //                                                             //
 //                         STREAMS                             //
 //                                                             //
-//   The stdout, stderr and stdin streams must only be         //
-//  intitialized once, preferably in the main function.        //
+//   The stdout, stderr and stdin streams and their new APIs   //
+//  adapters.                                                  //
 //                                                             //
 //=============================================================//
 
 const std = @import("std");
 
-pub var global_streams: Streams = undefined;
+var stream_buffer: [4096]u8 = undefined;
 
-pub const Streams = struct {
-    stdout: std.io.GenericWriter(
-        std.fs.File,
-        error{
-            NoSpaceLeft,
-            DiskQuota,
-            FileTooBig,
-            InputOutput,
-            DeviceBusy,
-            InvalidArgument,
-            AccessDenied,
-            BrokenPipe,
-            SystemResources,
-            OperationAborted,
-            NotOpenForWriting,
-            LockViolation,
-            WouldBlock,
-            ConnectionResetByPeer,
-            ProcessNotFound,
-            NoDevice,
-            Unexpected,
-        },
-        std.fs.File.write,
-    ),
-    stderr: std.io.GenericWriter(
-        std.fs.File,
-        error{
-            NoSpaceLeft,
-            DiskQuota,
-            FileTooBig,
-            InputOutput,
-            DeviceBusy,
-            InvalidArgument,
-            AccessDenied,
-            BrokenPipe,
-            SystemResources,
-            OperationAborted,
-            NotOpenForWriting,
-            LockViolation,
-            WouldBlock,
-            ConnectionResetByPeer,
-            ProcessNotFound,
-            NoDevice,
-            Unexpected,
-        },
-        std.fs.File.write,
-    ),
-    stdin: std.io.GenericReader(
-        std.fs.File,
-        error{
-            InputOutput,
-            AccessDenied,
-            BrokenPipe,
-            SystemResources,
-            OperationAborted,
-            LockViolation,
-            WouldBlock,
-            ConnectionResetByPeer,
-            ProcessNotFound,
-            Unexpected,
-            IsDir,
-            ConnectionTimedOut,
-            NotOpenForReading,
-            SocketNotConnected,
-            Canceled,
-        },
-        std.fs.File.read,
-    ),
+/// immediately prints to stdout
+pub fn bufStdoutPrint(comptime fmt: []const u8, args: anytype) !void {
+    var stdout_writer = std.fs.File.stdout().writer(&stream_buffer);
+    const stdout = &stdout_writer.interface;
+    try stdout.print(fmt, args);
+    try stdout.flush();
+}
 
-    pub fn init() Streams {
-        return Streams{
-            .stdout = std.io.getStdOut().writer(),
-            .stderr = std.io.getStdErr().writer(),
-            .stdin = std.io.getStdIn().reader(),
-        };
-    }
-};
+/// immediately prints to stderr
+pub fn bufStderrPrint(comptime fmt: []const u8, args: anytype) !void {
+    var buf: [512]u8 = undefined;
+    var stderr_writer = std.fs.File.stderr().writer(&buf);
+    const stderr = &stderr_writer.interface;
+    try stderr.print(fmt, args);
+    try stderr.flush();
+}
+
+/// immediately read input from user into a buffer then returns the read slice
+pub fn bufStdinRead(buffer: []u8, comptime limit: usize) ![]u8 {
+    var buf: [512]u8 = undefined;
+    var stdin_reader = std.fs.File.stdin().reader(&buf);
+    const stdin = &stdin_reader.interface;
+    var w = std.Io.Writer.fixed(buffer);
+    _ = try stdin.streamDelimiterLimit(&w, '\n', @enumFromInt(limit));
+    return w.buffered();
+}

@@ -308,7 +308,6 @@ pub const VirtualMachine = struct {
     /// X index = first argument
     /// Y index = second argument
     pub fn Syscall(this: *VirtualMachine) VMerror!void {
-        const stdout = streams.global_streams.stdout;
         const syscall_code: u8 = @truncate(this.accumulator);
         const syscall_enum: specs.SyscallCode = @enumFromInt(syscall_code);
         switch (syscall_enum) {
@@ -321,7 +320,7 @@ pub const VirtualMachine = struct {
                 }
                 const end: u16 = start + (@as(u16, @truncate(maybe_end.?)));
                 const string: []const u8 = this.rom[start..end];
-                _ = stdout.print("{s}", .{string}) catch unreachable;
+                _ = streams.bufStdoutPrint("{s}", .{string}) catch unreachable;
             },
             .PRINT_WRAM_STR => {
                 const start: u16 = @truncate(this.x_index);
@@ -332,29 +331,29 @@ pub const VirtualMachine = struct {
                 }
                 const end: u16 = start + (@as(u16, @truncate(maybe_end.?)));
                 const string: []const u8 = this.wram[start..end];
-                _ = stdout.print("{s}", .{string}) catch unreachable;
+                _ = streams.bufStdoutPrint("{s}", .{string}) catch unreachable;
             },
             .PRINT_NEWLINES => {
                 const n: u8 = @truncate(this.x_index);
                 for (0..n) |_| {
-                    _ = stdout.print("\n", .{}) catch unreachable;
+                    _ = streams.bufStdoutPrint("\n", .{}) catch unreachable;
                 }
             },
             .PRINT_CHAR => {
                 const character: u8 = @truncate(this.x_index);
-                if (std.ascii.isASCII(character) == false) {
-                    _ = stdout.print("?", .{}) catch unreachable;
+                if (std.ascii.isAscii(character) == false) {
+                    _ = streams.bufStdoutPrint("?", .{}) catch unreachable;
                 } else {
-                    _ = stdout.print("{c}", .{character}) catch unreachable;
+                    _ = streams.bufStdoutPrint("{c}", .{character}) catch unreachable;
                 }
             },
             .PRINT_DEC_INT => {
                 const integer: i32 = @bitCast(this.x_index);
-                _ = stdout.print("{}", .{integer}) catch unreachable;
+                _ = streams.bufStdoutPrint("{}", .{integer}) catch unreachable;
             },
             .PRINT_HEX_INT => {
                 const integer: u32 = this.x_index;
-                _ = stdout.print("0x{X:0>8}", .{integer}) catch unreachable;
+                _ = streams.bufStdoutPrint("0x{X:0>8}", .{integer}) catch unreachable;
             },
             _ => return error.BadSyscall,
         }

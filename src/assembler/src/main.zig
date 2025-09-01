@@ -17,12 +17,9 @@ const pp = @import("preprocessor.zig");
 const codegen = @import("codegen.zig");
 const warn = @import("shared").warn;
 const analysis = @import("analyzer.zig");
-
 const streams = @import("shared").streams;
 
 pub fn main() !void {
-    // initialize input/output streams
-    streams.global_streams = .init();
     // use DebugAllocator on debug mode
     // use ArenaAllocator with page_allocator on release mode
     var debug_struct_allocator = std.heap.DebugAllocator(.{}).init;
@@ -31,12 +28,10 @@ pub fn main() !void {
     defer _ = arena_struct_allocator.deinit();
     const global_allocator: std.mem.Allocator = if (builtin.mode == .Debug) debug_struct_allocator.allocator() else arena_struct_allocator.allocator();
 
-    const stdout = streams.global_streams.stdout;
-
     // begin benchmark
     var timer = std.time.Timer.start() catch |err| {
         warn.Fatal_Error_Message("could not begin benchmark timer!", .{});
-        if (builtin.mode == .Debug) return err else return;
+        return err;
     };
 
     // keep track of identifiers through all steps
@@ -46,37 +41,37 @@ pub fn main() !void {
     // command-line flags, filenames and filepath specifications
     const flags = clap.Flags.Parse(global_allocator) catch |err| {
         warn.Fatal_Error_Message("could not parse command line flags!", .{});
-        if (builtin.mode == .Debug) return err else return;
+        return err;
     };
     defer flags.Deinit();
     if (flags.help == true) {
-        stdout.print(clap.Flags.Help_String(), .{}) catch unreachable;
+        try streams.bufStdoutPrint(clap.Flags.Help_String(), .{});
         return;
     }
     if (flags.version == true) {
-        stdout.print(clap.Flags.Version_String(), .{}) catch unreachable;
+        streams.bufStdoutPrint(clap.Flags.Version_String(), .{}) catch unreachable;
         return;
     }
     if (std.mem.eql(u8, flags.input_filename.?, "stdin")) {
         warn.Warn_Message("input through stdin input not implemented yet.", .{});
     }
     if (flags.debug_mode == true) {
-        stdout.print("DEBUG MODE ENABLED\n\n", .{}) catch unreachable;
+        streams.bufStdoutPrint("DEBUG MODE ENABLED\n\n", .{}) catch unreachable;
     }
 
     // [DEBUG OUTPUT] print flag informations
     if (flags.log_flags) {
-        stdout.print("invoked binary: {?s}\n", .{flags.binary_directory}) catch unreachable;
-        stdout.print("input filepath: {?s}\n", .{flags.input_filename}) catch unreachable;
-        stdout.print("output filepath: {?s}\n", .{flags.output_filename}) catch unreachable;
-        stdout.print("debug mode flag: {}\n", .{flags.debug_mode}) catch unreachable;
-        stdout.print("print flags: {}\n", .{flags.log_flags}) catch unreachable;
-        stdout.print("print lexed tokens: {}\n", .{flags.log_lexed_tokens}) catch unreachable;
-        stdout.print("print stripped tokens: {}\n", .{flags.log_stripped_tokens}) catch unreachable;
-        stdout.print("print expanded tokens: {}\n", .{flags.log_expanded_tokens}) catch unreachable;
-        stdout.print("print symbol table: {}\n", .{flags.log_symbol_table}) catch unreachable;
-        stdout.print("print anon labels: {}\n", .{flags.log_anon_labels}) catch unreachable;
-        stdout.print("print rom: {}\n", .{flags.log_rom_bytes}) catch unreachable;
+        streams.bufStdoutPrint("invoked binary: {?s}\n", .{flags.binary_directory}) catch unreachable;
+        streams.bufStdoutPrint("input filepath: {?s}\n", .{flags.input_filename}) catch unreachable;
+        streams.bufStdoutPrint("output filepath: {?s}\n", .{flags.output_filename}) catch unreachable;
+        streams.bufStdoutPrint("debug mode flag: {}\n", .{flags.debug_mode}) catch unreachable;
+        streams.bufStdoutPrint("print flags: {}\n", .{flags.log_flags}) catch unreachable;
+        streams.bufStdoutPrint("print lexed tokens: {}\n", .{flags.log_lexed_tokens}) catch unreachable;
+        streams.bufStdoutPrint("print stripped tokens: {}\n", .{flags.log_stripped_tokens}) catch unreachable;
+        streams.bufStdoutPrint("print expanded tokens: {}\n", .{flags.log_expanded_tokens}) catch unreachable;
+        streams.bufStdoutPrint("print symbol table: {}\n", .{flags.log_symbol_table}) catch unreachable;
+        streams.bufStdoutPrint("print anon labels: {}\n", .{flags.log_anon_labels}) catch unreachable;
+        streams.bufStdoutPrint("print rom: {}\n", .{flags.log_rom_bytes}) catch unreachable;
     }
 
     // load file into a newly allocated buffer
@@ -102,7 +97,7 @@ pub fn main() !void {
 
     // [DEBUG OUTPUT] print lexed tokens
     if (flags.log_lexed_tokens) {
-        stdout.print("\nLexed tokens:\n", .{}) catch unreachable;
+        streams.bufStdoutPrint("\nLexed tokens:\n", .{}) catch unreachable;
         tok.Print_Token_Array(lexed_tokens);
     }
 
@@ -116,7 +111,7 @@ pub fn main() !void {
 
     // [DEBUG OUTPUT] print macro expanded tokens
     if (flags.log_expanded_tokens) {
-        stdout.print("\nExpanded tokens:\n", .{}) catch unreachable;
+        streams.bufStdoutPrint("\nExpanded tokens:\n", .{}) catch unreachable;
         tok.Print_Token_Array(expanded_tokens);
     }
 
@@ -152,10 +147,15 @@ pub fn main() !void {
         global_symbol_table.Print();
 
     // end and print benchmark
-    const nanoseconds = timer.read();
-    stdout.print("Compilation done in {}\n", .{std.fmt.fmtDuration(nanoseconds)}) catch unreachable;
+    {
+        const nanoseconds = timer.read();
+        var fmt_buf: [256]u8 = undefined;
+        var w = std.Io.Writer.fixed(&fmt_buf);
+        w.printDurationUnsigned(nanoseconds) catch unreachable;
+        streams.bufStdoutPrint("Compilation done in {s}\n", .{w.buffered()}) catch unreachable;
+    }
 
     // print emit information
     if (flags.output_filename) |output_filename|
-        stdout.print("Written {} bytes to {s}\n", .{ rom.len, output_filename }) catch unreachable;
+        streams.bufStdoutPrint("Written {} bytes to {s}\n", .{ rom.len, output_filename }) catch unreachable;
 }

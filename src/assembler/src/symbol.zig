@@ -9,8 +9,9 @@
 
 const std = @import("std");
 const tok = @import("token.zig");
-
 const streams = @import("shared").streams;
+
+const ArrayList = std.array_list.Managed;
 
 pub const Symbol = struct {
     /// string key that represents such symbol
@@ -107,7 +108,7 @@ pub const SymbolTable = struct {
     pub fn Search_Relative_Label(self: SymbolTable, relTok: tok.Token, romPos: u32) !tok.Token {
         const allocator = self.table.allocator;
 
-        var label_vector = std.ArrayList(tok.Token).init(allocator);
+        var label_vector = ArrayList(tok.Token).init(allocator);
         defer label_vector.deinit();
 
         // add all symbol table LABEL symbols to the total vector
@@ -175,30 +176,29 @@ pub const SymbolTable = struct {
 
     /// for debugging purposes
     pub fn Print(self: SymbolTable) void {
-        const stdout = streams.global_streams.stdout;
         const iterator = self.table.iterator();
         var i: usize = 0;
         while (i < iterator.len) : (i += 1) {
             const key = iterator.keys[i];
             const sym = self.table.get(key).?;
 
-            stdout.print("\nsymbol #{}:\n", .{i}) catch unreachable;
-            stdout.print("name: \"{?s}\"\n", .{sym.name}) catch unreachable;
+            streams.bufStdoutPrint("\nsymbol #{}:\n", .{i}) catch unreachable;
+            streams.bufStdoutPrint("name: \"{?s}\"\n", .{sym.name}) catch unreachable;
             switch (sym.value) {
                 .label => {
-                    stdout.print("type: LABEL\n", .{}) catch unreachable;
-                    stdout.print("address value: 0x{X}\n", .{sym.value.label.value}) catch unreachable;
+                    streams.bufStdoutPrint("type: LABEL\n", .{}) catch unreachable;
+                    streams.bufStdoutPrint("address value: 0x{X}\n", .{sym.value.label.value}) catch unreachable;
                 },
                 .macro => {
-                    stdout.print("type: MACRO\n", .{}) catch unreachable;
-                    stdout.print("expands to:\n", .{}) catch unreachable;
+                    streams.bufStdoutPrint("type: MACRO\n", .{}) catch unreachable;
+                    streams.bufStdoutPrint("expands to:\n", .{}) catch unreachable;
                     tok.Print_Token_Array(sym.value.macro);
                 },
                 .define => {
-                    stdout.print("type: DEFINE\n", .{}) catch unreachable;
-                    stdout.print("expands to: {{ ", .{}) catch unreachable;
+                    streams.bufStdoutPrint("type: DEFINE\n", .{}) catch unreachable;
+                    streams.bufStdoutPrint("expands to: {{ ", .{}) catch unreachable;
                     sym.value.define.Print();
-                    stdout.print(" }}\n", .{}) catch unreachable;
+                    streams.bufStdoutPrint(" }}\n", .{}) catch unreachable;
                 },
             }
         }

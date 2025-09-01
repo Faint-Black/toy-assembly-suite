@@ -12,11 +12,9 @@ const clap = @import("clap.zig");
 const specs = @import("shared").specifications;
 const utils = @import("shared").utils;
 const machine = @import("shared").machine;
-
 const streams = @import("shared").streams;
 
 pub fn Disassemble_Rom(allocator: std.mem.Allocator, flags: clap.Flags, rom: [specs.bytelen.rom]u8, original_rom_size: usize, header: specs.Header) !void {
-    const stdout = streams.global_streams.stdout;
     // for storing all the bufprint function results that need to exist at the same time
     var buffers: [4][utils.buffsize.medium]u8 = undefined;
 
@@ -36,25 +34,25 @@ pub fn Disassemble_Rom(allocator: std.mem.Allocator, flags: clap.Flags, rom: [sp
         }
     }
 
-    stdout.print("BEGIN DISASSEMBLY:\n", .{}) catch unreachable;
+    streams.bufStdoutPrint("BEGIN DISASSEMBLY:\n", .{}) catch unreachable;
     var PC: u16 = 0;
     while (true) {
         if (PC == 0) {
             const addr_str = Address_String(&buffers[0], 0);
             const instr_bytes_str = Instruction_Bytes_String(&buffers[1], rom[0..specs.bytelen.header]);
-            stdout.print("{s}{s}header bytes\n", .{ addr_str, instr_bytes_str }) catch unreachable;
+            streams.bufStdoutPrint("{s}{s}header bytes\n", .{ addr_str, instr_bytes_str }) catch unreachable;
             PC = specs.bytelen.header;
             continue;
         }
         if (PC < header.entry_point) {
             const addr_str = Address_String(&buffers[0], PC);
             const instr_bytes_str = Instruction_Bytes_String(&buffers[1], rom[PC..header.entry_point]);
-            stdout.print("{s}{s}data bytes\n", .{ addr_str, instr_bytes_str }) catch unreachable;
+            streams.bufStdoutPrint("{s}{s}data bytes\n", .{ addr_str, instr_bytes_str }) catch unreachable;
             PC = header.entry_point;
             continue;
         }
         if (PC >= original_rom_size) {
-            stdout.print("${X:0>4} to ${X:0>4} = undefined (trash) bytes\n", .{ PC, specs.bytelen.rom - 1 }) catch unreachable;
+            streams.bufStdoutPrint("${X:0>4} to ${X:0>4} = undefined (trash) bytes\n", .{ PC, specs.bytelen.rom - 1 }) catch unreachable;
             break;
         }
 
@@ -64,7 +62,7 @@ pub fn Disassemble_Rom(allocator: std.mem.Allocator, flags: clap.Flags, rom: [sp
             const metadata_bytelen: u16 = @truncate(metadata_type.Metadata_Length(rom[PC..]) catch 0);
             const addr_str = Address_String(&buffers[0], PC);
             const instr_bytes_str = Instruction_Bytes_String(&buffers[1], rom[PC .. PC + metadata_bytelen]);
-            stdout.print("{s}{s} debug metadata (LABEL NAME \"{?s}\")\n", .{ addr_str, instr_bytes_str, label_hashmap.?.get(PC + metadata_bytelen) }) catch unreachable;
+            streams.bufStdoutPrint("{s}{s} debug metadata (LABEL NAME \"{?s}\")\n", .{ addr_str, instr_bytes_str, label_hashmap.?.get(PC + metadata_bytelen) }) catch unreachable;
             PC += metadata_bytelen;
             continue;
         }
@@ -75,9 +73,9 @@ pub fn Disassemble_Rom(allocator: std.mem.Allocator, flags: clap.Flags, rom: [sp
         if (opcode_enum.What_Address_Space() == .rom) {
             const instruction_address_value = std.mem.bytesToValue(u16, rom[PC + 1 .. PC + 2]);
             const addr_name_str = Address_Name_String(&buffers[3], label_hashmap, instruction_address_value);
-            stdout.print("{s}{s}{s}; <{s}>\n", .{ addr_str, instr_bytes_str, instr_str, addr_name_str }) catch unreachable;
+            streams.bufStdoutPrint("{s}{s}{s}; <{s}>\n", .{ addr_str, instr_bytes_str, instr_str, addr_name_str }) catch unreachable;
         } else {
-            stdout.print("{s}{s}{s}\n", .{ addr_str, instr_bytes_str, instr_str }) catch unreachable;
+            streams.bufStdoutPrint("{s}{s}{s}\n", .{ addr_str, instr_bytes_str, instr_str }) catch unreachable;
         }
 
         PC += opcode_enum.Instruction_Byte_Length();

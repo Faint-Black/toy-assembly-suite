@@ -8,7 +8,6 @@
 
 const std = @import("std");
 const utils = @import("shared").utils;
-
 const streams = @import("shared").streams;
 
 pub const Token = struct {
@@ -52,21 +51,20 @@ pub const Token = struct {
 
     /// print individual token, for debugging purposes
     pub fn Print(self: Token) void {
-        const stdout = streams.global_streams.stdout;
         const enum_name = std.enums.tagName(TokenType, self.tokType).?;
 
         if (self.identKey) |identifier| {
-            stdout.print("{s}=\"{s}\"", .{ enum_name, identifier }) catch unreachable;
+            streams.bufStdoutPrint("{s}=\"{s}\"", .{ enum_name, identifier }) catch unreachable;
         } else if (self.tokType == .LITERAL) {
-            stdout.print("LIT=0x{x}", .{self.value}) catch unreachable;
+            streams.bufStdoutPrint("LIT=0x{x}", .{self.value}) catch unreachable;
         } else if (self.tokType == .ADDRESS) {
-            stdout.print("ADDR=0x{x}", .{self.value}) catch unreachable;
+            streams.bufStdoutPrint("ADDR=0x{x}", .{self.value}) catch unreachable;
         } else if (self.tokType == .BACKWARD_LABEL_REF) {
-            stdout.print("RELATIVE_LABEL=-{}", .{self.value}) catch unreachable;
+            streams.bufStdoutPrint("RELATIVE_LABEL=-{}", .{self.value}) catch unreachable;
         } else if (self.tokType == .FORWARD_LABEL_REF) {
-            stdout.print("RELATIVE_LABEL=+{}", .{self.value}) catch unreachable;
+            streams.bufStdoutPrint("RELATIVE_LABEL=+{}", .{self.value}) catch unreachable;
         } else {
-            stdout.print("{s}", .{enum_name}) catch unreachable;
+            streams.bufStdoutPrint("{s}", .{enum_name}) catch unreachable;
         }
     }
 };
@@ -80,17 +78,16 @@ pub fn Destroy_Tokens_Contents(allocator: std.mem.Allocator, tokArray: []const T
 
 /// for debugging only
 pub fn Print_Token_Array(tokArray: []const Token) void {
-    const stdout = streams.global_streams.stdout;
-    stdout.print("{{\n", .{}) catch unreachable;
+    streams.bufStdoutPrint("{{\n", .{}) catch unreachable;
     for (tokArray) |token| {
         if (token.tokType == .LINEFINISH) {
-            stdout.print("$\n", .{}) catch unreachable;
+            streams.bufStdoutPrint("$\n", .{}) catch unreachable;
             continue;
         }
         token.Print();
-        stdout.print(", ", .{}) catch unreachable;
+        streams.bufStdoutPrint(", ", .{}) catch unreachable;
     }
-    stdout.print("}}\n", .{}) catch unreachable;
+    streams.bufStdoutPrint("}}\n", .{}) catch unreachable;
 }
 
 pub const TokenType = enum {

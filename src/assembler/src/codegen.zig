@@ -14,11 +14,12 @@ const tok = @import("token.zig");
 const sym = @import("symbol.zig");
 const clap = @import("clap.zig");
 const warn = @import("shared").warn;
+const streams = @import("shared").streams;
 
 const Opcode = specs.Opcode;
 const DebugMetadataType = specs.DebugMetadataType;
 
-const streams = @import("shared").streams;
+const ArrayList = std.array_list.Managed;
 
 pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
     // {..., ACTUAL_LAST_TOKEN, $, EOF, $}
@@ -48,9 +49,7 @@ pub fn Generate_Rom(allocator: std.mem.Allocator, flags: clap.Flags, symTable: *
 /// relative to its location in rom.
 /// Second pass: now that the LABEL locations have been defined, generate the actual usable rom.
 fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, symTable: *sym.SymbolTable, expandedTokens: []const tok.Token) ![]u8 {
-    const stdout = streams.global_streams.stdout;
-
-    var rom_vector = std.ArrayList(u8).init(allocator);
+    var rom_vector = ArrayList(u8).init(allocator);
     defer rom_vector.deinit();
 
     // avoid needless micro allocations
@@ -204,11 +203,11 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
             // [DEBUG OUTPUT] output anonymous label reference substitution details
             if (flags.log_anon_labels) {
                 const sign: u8 = if (token.tokType == .BACKWARD_LABEL_REF) '-' else '+';
-                stdout.print("\nresulting relative label fetch:\n", .{}) catch unreachable;
-                stdout.print("relative index: {c}{}\n", .{ sign, token.value }) catch unreachable;
-                stdout.print("name: \"{?s}\"\n", .{label_token.identKey}) catch unreachable;
-                stdout.print("current rom address: 0x{X:0>8}\n", .{rom_vector.items.len}) catch unreachable;
-                stdout.print("fetched rom address: 0x{X:0>8}\n", .{address_token.value}) catch unreachable;
+                streams.bufStdoutPrint("\nresulting relative label fetch:\n", .{}) catch unreachable;
+                streams.bufStdoutPrint("relative index: {c}{}\n", .{ sign, token.value }) catch unreachable;
+                streams.bufStdoutPrint("name: \"{?s}\"\n", .{label_token.identKey}) catch unreachable;
+                streams.bufStdoutPrint("current rom address: 0x{X:0>8}\n", .{rom_vector.items.len}) catch unreachable;
+                streams.bufStdoutPrint("fetched rom address: 0x{X:0>8}\n", .{address_token.value}) catch unreachable;
             }
 
             continue;
@@ -248,7 +247,7 @@ fn Codegen(isFirstPass: bool, allocator: std.mem.Allocator, flags: clap.Flags, s
 }
 
 /// Append the bytecode instruction respective to the input instruction line tokens
-fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8), is_first_pass: bool) !void {
+fn Process_Instruction_Line(line: []tok.Token, vec: *ArrayList(u8), is_first_pass: bool) !void {
     // 4 token limit for each instruction line
     const buffsize: usize = 4;
     if (line.len >= buffsize)
@@ -464,31 +463,30 @@ fn Process_Instruction_Line(line: []tok.Token, vec: *std.ArrayList(u8), is_first
 }
 
 fn Debug_Print_Rom(rom: []u8) void {
-    const stdout = streams.global_streams.stdout;
     var i: u16 = 0;
-    stdout.print("\nGENERATED ROM BYTES:", .{}) catch unreachable;
+    streams.bufStdoutPrint("\nGENERATED ROM BYTES:", .{}) catch unreachable;
     while (true) : (i += 1) {
         if (i % 16 == 0) {
             if (i >= rom.len) break;
-            stdout.print("\n${X:0>4}:", .{i}) catch unreachable;
+            streams.bufStdoutPrint("\n${X:0>4}:", .{i}) catch unreachable;
         }
         if (i < rom.len) {
-            stdout.print(" {x:0>2}", .{rom[i]}) catch unreachable;
+            streams.bufStdoutPrint(" {x:0>2}", .{rom[i]}) catch unreachable;
         } else {
-            stdout.print(" ..", .{}) catch unreachable;
+            streams.bufStdoutPrint(" ..", .{}) catch unreachable;
         }
     }
-    stdout.print("\n", .{}) catch unreachable;
+    streams.bufStdoutPrint("\n", .{}) catch unreachable;
 }
 
 /// Using low-endian, sequentially append the bytes of a value to an u8 arraylist
-fn Append_Generic(vector: *std.ArrayList(u8), value: anytype) !void {
+fn Append_Generic(vector: *ArrayList(u8), value: anytype) !void {
     const byte_array = std.mem.toBytes(value);
     try vector.appendSlice(&byte_array);
 }
 
 /// Using low-endian, sequentially append the first n bytes of a value to an u8 arraylist
-fn Append_Generic_Limited(vector: *std.ArrayList(u8), value: anytype, comptime n: usize) !void {
+fn Append_Generic_Limited(vector: *ArrayList(u8), value: anytype, comptime n: usize) !void {
     comptime std.debug.assert(n <= @sizeOf(@TypeOf(value)));
     const byte_array = std.mem.toBytes(value);
     try vector.appendSlice(byte_array[0..n]);
@@ -499,7 +497,7 @@ fn Append_Generic_Limited(vector: *std.ArrayList(u8), value: anytype, comptime n
 //-------------------------------------------------------------//
 test "byte vector appending" {
     const num = @as(u32, 0xFFEEDDCC);
-    var vector = std.ArrayList(u8).init(std.testing.allocator);
+    var vector = ArrayList(u8).init(std.testing.allocator);
     defer vector.deinit();
 
     try Append_Generic(&vector, num);
@@ -513,7 +511,7 @@ test "byte vector appending" {
 
 test "limited byte vector appending" {
     const num = @as(u64, 0xDEADBEEF03020100);
-    var vector = std.ArrayList(u8).init(std.testing.allocator);
+    var vector = ArrayList(u8).init(std.testing.allocator);
     defer vector.deinit();
 
     try Append_Generic_Limited(&vector, num, 3);
@@ -528,7 +526,7 @@ test "limited byte vector appending" {
 }
 
 test "assert rom header data" {
-    var vector = std.ArrayList(u8).init(std.testing.allocator);
+    var vector = ArrayList(u8).init(std.testing.allocator);
     defer vector.deinit();
 
     const rom_header = specs.Header{
