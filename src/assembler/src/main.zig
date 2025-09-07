@@ -20,13 +20,15 @@ const analysis = @import("analyzer.zig");
 const streams = @import("shared").streams;
 
 pub fn main() !void {
-    // use DebugAllocator on debug mode
-    // use ArenaAllocator with page_allocator on release mode
-    var debug_struct_allocator = std.heap.DebugAllocator(.{}).init;
-    defer _ = debug_struct_allocator.deinit();
-    var arena_struct_allocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer _ = arena_struct_allocator.deinit();
-    const global_allocator: std.mem.Allocator = if (builtin.mode == .Debug) debug_struct_allocator.allocator() else arena_struct_allocator.allocator();
+    // set up allocator
+    var debug_allocator = std.heap.DebugAllocator(.{}).init;
+    const gpa, const is_debug_alloc = switch (builtin.mode) {
+        .Debug, .ReleaseSafe => .{ debug_allocator.allocator(), true },
+        .ReleaseFast, .ReleaseSmall => .{ std.heap.smp_allocator, false },
+    };
+    defer if (is_debug_alloc) {
+        _ = debug_allocator.deinit();
+    };
 
     // begin benchmark
     var timer = std.time.Timer.start() catch |err| {
@@ -35,11 +37,11 @@ pub fn main() !void {
     };
 
     // keep track of identifiers through all steps
-    var global_symbol_table = sym.SymbolTable.Init(global_allocator);
+    var global_symbol_table = sym.SymbolTable.Init(gpa);
     defer global_symbol_table.Deinit();
 
     // command-line flags, filenames and filepath specifications
-    const flags = clap.Flags.Parse(global_allocator) catch |err| {
+    const flags = clap.Flags.Parse(gpa) catch |err| {
         warn.Fatal_Error_Message("could not parse command line flags!", .{});
         return err;
     };
@@ -81,19 +83,19 @@ pub fn main() !void {
     };
     // 1 MiB filesize limit
     const max_filesize: usize = (1 << 20);
-    const filecontents = filestream.readToEndAlloc(global_allocator, max_filesize) catch |err| {
+    const filecontents = filestream.readToEndAlloc(gpa, max_filesize) catch |err| {
         warn.Fatal_Error_Message("could not read or allocate file contents!", .{});
         if (builtin.mode == .Debug) return err else return;
     };
-    defer global_allocator.free(filecontents);
+    defer gpa.free(filecontents);
 
     // lex and parse input file into individual tokens
-    const lexed_tokens = lex.Lexer(global_allocator, filecontents) catch |err| {
+    const lexed_tokens = lex.Lexer(gpa, filecontents) catch |err| {
         warn.Fatal_Error_Message("lexing failed!", .{});
         if (builtin.mode == .Debug) return err else return;
     };
-    defer global_allocator.free(lexed_tokens);
-    defer tok.Destroy_Tokens_Contents(global_allocator, lexed_tokens);
+    defer gpa.free(lexed_tokens);
+    defer tok.Destroy_Tokens_Contents(gpa, lexed_tokens);
 
     // [DEBUG OUTPUT] print lexed tokens
     if (flags.log_lexed_tokens) {
@@ -102,12 +104,12 @@ pub fn main() !void {
     }
 
     // expand macros
-    const expanded_tokens = pp.Preprocessor_Expansion(global_allocator, flags, &global_symbol_table, lexed_tokens) catch |err| {
+    const expanded_tokens = pp.Preprocessor_Expansion(gpa, flags, &global_symbol_table, lexed_tokens) catch |err| {
         warn.Fatal_Error_Message("macro expansion failed!", .{});
         if (builtin.mode == .Debug) return err else return;
     };
-    defer global_allocator.free(expanded_tokens);
-    defer tok.Destroy_Tokens_Contents(global_allocator, expanded_tokens);
+    defer gpa.free(expanded_tokens);
+    defer tok.Destroy_Tokens_Contents(gpa, expanded_tokens);
 
     // [DEBUG OUTPUT] print macro expanded tokens
     if (flags.log_expanded_tokens) {
@@ -116,11 +118,11 @@ pub fn main() !void {
     }
 
     // start the code generation
-    const rom = codegen.Generate_Rom(global_allocator, flags, &global_symbol_table, expanded_tokens) catch |err| {
+    const rom = codegen.Generate_Rom(gpa, flags, &global_symbol_table, expanded_tokens) catch |err| {
         warn.Fatal_Error_Message("rom bytecode generation failed!", .{});
         if (builtin.mode == .Debug) return err else return;
     };
-    defer global_allocator.free(rom);
+    defer gpa.free(rom);
 
     // analyze user's generated rom
     analysis.Analyze_Rom(rom) catch |err| {

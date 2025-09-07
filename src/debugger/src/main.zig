@@ -16,16 +16,18 @@ const warn = @import("shared").warn;
 const streams = @import("shared").streams;
 
 pub fn main() !void {
-    // use DebugAllocator on debug mode
-    // use ArenaAllocator with page_allocator on release mode
-    var debug_struct_allocator = std.heap.DebugAllocator(.{}).init;
-    defer _ = debug_struct_allocator.deinit();
-    var arena_struct_allocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer _ = arena_struct_allocator.deinit();
-    const global_allocator: std.mem.Allocator = if (builtin.mode == .Debug) debug_struct_allocator.allocator() else arena_struct_allocator.allocator();
+    // set up allocator
+    var debug_allocator = std.heap.DebugAllocator(.{}).init;
+    const gpa, const is_debug_alloc = switch (builtin.mode) {
+        .Debug, .ReleaseSafe => .{ debug_allocator.allocator(), true },
+        .ReleaseFast, .ReleaseSmall => .{ std.heap.smp_allocator, false },
+    };
+    defer if (is_debug_alloc) {
+        _ = debug_allocator.deinit();
+    };
 
     // command-line flags, filenames and filepath specifications
-    const flags = try clap.Flags.Parse(global_allocator);
+    const flags = try clap.Flags.Parse(gpa);
     defer flags.Deinit();
     if (flags.help == true) {
         streams.bufStdoutPrint(clap.Flags.Help_String(), .{}) catch unreachable;
